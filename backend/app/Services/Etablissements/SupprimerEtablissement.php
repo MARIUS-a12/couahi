@@ -23,16 +23,23 @@ use Illuminate\Support\Facades\DB;
  */
 class SupprimerEtablissement
 {
+    /**
+     * Aucun contournement du scope global sur commandes()/medias() ici : le
+     * seul appelant (EtablissementController::destroy(), route
+     * "/etablissements/{etablissement}") pose déjà le contexte sur CET
+     * établissement via DefinirEtablissementCible — le filtrage tenant
+     * s'applique donc normalement.
+     */
     public function executer(Etablissement $etablissement): void
     {
-        $nombreCommandes = $etablissement->commandes()->pourTousEtablissements()->count();
+        $nombreCommandes = $etablissement->commandes()->count();
 
         if ($nombreCommandes > 0) {
             throw EtablissementAvecCommandesException::pour($nombreCommandes);
         }
 
         DB::transaction(function () use ($etablissement) {
-            foreach ($etablissement->medias()->pourTousEtablissements()->get() as $media) {
+            foreach ($etablissement->medias()->get() as $media) {
                 $media->supprimerFichiersDisque();
             }
 

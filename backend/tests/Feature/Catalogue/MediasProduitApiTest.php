@@ -38,11 +38,26 @@ class MediasProduitApiTest extends TestCase
         return $this;
     }
 
+    /**
+     * "Sans aucun média" explicitement : EtablissementsDemoSeeder peuple
+     * désormais le catalogue de démo avec des produits qui en ont déjà (voir
+     * sa docblock) — un simple "le premier produit venu" ne garantirait plus
+     * la toile vierge dont ces tests ont besoin pour compter leurs propres
+     * envois sans interférence.
+     */
     private function produitDe(string $slugEtablissement): Produit
     {
         $etablissement = Etablissement::where('slug', $slugEtablissement)->firstOrFail();
 
-        return Produit::pourTousEtablissements()->where('etablissement_id', $etablissement->id)->firstOrFail();
+        return Produit::pourTousEtablissements()
+            ->where('etablissement_id', $etablissement->id)
+            // whereDoesntHave avec callback (pas doesntHave()) : la
+            // sous-requête interroge Media, lui aussi tenant-scopé, alors
+            // qu'aucun contexte ambiant n'existe ici (code de test, hors
+            // d'une requête HTTP) — même contournement explicite que
+            // pourTousEtablissements() ci-dessus, pour la même raison.
+            ->whereDoesntHave('medias', fn ($requete) => $requete->pourTousEtablissements())
+            ->firstOrFail();
     }
 
     public function test_1_envoi_reussi_genere_les_trois_formats(): void

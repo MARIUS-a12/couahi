@@ -6,7 +6,7 @@
  * seule fois, et propose "Remplir plus tard" vers la liste.
  */
 import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useParams } from 'react-router-dom'
 import { serviceIdentiteSuperAdmin } from '../api/identite'
 import { BandeauMotDePasseGenere } from '../components/BandeauMotDePasseGenere'
 import { BoutonRetour } from '../components/BoutonRetour'
@@ -25,6 +25,13 @@ export function PageIdentiteEtablissementSuperAdmin() {
 
   const [motDePasseGenere, setMotDePasseGenere] = useState(etat?.motDePasseGenere ?? null)
   const service = useMemo(() => serviceIdentiteSuperAdmin(etablissementId), [etablissementId])
+
+  // Pas d'identifiant exploitable dans l'URL (accès direct malformé) : mieux
+  // vaut revenir à la liste que de lancer un appel voué à échouer (sur
+  // /api/etablissements/NaN/identite).
+  if (!id || Number.isNaN(etablissementId)) {
+    return <Navigate to="/etablissements" replace />
+  }
 
   return (
     <div className="mx-auto max-w-2xl pb-4">

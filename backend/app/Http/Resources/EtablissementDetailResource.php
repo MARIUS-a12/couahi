@@ -27,7 +27,12 @@ class EtablissementDetailResource extends JsonResource
             // Étape 7 : conditionne, côté interface, la présence du bouton
             // "Supprimer définitivement" — la vérification qui compte
             // reste côté serveur (EtablissementController::destroy()).
-            'nombre_commandes' => $this->commandes()->pourTousEtablissements()->count(),
+            // Aucun contournement du scope global ici : chaque route qui
+            // construit cette Resource pose déjà le contexte sur CET
+            // établissement (DefinirEtablissementCible, ou explicitement
+            // dans EtablissementController::store() juste après création) —
+            // le filtrage tenant s'applique donc normalement.
+            'nombre_commandes' => $this->commandes()->count(),
             'domaines' => $this->domaines->map(fn ($domaine) => [
                 'id' => $domaine->id,
                 'hote' => $domaine->hote,

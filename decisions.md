@@ -54,4 +54,12 @@ revoir le secret déjà saisi (pratique pour vérifier qu'on a bien
 enregistré la bonne valeur). Écartée parce qu'un secret qu'on peut relire
 est un secret qu'une session compromise ou un accès non autorisé à
 l'interface peut exfiltrer — la seule opération sûre sur un secret existant
-est de le remplacer, jamais de le consulter.
+est de le remplacer, jamais de le consulter
+
+Lenteur des requêtes en développement (octobre 2026)
+Décision : ne rien corriger.
+Constat : 88 à 271 ms pour chaque nouvelle connexion PostgreSQL, 1 à 13 ms pour la requête elle-même. Mesuré en PDO brut, hors Laravel.
+Cause : PostgreSQL sous Windows n'a pas de fork() et crée un processus système complet à chaque connexion. Coût connu, nettement plus élevé que sous Linux.
+Pistes écartées : DB_HOST valait déjà 127.0.0.1, aucune résolution DNS en jeu ; désactiver SSL ne gagne que 15 à 20 %.
+Pourquoi on ne corrige pas : la production tournera sous Linux, où ce coût disparaît. Un pool de connexions serait du travail pour un problème propre à la machine de développement.
+À réexaminer seulement si la lenteur apparaît sur le serveur de production.

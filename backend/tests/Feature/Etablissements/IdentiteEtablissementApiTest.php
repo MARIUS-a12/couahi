@@ -69,6 +69,7 @@ class IdentiteEtablissementApiTest extends TestCase
     public function test_2_lien_facebook_vers_autre_domaine_refuse(): void
     {
         $this->seed();
+        $lienAvant = $this->chezAwa()->lien_facebook;
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
 
         $reponse = $this->depuis('chez-awa.localhost')
@@ -78,7 +79,11 @@ class IdentiteEtablissementApiTest extends TestCase
 
         $reponse->assertStatus(422);
         $reponse->assertJsonValidationErrors(['lien_facebook']);
-        $this->assertNull($this->chezAwa()->lien_facebook);
+        // Chez Awa a désormais un vrai lien Facebook de démo (voir
+        // EtablissementsDemoSeeder) : la preuve que le refus n'a rien
+        // changé est qu'il reste EXACTEMENT celui d'avant, pas qu'il soit
+        // vide.
+        $this->assertSame($lienAvant, $this->chezAwa()->lien_facebook);
     }
 
     public function test_3_url_http_stockee_en_https(): void
@@ -119,7 +124,11 @@ class IdentiteEtablissementApiTest extends TestCase
             ])
             ->assertStatus(403);
 
-        $this->assertNull($maquisDuPort->fresh()->description);
+        // Maquis du Port a désormais une vraie description de démo (voir
+        // EtablissementsDemoSeeder) : la preuve que le refus n'a rien
+        // changé est qu'elle reste EXACTEMENT celle d'avant, pas qu'elle
+        // soit vide.
+        $this->assertSame($maquisDuPort->description, $maquisDuPort->fresh()->description);
     }
 
     public function test_6_super_admin_peut_modifier_nimporte_quel_etablissement(): void
@@ -216,6 +225,18 @@ class IdentiteEtablissementApiTest extends TestCase
         $this->seed();
         $chezAwa = $this->chezAwa();
 
+        // Chez Awa a désormais une identité de démo complète (voir
+        // EtablissementsDemoSeeder) : ce test vérifie précisément le
+        // comportement "champ non renseigné" côté vitrine, qui a donc
+        // besoin d'un établissement délibérément incomplet — recréé ici,
+        // indépendamment de ce que le seeder remplit par défaut.
+        $chezAwa->update([
+            'adresse' => null,
+            'lien_facebook' => null,
+            'logo_media_id' => null,
+            'couleur_accent' => null,
+        ]);
+
         $avant = $this->depuis('chez-awa.localhost')
             ->getJson('http://chez-awa.localhost:8000/api/vitrine/etablissement')
             ->json('data');
@@ -245,11 +266,15 @@ class IdentiteEtablissementApiTest extends TestCase
     public function test_10_cache_vitrine_invalide_apres_modification(): void
     {
         $this->seed();
+        $descriptionAvant = $this->chezAwa()->description;
 
         $avant = $this->depuis('chez-awa.localhost')
             ->getJson('http://chez-awa.localhost:8000/api/vitrine/etablissement')
             ->json('data.description');
-        $this->assertNull($avant);
+        // La description de démo (voir EtablissementsDemoSeeder) doit déjà
+        // apparaître ici : ce test porte sur l'invalidation du cache après
+        // modification, pas sur un établissement vierge.
+        $this->assertSame($descriptionAvant, $avant);
 
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
         $this->depuis('chez-awa.localhost')
@@ -276,6 +301,19 @@ class IdentiteEtablissementApiTest extends TestCase
     {
         $this->seed();
         $chezAwa = $this->chezAwa();
+
+        // Chez Awa a désormais une identité de démo complète (voir
+        // EtablissementsDemoSeeder) : ce test vérifie précisément que la
+        // pastille "incomplet" apparaît puis disparaît à mesure que les
+        // champs se remplissent, ce qui a donc besoin de partir d'un
+        // établissement délibérément incomplet.
+        $chezAwa->update([
+            'couleur_accent' => null,
+            'telephone_whatsapp' => null,
+            'horaires' => null,
+            'logo_media_id' => null,
+        ]);
+
         $this->connecte('admin.localhost', 'super@plateforme.test');
 
         $liste = $this->depuis('admin.localhost')->getJson('http://admin.localhost:8000/api/etablissements')->json('data');

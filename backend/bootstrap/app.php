@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\EtablissementNonResoluException;
+use App\Http\Middleware\DefinirEtablissementCible;
 use App\Http\Middleware\ResoudreEtablissement;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'resoudre.etablissement' => ResoudreEtablissement::class,
+            'definir.etablissement.cible' => DefinirEtablissementCible::class,
         ]);
 
         // ResoudreEtablissement n'est pas dans la liste de priorité de

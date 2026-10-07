@@ -17,6 +17,8 @@ import { allerAuPremierChampEnErreur, extraireErreursChamps } from '../lib/erreu
 import { BandeauSucces } from './BandeauSucces'
 import { ChampTexte } from './ChampTexte'
 import { EtatBouton } from './EtatBouton'
+import { EtatChargement } from './EtatChargement'
+import { EtatErreur } from './EtatErreur'
 
 const LIBELLES_JOURS: Record<JourSemaine, string> = {
   lundi: 'Lundi',
@@ -89,12 +91,13 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
     service
       .recuperer()
       .then((donnees) => {
-        if (annule) return
-        appliquer(donnees)
-        setChargement(false)
+        if (!annule) appliquer(donnees)
       })
       .catch(() => {
         if (!annule) setErreurChargement(true)
+      })
+      .finally(() => {
+        if (!annule) setChargement(false)
       })
 
     return () => {
@@ -102,6 +105,17 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function recharger() {
+    setChargement(true)
+    setErreurChargement(false)
+
+    service
+      .recuperer()
+      .then((donnees) => appliquer(donnees))
+      .catch(() => setErreurChargement(true))
+      .finally(() => setChargement(false))
+  }
 
   function appliquer(donnees: IdentiteEtablissement) {
     setIdentite(donnees)
@@ -196,17 +210,13 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
   }
 
   if (chargement) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 w-1/3 animate-pulse rounded bg-surface-alt" />
-        <div className="h-32 w-full animate-pulse rounded bg-surface-alt" />
-        <div className="h-32 w-full animate-pulse rounded bg-surface-alt" />
-      </div>
-    )
+    return <EtatChargement />
   }
 
   if (erreurChargement || !identite) {
-    return <p className="text-corps text-danger">Impossible de charger l'identité de cet établissement.</p>
+    return (
+      <EtatErreur erreur={new Error("Impossible de charger l'identité de cet établissement.")} onReessayer={recharger} />
+    )
   }
 
   const ratio = couleurAccent.match(/^#[0-9a-fA-F]{6}$/) ? ratioContrasteAvecBlanc(couleurAccent) : null

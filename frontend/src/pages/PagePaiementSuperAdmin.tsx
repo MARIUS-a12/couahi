@@ -4,7 +4,7 @@
  * établissement, pour pouvoir dépanner un commerçant.
  */
 import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import { servicePaiementSuperAdmin } from '../api/paiement'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { FormulairePaiement } from '../components/FormulairePaiement'
@@ -13,6 +13,13 @@ export function PagePaiementSuperAdmin() {
   const { id } = useParams()
   const etablissementId = Number(id)
   const service = useMemo(() => servicePaiementSuperAdmin(etablissementId), [etablissementId])
+
+  // Pas d'identifiant exploitable dans l'URL (accès direct malformé) : mieux
+  // vaut revenir à la liste que de lancer un appel voué à échouer (sur
+  // /api/etablissements/NaN/paiement).
+  if (!id || Number.isNaN(etablissementId)) {
+    return <Navigate to="/etablissements" replace />
+  }
 
   return (
     <div className="mx-auto max-w-2xl pb-4">

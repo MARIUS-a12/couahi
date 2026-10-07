@@ -13,6 +13,7 @@ use App\Models\Domaine;
 use App\Models\Etablissement;
 use App\Services\Etablissements\CreerEtablissement;
 use App\Services\Etablissements\SupprimerEtablissement;
+use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -36,7 +37,13 @@ class EtablissementController extends Controller
         // — et lèverait, faute de contexte ambiant sur l'hôte du
         // super-admin. pourTousEtablissements() dans la closure : ce
         // comptage porte volontairement sur TOUS les établissements à la
-        // fois, un par ligne.
+        // fois, un par ligne — SEULE exception restante à "jamais
+        // pourTousEtablissements() depuis une route web" (voir
+        // DefinirEtablissementCible) : cette liste n'a justement PAS un
+        // établissement "cible" unique sur lequel poser le contexte, et la
+        // sous-requête de comptage reste de toute façon bornée par la
+        // jointure sur chaque etablissements.id — ce n'est pas la même
+        // classe de risque qu'un contournement sur UN établissement précis.
         $etablissements = Etablissement::query()
             ->with('domaines')
             ->withCount(['produits' => fn ($requete) => $requete->pourTousEtablissements()])
@@ -46,7 +53,7 @@ class EtablissementController extends Controller
         return EtablissementResource::collection($etablissements);
     }
 
-    public function store(StoreEtablissementRequest $request, CreerEtablissement $creerEtablissement): JsonResponse
+    public function store(StoreEtablissementRequest $request, CreerEtablissement $creerEtablissement, ContexteEtablissement $contexte): JsonResponse
     {
         $resultat = $creerEtablissement->executer(
             nom: $request->validated('nom'),
@@ -59,10 +66,23 @@ class EtablissementController extends Controller
             emailAdministrateur: $request->validated('email_administrateur'),
         );
 
-        return (new EtablissementDetailResource($resultat->etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role'])))
-            ->additional(['mot_de_passe_genere' => $resultat->motDePasseGenere])
-            ->response()
-            ->setStatusCode(201);
+        // Aucun {etablissement} dans l'URL de cette route (l'id n'existe pas
+        // encore avant la création) : DefinirEtablissementCible ne s'applique
+        // donc pas ici. On pose le contexte nous-mêmes sur l'établissement
+        // qu'on vient de créer, pour que EtablissementDetailResource (qui
+        // compte ses commandes, forcément 0 ici) se filtre normalement au
+        // lieu de devoir contourner le scope — puis on le relâche, comme le
+        // ferait ce middleware pour toute autre route super-admin.
+        $contexte->definir($resultat->etablissement);
+
+        try {
+            return (new EtablissementDetailResource($resultat->etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role'])))
+                ->additional(['mot_de_passe_genere' => $resultat->motDePasseGenere])
+                ->response()
+                ->setStatusCode(201);
+        } finally {
+            $contexte->definir(null);
+        }
     }
 
     public function show(Etablissement $etablissement): EtablissementDetailResource

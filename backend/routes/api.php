@@ -79,25 +79,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/etablissements/sous-domaine-disponible', [EtablissementController::class, 'verifierSousDomaine']);
     Route::get('/etablissements', [EtablissementController::class, 'index']);
     Route::post('/etablissements', [EtablissementController::class, 'store']);
-    Route::get('/etablissements/{etablissement}', [EtablissementController::class, 'show']);
-    Route::post('/etablissements/{etablissement}/suspendre', [EtablissementController::class, 'suspendre']);
-    Route::post('/etablissements/{etablissement}/reactiver', [EtablissementController::class, 'reactiver']);
-    Route::delete('/etablissements/{etablissement}', [EtablissementController::class, 'destroy']);
 
-    // Étape 6A ter — identité (chemin super-admin, n'importe quel
-    // établissement) : MÊME contrôleur, MÊME service que le chemin
-    // commerçant ci-dessous, voir IdentiteEtablissementController.
-    Route::get('/etablissements/{etablissement}/identite', [IdentiteEtablissementController::class, 'show']);
-    Route::patch('/etablissements/{etablissement}/identite', [IdentiteEtablissementController::class, 'update']);
-    Route::post('/etablissements/{etablissement}/identite/logo', [IdentiteEtablissementController::class, 'uploaderLogo']);
-    Route::delete('/etablissements/{etablissement}/identite/logo', [IdentiteEtablissementController::class, 'supprimerLogo']);
+    // Correctif lenteur/page vide — toute route super-admin ciblant UN
+    // établissement précis pose le contexte de tenancy sur lui (voir
+    // DefinirEtablissementCible) : sans ça, la moindre donnée scopée de cet
+    // établissement (médias, commandes...) lève EtablissementNonResoluException,
+    // faute de sous-domaine à résoudre sur l'hôte du super-admin. UN SEUL
+    // endroit pose ce contexte — jamais pourTousEtablissements() pour
+    // contourner le scope depuis une route web.
+    Route::middleware('definir.etablissement.cible')->group(function () {
+        Route::get('/etablissements/{etablissement}', [EtablissementController::class, 'show']);
+        Route::post('/etablissements/{etablissement}/suspendre', [EtablissementController::class, 'suspendre']);
+        Route::post('/etablissements/{etablissement}/reactiver', [EtablissementController::class, 'reactiver']);
+        Route::delete('/etablissements/{etablissement}', [EtablissementController::class, 'destroy']);
 
-    // Étape 6C-1 — paiement (chemin super-admin, pour dépanner un
-    // commerçant) : MÊME contrôleur, MÊMES services que le chemin
-    // commerçant ci-dessous, voir PaiementEtablissementController.
-    Route::get('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'show']);
-    Route::put('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'update']);
-    Route::delete('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'destroy']);
+        // Étape 6A ter — identité (chemin super-admin, n'importe quel
+        // établissement) : MÊME contrôleur, MÊME service que le chemin
+        // commerçant ci-dessous, voir IdentiteEtablissementController.
+        Route::get('/etablissements/{etablissement}/identite', [IdentiteEtablissementController::class, 'show']);
+        Route::patch('/etablissements/{etablissement}/identite', [IdentiteEtablissementController::class, 'update']);
+        Route::post('/etablissements/{etablissement}/identite/logo', [IdentiteEtablissementController::class, 'uploaderLogo']);
+        Route::delete('/etablissements/{etablissement}/identite/logo', [IdentiteEtablissementController::class, 'supprimerLogo']);
+
+        // Étape 6C-1 — paiement (chemin super-admin, pour dépanner un
+        // commerçant) : MÊME contrôleur, MÊMES services que le chemin
+        // commerçant ci-dessous, voir PaiementEtablissementController.
+        Route::get('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'show']);
+        Route::put('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'update']);
+        Route::delete('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'destroy']);
+    });
 
     Route::middleware('resoudre.etablissement')->group(function () {
         Route::get('/produits', [ProduitController::class, 'index']);

@@ -48,7 +48,11 @@ class LienWhatsappApiTest extends TestCase
         $reponse->assertStatus(200);
 
         $url = $reponse->json('url');
-        $numeroAttendu = preg_replace('/\D/', '', $chezAwa->telephone);
+        // Même priorité que VitrineProduitController::lienWhatsapp() :
+        // telephone_whatsapp d'abord, telephone en repli — chez-awa a
+        // désormais un vrai telephone_whatsapp de démo (voir
+        // EtablissementsDemoSeeder), qui doit donc être celui utilisé ici.
+        $numeroAttendu = preg_replace('/\D/', '', $chezAwa->telephone_whatsapp ?? $chezAwa->telephone);
 
         $this->assertStringStartsWith("https://wa.me/{$numeroAttendu}?text=", $url);
         $this->extraireCode($url);

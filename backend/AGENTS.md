@@ -178,6 +178,17 @@ activation, etc.) se fait par email ET par IP, jamais par IP seule.
 Une IP seule pénalise des utilisateurs sans lien entre eux qui la
 partagent (opérateurs mobiles). Voir App\Support\RateLimiting\LimiteurEmailEtIp.
 
+## Données de démonstration réalistes
+Les données de démonstration doivent ressembler aux données de
+production. Un champ facultatif jamais rempli dans les seeders est un bug
+qui attend son heure : le bug du logo super-admin (voir
+DefinirEtablissementCible) est passé inaperçu parce qu'aucun établissement
+de démo n'avait de logo, alors que les deux établissements réels en ont
+un. Remplir un champ facultatif via le vrai service (le système de médias
+pour une image, pas une ligne fabriquée à la main) plutôt que de le
+laisser vide "pour aller plus vite" — un raccourci dans les seeders cache
+exactement la classe de bug qu'un test est censé attraper.
+
 ## Documentation
 Voir decisions.md à la racine pour le pourquoi des choix d'architecture
 non évidents. Ce fichier (AGENTS.md) ne contient que des règles de
