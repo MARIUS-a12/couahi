@@ -124,6 +124,32 @@ class Etablissement extends Model
         return $this->hasMany(Commande::class);
     }
 
+    /**
+     * Étape 12 — toujours présent : ouvert en essai dès la création de
+     * l'établissement (voir booted() ci-dessous), quel que soit le chemin
+     * de création (super-admin, seeder, factory de test).
+     */
+    public function abonnement(): HasOne
+    {
+        return $this->hasOne(Abonnement::class);
+    }
+
+    public function paiementsAbonnement(): HasMany
+    {
+        return $this->hasMany(PaiementAbonnement::class);
+    }
+
+    /**
+     * Sur l'événement "created" plutôt que dans CreerEtablissement : un
+     * établissement sans abonnement serait un trou dans la facturation (et
+     * une vitrine que rien ne coupe jamais), quel que soit le chemin qui
+     * l'a créé.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn (Etablissement $etablissement) => Abonnement::ouvrirEssaiPour($etablissement));
+    }
+
     public function configurateurPaiement(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paiement_configure_par');

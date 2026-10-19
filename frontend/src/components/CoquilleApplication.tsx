@@ -18,6 +18,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import type { Moi } from '../api/auth'
+import { BandeauAbonnement } from './BandeauAbonnement'
 import { BarreLaterale } from './BarreLaterale'
 import { BarreSuperieure } from './BarreSuperieure'
 import { chargerPolicesBackOffice } from '../lib/chargerPolicesBackOffice'
@@ -38,6 +39,9 @@ export function CoquilleApplication({ moi, children }: { moi: Moi; children: Rea
         <BarreSuperieure moi={moi} onOuvrirMenuLateral={() => setMenuLateralOuvert(true)} />
 
         <main className="p-4 sm:p-6">
+          <div className="mb-4 empty:hidden">
+            <BandeauAbonnement moi={moi} />
+          </div>
           <TransitionPage>{children}</TransitionPage>
         </main>
       </div>

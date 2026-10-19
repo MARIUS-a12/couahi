@@ -1,6 +1,7 @@
 /**
  * Écran /etablissements/{id} — informations, domaines, utilisateurs
- * rattachés, suspension/réactivation et suppression définitive (Étape 7).
+ * rattachés, abonnement (Étape 12), suspension/réactivation et suppression
+ * définitive (Étape 7).
  * Révèle aussi, une seule fois, le mot de passe généré si on y arrive juste
  * après une création (voir PageFormulaireEtablissement) — jamais
  * récupérable après ce premier affichage.
@@ -17,6 +18,7 @@ import { BoutonRetour } from '../components/BoutonRetour'
 import { EtatChargement } from '../components/EtatChargement'
 import { EtatErreur } from '../components/EtatErreur'
 import { PanneauSuppressionEtablissement } from '../components/PanneauSuppressionEtablissement'
+import { SectionAbonnementSuperAdmin } from '../components/SectionAbonnementSuperAdmin'
 import { useEtablissement } from '../hooks/useEtablissement'
 
 export function PageFicheEtablissement() {
@@ -151,6 +153,8 @@ export function PageFicheEtablissement() {
           <Info libelle="Créé le" valeur={new Date(etablissement.created_at).toLocaleDateString('fr-FR')} />
         </dl>
       </section>
+
+      <SectionAbonnementSuperAdmin etablissementId={etablissementId} />
 
       <section className="rounded-lg border border-bordure bg-surface">
         <h2 className="border-b border-bordure px-4 py-2 text-titre-section font-semibold text-texte">

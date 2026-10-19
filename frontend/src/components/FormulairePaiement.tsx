@@ -117,8 +117,8 @@ export function FormulairePaiement({ service }: { service: ServicePaiement }) {
   return (
     <div className="space-y-6">
       <p className="text-corps text-texte-secondaire">
-        L'argent de vos ventes arrive directement sur VOTRE compte CinetPay — jamais sur un compte de HK
-        Studio. C'est pour ça que vous fournissez vos propres identifiants, les mêmes que ceux de votre
+        L'argent de vos ventes arrive directement sur VOTRE compte CinetPay — jamais sur un compte de la
+        plateforme. C'est pour ça que vous fournissez vos propres identifiants, les mêmes que ceux de votre
         tableau de bord CinetPay.
       </p>
 

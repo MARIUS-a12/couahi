@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\StatutMembre;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AbonnementResource;
 use App\Models\Domaine;
 use App\Models\Etablissement;
 use App\Models\EtablissementUtilisateur;
@@ -165,6 +166,12 @@ class SessionController extends Controller
             // codée en dur côté frontend (voir BarreLaterale).
             'role_libelle_espace' => $role->libelle_espace,
             'permissions' => $role->permissions->pluck('nom')->values(),
+            // Étape 12 : pour TOUT membre (la carte "Boutique en ligne" de
+            // la barre latérale doit refléter une vitrine coupée pour
+            // impayé) ; c'est le frontend qui réserve le bandeau
+            // d'avertissement à "gerer_parametres", seuls à pouvoir ouvrir
+            // la page vers laquelle il mène.
+            'abonnement' => $etablissement?->abonnement === null ? null : new AbonnementResource($etablissement->abonnement),
         ]);
     }
 

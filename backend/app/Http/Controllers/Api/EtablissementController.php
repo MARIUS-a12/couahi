@@ -45,7 +45,9 @@ class EtablissementController extends Controller
         // jointure sur chaque etablissements.id — ce n'est pas la même
         // classe de risque qu'un contournement sur UN établissement précis.
         $etablissements = Etablissement::query()
-            ->with('domaines')
+            // Même exception, même raison, pour l'abonnement (Étape 12) :
+            // une ligne par établissement de la liste.
+            ->with(['domaines', 'abonnement' => fn ($requete) => $requete->pourTousEtablissements()])
             ->withCount(['produits' => fn ($requete) => $requete->pourTousEtablissements()])
             ->orderBy('nom')
             ->get();

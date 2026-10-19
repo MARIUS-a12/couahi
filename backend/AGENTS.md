@@ -189,6 +189,12 @@ pour une image, pas une ligne fabriquée à la main) plutôt que de le
 laisser vide "pour aller plus vite" — un raccourci dans les seeders cache
 exactement la classe de bug qu'un test est censé attraper.
 
+## Montants en francs CFA
+Tout montant d'argent est un entier, en francs CFA : colonne entière en
+base, règle "integer" en validation, jamais un float ni un decimal. Le
+franc CFA n'a pas de subdivision en usage, et un nombre à virgule finit
+toujours par produire un arrondi faux sur une somme d'argent.
+
 ## Documentation
 Voir decisions.md à la racine pour le pourquoi des choix d'architecture
 non évidents. Ce fichier (AGENTS.md) ne contient que des règles de

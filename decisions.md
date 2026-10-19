@@ -63,3 +63,43 @@ Cause : PostgreSQL sous Windows n'a pas de fork() et crée un processus système
 Pistes écartées : DB_HOST valait déjà 127.0.0.1, aucune résolution DNS en jeu ; désactiver SSL ne gagne que 15 à 20 %.
 Pourquoi on ne corrige pas : la production tournera sous Linux, où ce coût disparaît. Un pool de connexions serait du travail pour un problème propre à la machine de développement.
 À réexaminer seulement si la lenteur apparaît sur le serveur de production.
+
+## 2026-10-19 — Un abonnement impayé coupe la vitrine, jamais le back-office
+
+Passé le délai de grâce, seule la vitrine renvoie 404 ; le commerçant
+peut toujours se connecter, consulter ses données et payer. Alternative
+écartée : réutiliser le statut "inactif" de l'établissement (la suspension
+décidée par le super-admin). Écartée parce que ce statut bloque aussi la
+connexion : le commerçant qui veut régulariser serait enfermé dehors,
+exactement celui qu'on veut voir revenir. La suspension n'efface rien,
+elle masque : le paiement remet tout en ligne immédiatement.
+
+## 2026-10-19 — Le statut d'abonnement se recalcule depuis les dates
+
+La tâche quotidienne ne fait jamais "avancer d'un cran" un abonnement :
+elle recalcule son statut à partir de l'échéance et des jours de grâce,
+et ne touche jamais à l'échéance. Alternative écartée : une machine à
+états incrémentale (essai → en retard → suspendu à chaque passage).
+Écartée parce qu'une double exécution, un rattrapage après une panne du
+planificateur ou un réglage modifié entre-temps produiraient un état
+faux ; recalculer depuis les dates est idempotent par construction. Seul
+un paiement enregistré déplace l'échéance.
+
+## 2026-10-19 — Les identifiants CinetPay de la plateforme vivent dans l'environnement
+
+Le compte CinetPay qui encaisse les abonnements est configuré dans
+l'environnement du serveur, jamais en base. Alternative écartée : le
+ranger en base à côté des identifiants CinetPay des établissements.
+Écartée parce que ce sont deux argents différents (les ventes vont au
+commerçant, les abonnements à l'exploitant de la plateforme) : les avoir
+au même endroit invite à les confondre, et un secret unique de la
+plateforme n'a aucune raison d'être modifiable depuis une interface web.
+
+## 2026-10-19 — L'abonnement naît avec l'établissement, sur l'événement du modèle
+
+L'essai de 30 jours est ouvert par l'événement "created" du modèle
+Etablissement, pas dans le service de création du super-admin.
+Alternative écartée : le créer dans CreerEtablissement. Écartée parce
+que les seeders, les factories de test et tout futur chemin de création
+produiraient alors un établissement sans abonnement — une vitrine que
+rien ne coupe jamais et un trou dans la facturation.

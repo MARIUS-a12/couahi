@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AbonnementController;
 use App\Http\Controllers\Api\ActivationController;
 use App\Http\Controllers\Api\CategorieController;
 use App\Http\Controllers\Api\CommandeController;
@@ -45,8 +46,10 @@ Route::middleware('resoudre.etablissement')->post('/activation', [ActivationCont
 // Vitrine publique : ni "auth:sanctum" ni "resoudre.etablissement" strict au
 // sens d'exiger une session — un visiteur anonyme doit pouvoir tout
 // consulter. Seul "resoudre.etablissement" s'applique (isolation par
-// sous-domaine, 404 si l'établissement est inactif ou inconnu).
-Route::middleware('resoudre.etablissement')->prefix('vitrine')->group(function () {
+// sous-domaine, 404 si l'établissement est inactif ou inconnu), puis
+// "abonnement.vitrine" (Étape 12 : 404 aussi si l'abonnement est suspendu
+// — la vitrine seule, jamais le back-office, voir VerifierAbonnementVitrine).
+Route::middleware(['resoudre.etablissement', 'abonnement.vitrine'])->prefix('vitrine')->group(function () {
     Route::get('/produits', [VitrineProduitController::class, 'index']);
     Route::get('/produits/{id}', [VitrineProduitController::class, 'show']);
     Route::post('/produits/{id}/lien-whatsapp', [VitrineProduitController::class, 'lienWhatsapp']);
@@ -107,6 +110,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'show']);
         Route::put('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'update']);
         Route::delete('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'destroy']);
+
+        // Étape 12 — abonnement (chemin super-admin) : réglages et
+        // enregistrement d'un paiement reçu, voir AbonnementController.
+        Route::get('/etablissements/{etablissement}/abonnement', [AbonnementController::class, 'show']);
+        Route::patch('/etablissements/{etablissement}/abonnement', [AbonnementController::class, 'update']);
+        Route::post('/etablissements/{etablissement}/abonnement/paiements', [AbonnementController::class, 'enregistrerPaiement']);
     });
 
     Route::middleware('resoudre.etablissement')->group(function () {
@@ -155,6 +164,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/parametres/paiement', [PaiementEtablissementController::class, 'destroy']);
 
         Route::get('/statistiques', [StatistiquesController::class, 'index']);
+
+        // Étape 12 — abonnement (chemin commerçant, son propre
+        // établissement) : lecture seule, "gerer_parametres" exigé. Hors de
+        // "abonnement.vitrine" : un commerçant suspendu doit toujours y
+        // accéder pour régulariser.
+        Route::get('/abonnement', [AbonnementController::class, 'show']);
 
         // Étape 10 — équipe : réservée à gerer_equipe (voir
         // EtablissementUtilisateurPolicy), en pratique le seul

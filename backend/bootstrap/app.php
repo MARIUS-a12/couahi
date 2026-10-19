@@ -3,6 +3,7 @@
 use App\Exceptions\EtablissementNonResoluException;
 use App\Http\Middleware\DefinirEtablissementCible;
 use App\Http\Middleware\ResoudreEtablissement;
+use App\Http\Middleware\VerifierAbonnementVitrine;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'resoudre.etablissement' => ResoudreEtablissement::class,
             'definir.etablissement.cible' => DefinirEtablissementCible::class,
+            'abonnement.vitrine' => VerifierAbonnementVitrine::class,
         ]);
 
         // ResoudreEtablissement n'est pas dans la liste de priorité de

@@ -59,7 +59,9 @@ export function BarreLaterale({
   }, [ouvertMobile, onFermerMobile])
 
   const nomEtablissement = moi.etablissement?.nom ?? 'Back-office'
-  const enLigne = moi.etablissement?.statut === 'actif'
+  // Étape 12 : un abonnement suspendu coupe la vitrine au même titre
+  // qu'une suspension décidée par le super-admin — la carte doit le dire.
+  const enLigne = moi.etablissement?.statut === 'actif' && moi.abonnement?.statut !== 'suspendu'
 
   return (
     <>

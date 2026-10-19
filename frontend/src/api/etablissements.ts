@@ -3,6 +3,7 @@
  * API (voir EtablissementPolicy côté backend). N'est jamais appelé pour un
  * utilisateur rattaché à un établissement.
  */
+import type { StatutAbonnement } from './abonnement'
 import { client } from '../lib/client'
 
 export type TypeEtablissement = 'boutique' | 'restaurant'
@@ -20,6 +21,8 @@ export type Etablissement = {
   identite_champs_manquants: string[]
   // Étape 6C-1 : pour savoir qui accompagner — jamais les identifiants.
   paiement_configure: boolean
+  // Étape 12 : colonne "Abonnement", triable par échéance.
+  abonnement: { statut: StatutAbonnement; date_echeance: string } | null
 }
 
 export type Domaine = {

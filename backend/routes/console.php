@@ -10,3 +10,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new LibererReservationsExpirees)->everyMinute();
+
+// Étape 12 — voir ActualiserStatutsAbonnements : idempotente, une seconde
+// exécution le même jour ne change rien.
+Schedule::command('abonnements:actualiser-statuts')->dailyAt('00:05');

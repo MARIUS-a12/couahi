@@ -3,6 +3,7 @@
  * (utilisateur courant + établissement + permissions). Ce dernier sert à la
  * fois de garde d'authentification et de source pour l'en-tête de l'app.
  */
+import type { ResumeAbonnement } from './abonnement'
 import { client } from '../lib/client'
 
 export type Utilisateur = {
@@ -22,6 +23,10 @@ export type Moi = {
   // jamais d'une liste codée en dur côté React — voir BarreLaterale.
   role_libelle_espace: string | null
   permissions: string[]
+  // Étape 12 : null hors établissement (super-admin). Présent pour tout
+  // membre — la carte de statut de la barre latérale en a besoin — mais le
+  // bandeau d'avertissement n'est montré qu'à qui a gerer_parametres.
+  abonnement: ResumeAbonnement | null
 }
 
 export async function connecter(email: string, motDePasse: string): Promise<void> {

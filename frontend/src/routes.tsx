@@ -23,6 +23,8 @@
  */
 import { DispositionVitrine } from './components/DispositionVitrine'
 import { RouteProtegee } from './components/RouteProtegee'
+import { PageAbonnement } from './pages/PageAbonnement'
+import { PageAbonnementSuperAdmin } from './pages/PageAbonnementSuperAdmin'
 import { PageAccueilAdmin } from './pages/PageAccueilAdmin'
 import { PageAccueilVitrine } from './pages/PageAccueilVitrine'
 import { PageActivationCompte } from './pages/PageActivationCompte'
@@ -86,6 +88,7 @@ export const routes = [
       { path: '/etablissements/:id', element: <PageFicheEtablissement /> },
       { path: '/etablissements/:id/identite', element: <PageIdentiteEtablissementSuperAdmin /> },
       { path: '/etablissements/:id/paiement', element: <PagePaiementSuperAdmin /> },
+      { path: '/etablissements/:id/abonnement', element: <PageAbonnementSuperAdmin /> },
       // Espace commerçant, entièrement sous /admin. "/admin" lui-même ne
       // mène plus systématiquement à Produits (Étape 10) : PageAccueilAdmin
       // redirige vers la première page que les permissions de l'utilisateur
@@ -103,6 +106,9 @@ export const routes = [
       // voir RouteProtegee, qui laisse passer ce chemin précis pour lui.
       { path: '/admin/compte', element: <PageCompte /> },
       { path: '/admin/paiement', element: <PagePaiement /> },
+      // Étape 12 — reste accessible même boutique suspendue : c'est par
+      // ici que le commerçant régularise.
+      { path: '/admin/abonnement', element: <PageAbonnement /> },
       // Attrape-tout du back-office : une URL /admin/* inconnue reste dans
       // le back-office (et exige toujours la session, RouteProtegee
       // s'applique ici comme à toute route de ce groupe) — jamais
