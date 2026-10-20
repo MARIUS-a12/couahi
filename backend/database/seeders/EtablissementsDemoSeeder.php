@@ -12,7 +12,6 @@ use App\Models\VarianteProduit;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
 use App\Services\Medias\GenerateurVariantesImage;
 use Illuminate\Database\Seeder;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -24,7 +23,10 @@ use Illuminate\Support\Facades\Storage;
  * facultatif du formulaire d'identité est rempli ici, avec de vraies photos
  * générées par le système de médias (jamais une ligne "medias" fabriquée à
  * la main), et le catalogue couvre les cas réels (plusieurs photos, aucune
- * photo, épuisé, archivé) plutôt que des produits tous identiques.
+ * photo, épuisé, archivé) plutôt que des produits tous identiques. Les
+ * images sont lisibles (voir ImagesDemo : logo aux initiales sur la couleur
+ * de marque, photo portant le nom du produit), jamais des carrés noirs : on
+ * doit pouvoir juger du rendu réel d'une vitrine.
  *
  * Les trois configurations de paiement sont couvertes : chez-awa et
  * maquis-du-port n'en ont aucune (panier et WhatsApp seulement), Wax Adjamé
@@ -200,7 +202,7 @@ class EtablissementsDemoSeeder extends Seeder
     {
         app(MettreAJourLogoEtablissement::class)->remplacer(
             $etablissement,
-            UploadedFile::fake()->image($nomFichier, $this->tailleSourceImage(), $this->tailleSourceImage()),
+            (new ImagesDemo($this->tailleSourceImage()))->logo($etablissement->nom, $etablissement->couleur_accent, $nomFichier),
         );
     }
 
@@ -217,7 +219,7 @@ class EtablissementsDemoSeeder extends Seeder
 
         for ($i = 0; $i < $nombre; $i++) {
             $variantes = $generateur->generer(
-                UploadedFile::fake()->image("produit-{$produit->id}-{$i}.jpg", $this->tailleSourceImage(), $this->tailleSourceImage()),
+                (new ImagesDemo($this->tailleSourceImage()))->photoProduit($produit->nom, $i, "produit-{$produit->id}-{$i}.jpg"),
                 $disque,
             );
 
