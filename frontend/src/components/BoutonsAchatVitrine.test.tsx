@@ -5,8 +5,8 @@
  * de paiement quand rien n'est configuré — le panier et WhatsApp restent.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import type { ModePaiementVitrine } from '../api/vitrine'
 import { BoutonsAchatVitrine } from './BoutonsAchatVitrine'
@@ -14,15 +14,23 @@ import { BoutonsAchatVitrine } from './BoutonsAchatVitrine'
 function afficher(modePaiement: ModePaiementVitrine | null) {
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <MemoryRouter>
-        <BoutonsAchatVitrine
-          produitId={1}
-          prix={20309}
-          disponible
-          variantes={[]}
-          varianteChoisie={null}
-          modePaiement={modePaiement}
-        />
+      <MemoryRouter initialEntries={['/produit/pagne']}>
+        <Routes>
+          <Route
+            path="/produit/pagne"
+            element={
+              <BoutonsAchatVitrine
+                produitId={1}
+                prix={20309}
+                disponible
+                variantes={[]}
+                varianteChoisie={null}
+                modePaiement={modePaiement}
+              />
+            }
+          />
+          <Route path="/commander" element={<h1>Passer la commande</h1>} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -54,5 +62,14 @@ describe('boutons de paiement de la fiche produit', () => {
     afficher('mobile_money')
 
     expect(boutonsDePaiement()).toEqual(['Payer par Mobile Money'])
+  })
+
+  it('"Payer maintenant" mène à la validation de commande, jamais à un panneau "bientôt disponible"', () => {
+    afficher('cinetpay')
+
+    fireEvent.click(screen.getByRole('button', { name: /Payer maintenant/ }))
+
+    expect(screen.getByRole('heading', { name: 'Passer la commande' })).toBeInTheDocument()
+    expect(screen.queryByText(/bientôt disponible/i)).not.toBeInTheDocument()
   })
 })

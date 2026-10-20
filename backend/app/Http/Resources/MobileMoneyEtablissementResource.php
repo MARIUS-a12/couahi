@@ -26,7 +26,7 @@ class MobileMoneyEtablissementResource extends JsonResource
             'beneficiaire' => $this->mm_beneficiaire,
             // CinetPay passe avant quand il est configuré : le Mobile Money
             // n'est alors PAS proposé aux clients, même rempli ici.
-            'cinetpay_prioritaire' => $this->paiementEstConfigure(),
+            'cinetpay_prioritaire' => $this->cinetpayEstDisponible(),
         ];
     }
 }

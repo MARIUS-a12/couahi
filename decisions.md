@@ -163,3 +163,18 @@ externe lent (envoi d'e-mails ou de SMS, appel CinetPay) ; ou
 l'application tourne sur plusieurs serveurs (ajouter alors onOneServer()
 au minimum). Au-delà d'une minute par passage, les exécutions se
 chevaucheraient.
+
+## 2026-10-20 — Un moyen de paiement n'est proposé que s'il fonctionne réellement
+
+Configuré n'est pas disponible : des identifiants CinetPay enregistrés ne
+suffisent plus à afficher « Payer maintenant ». Il faut aussi que
+l'intégration soit active sur la plateforme (CINETPAY_ACTIF, faux par
+défaut tant qu'elle n'est pas construite) ; sinon c'est le Mobile Money qui
+est proposé, ou rien. Alternative écartée : garder « Payer maintenant »
+avec un panneau « Paiement bientôt disponible ». Écartée parce que c'était
+un cul-de-sac, et qu'il cachait le Mobile Money, qui lui fonctionne : un
+bouton qui ne mène nulle part fait perdre la vente. Un indicateur
+d'environnement plutôt qu'une détection automatique : le jour où
+l'intégration existe, on le passe à vrai et rien d'autre ne change. Le
+repli vers le Mobile Money en cas d'échec d'un appel CinetPay n'est pas
+construit ; son emplacement est marqué dans VitrineCommandeController.

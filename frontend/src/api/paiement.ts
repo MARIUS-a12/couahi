@@ -9,6 +9,9 @@ import { client } from '../lib/client'
 
 export type PaiementEtablissement = {
   configure: boolean
+  // Configuré n'est pas disponible : faux tant que l'intégration CinetPay
+  // n'est pas active sur la plateforme (CINETPAY_ACTIF côté serveur).
+  disponible: boolean
   configure_le: string | null
   cinetpay_site_id_masque: string | null
   cinetpay_cle_api_masque: string | null

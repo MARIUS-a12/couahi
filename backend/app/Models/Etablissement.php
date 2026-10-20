@@ -160,15 +160,25 @@ class Etablissement extends Model
 
     /**
      * Propriété CALCULÉE, jamais une colonne qu'on coche : vraie seulement
-     * quand les trois identifiants CinetPay sont renseignés. Pilote à la
-     * fois l'affichage du bouton "Payer maintenant" en vitrine et le refus
-     * serveur d'une commande qui demanderait le paiement en ligne sans eux.
+     * quand les trois identifiants CinetPay sont renseignés. CONFIGURÉ ne
+     * veut pas dire DISPONIBLE : ce qui est proposé au client se décide sur
+     * cinetpayEstDisponible(), jamais sur celle-ci.
      */
     public function paiementEstConfigure(): bool
     {
         return $this->cinetpay_site_id !== null
             && $this->cinetpay_cle_api !== null
             && $this->cinetpay_secret !== null;
+    }
+
+    /**
+     * Configuré ET intégration active sur la plateforme (CINETPAY_ACTIF,
+     * voir config/services.php). Seule condition pour proposer "Payer
+     * maintenant" : un bouton qui ne mène nulle part ne doit pas exister.
+     */
+    public function cinetpayEstDisponible(): bool
+    {
+        return config('services.cinetpay.actif') === true && $this->paiementEstConfigure();
     }
 
     /**
@@ -186,13 +196,14 @@ class Etablissement extends Model
 
     /**
      * UN seul moyen de paiement proposé au client, jamais un choix : CinetPay
-     * s'il est configuré (le moyen privilégié), sinon le Mobile Money, sinon
-     * aucun (panier et WhatsApp seulement). Seule source de vérité, lue par
-     * la vitrine ET par la validation d'une commande.
+     * s'il est DISPONIBLE (le moyen privilégié — configuré ne suffit pas),
+     * sinon le Mobile Money, sinon aucun (panier et WhatsApp seulement).
+     * Seule source de vérité, lue par la vitrine ET par la validation d'une
+     * commande.
      */
     public function modePaiementPropose(): ?ModePaiement
     {
-        if ($this->paiementEstConfigure()) {
+        if ($this->cinetpayEstDisponible()) {
             return ModePaiement::Cinetpay;
         }
 

@@ -28,6 +28,16 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // Configuré n'est pas disponible : un établissement peut avoir saisi ses
+    // identifiants CinetPay, le paiement en ligne n'est proposé au client que
+    // si l'intégration elle-même est active sur la plateforme (voir
+    // Etablissement::cinetpayEstDisponible). L'intégration n'est pas encore
+    // construite : false par défaut. Le jour où elle l'est, on passe
+    // CINETPAY_ACTIF à true, et rien d'autre ne change.
+    'cinetpay' => [
+        'actif' => (bool) env('CINETPAY_ACTIF', false),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

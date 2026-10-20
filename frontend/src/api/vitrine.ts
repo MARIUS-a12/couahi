@@ -87,11 +87,11 @@ export type EtablissementVitrine = {
   lien_tiktok: string | null
   lien_site_web: string | null
   couleur_accent: string
-  // Étape 6C-1 : jamais les identifiants, seulement s'ils existent tous les
-  // trois — pilote la présence du bouton "Payer maintenant".
+  // Étape 6C-1 : jamais les identifiants. Vrai seulement si CinetPay est
+  // DISPONIBLE (configuré et intégration active), pas simplement configuré.
   paiement_disponible: boolean
   // Étape 13 : LE moyen proposé, jamais deux à la fois — CinetPay s'il est
-  // configuré, sinon le Mobile Money, sinon aucun (voir modePaiementPropose
+  // disponible, sinon le Mobile Money, sinon aucun (voir modePaiementPropose
   // côté serveur). Seule source pour choisir le bouton à afficher.
   mode_paiement: ModePaiementVitrine | null
 }

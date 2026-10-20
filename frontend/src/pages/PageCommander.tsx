@@ -107,7 +107,9 @@ export function PageCommander() {
       commune,
       quartier,
       cle_idempotence: cleIdempotence,
-      mode_paiement: parMobileMoney ? 'mobile_money' : null,
+      // Le mode que propose l'établissement, tel quel (le serveur refuse
+      // tout autre) : "cinetpay" seulement s'il est réellement disponible.
+      mode_paiement: etablissement?.mode_paiement ?? null,
     })
   }
 

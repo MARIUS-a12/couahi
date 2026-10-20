@@ -4,6 +4,7 @@ namespace Tests\Feature\Paiements;
 
 use App\Models\Etablissement;
 use App\Models\Produit;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -128,6 +129,8 @@ class PaiementEtablissementApiTest extends TestCase
 
     public function test_5_vitrine_expose_paiement_disponible_sans_identifiants(): void
     {
+        // Disponible = configuré ET intégration active (CINETPAY_ACTIF).
+        config(['services.cinetpay.actif' => true]);
         $this->seed();
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
         $this->depuis('chez-awa.localhost')
@@ -211,7 +214,7 @@ class PaiementEtablissementApiTest extends TestCase
     {
         $this->seed();
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
-        $awa = \App\Models\User::where('email', 'awa@chez-awa.test')->firstOrFail();
+        $awa = User::where('email', 'awa@chez-awa.test')->firstOrFail();
 
         $this->depuis('chez-awa.localhost')
             ->putJson('http://chez-awa.localhost:8000/api/parametres/paiement', $this->payloadIdentifiants())

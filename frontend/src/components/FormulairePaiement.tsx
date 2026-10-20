@@ -7,7 +7,9 @@
  * valeur sérialisable utilisable comme clé de requête). Le secret ne se
  * relit jamais : une fois configuré, l'écran montre un état "Paiement
  * actif" + un bouton "Remplacer les identifiants", jamais les champs
- * pré-remplis.
+ * pré-remplis. Configuré n'est pas disponible : tant que l'intégration
+ * CinetPay n'est pas active sur la plateforme, l'état dit "Identifiants
+ * enregistrés" et que les clients ne voient pas encore "Payer maintenant".
  */
 import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -90,8 +92,10 @@ export function FormulairePaiement({ service }: { service: ServicePaiement }) {
 
   async function demanderSuppression() {
     const confirme = window.confirm(
-      'Le bouton « Payer maintenant » disparaîtra aussitôt de la vitrine. Vos clients pourront toujours ' +
-        'commander par WhatsApp.\n\nRetirer la configuration de paiement ?',
+      (paiement?.disponible
+        ? 'Le bouton « Payer maintenant » disparaîtra aussitôt de la vitrine. Vos clients pourront toujours ' +
+          'commander par WhatsApp.\n\n'
+        : '') + 'Retirer la configuration de paiement ?',
     )
 
     if (!confirme) {
@@ -124,10 +128,24 @@ export function FormulairePaiement({ service }: { service: ServicePaiement }) {
 
       {!afficherFormulaire && paiement.configure && (
         <div className="rounded-lg border border-bordure bg-surface p-4 sm:p-5">
-          <p className="flex items-center gap-1.5 text-corps font-medium text-succes">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-succes" />
-            Paiement actif
-          </p>
+          {paiement.disponible ? (
+            <p className="flex items-center gap-1.5 text-corps font-medium text-succes">
+              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-succes" />
+              Paiement actif
+            </p>
+          ) : (
+            <>
+              <p className="flex items-center gap-1.5 text-corps font-medium text-texte">
+                <span aria-hidden="true" className="h-2 w-2 rounded-full bg-bordure-forte" />
+                Identifiants enregistrés
+              </p>
+              <p className="mt-1 text-petit text-texte-secondaire">
+                Le paiement en ligne n'est pas encore ouvert sur la plateforme : vos clients ne voient pas
+                « Payer maintenant ». Ils voient le Mobile Money s'il est configuré ci-dessous, sinon le panier et
+                WhatsApp.
+              </p>
+            </>
+          )}
           <p className="mt-1 text-petit text-texte-secondaire">
             Configuré le{' '}
             {paiement.configure_le &&

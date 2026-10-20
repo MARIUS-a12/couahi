@@ -43,10 +43,10 @@ class EtablissementVitrineResource extends JsonResource
             'lien_tiktok' => $this->lien_tiktok,
             'lien_site_web' => $this->lien_site_web,
             'couleur_accent' => $this->couleur_accent ?? self::COULEUR_PAR_DEFAUT,
-            // Étape 6C-1 : jamais les identifiants, seulement s'ils existent
-            // tous les trois — pilote la présence du bouton "Payer
-            // maintenant" (voir BoutonsAchatVitrine côté frontend).
-            'paiement_disponible' => $this->paiementEstConfigure(),
+            // Étape 6C-1 : jamais les identifiants. Vrai seulement si
+            // CinetPay est DISPONIBLE (configuré et intégration active),
+            // pas simplement configuré.
+            'paiement_disponible' => $this->cinetpayEstDisponible(),
             // Étape 13 : LE moyen proposé au client — "cinetpay",
             // "mobile_money" ou null — jamais les deux à la fois (voir
             // Etablissement::modePaiementPropose). Le numéro Mobile Money

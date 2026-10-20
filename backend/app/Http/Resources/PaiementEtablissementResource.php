@@ -16,6 +16,10 @@ class PaiementEtablissementResource extends JsonResource
     {
         return [
             'configure' => $this->paiementEstConfigure(),
+            // Configuré n'est pas disponible : faux tant que l'intégration
+            // CinetPay n'est pas active sur la plateforme — le commerçant
+            // doit le savoir, ses clients ne voient pas "Payer maintenant".
+            'disponible' => $this->cinetpayEstDisponible(),
             'configure_le' => $this->paiement_configure_le,
             'cinetpay_site_id_masque' => $this->masquer($this->cinetpay_site_id),
             'cinetpay_cle_api_masque' => $this->masquer($this->cinetpay_cle_api),

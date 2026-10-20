@@ -110,6 +110,8 @@ class MobileMoneyTest extends TestCase
 
     public function test_2_avec_cinetpay_seul_cinetpay_est_propose(): void
     {
+        // Disponible, pas seulement configuré (voir DisponibiliteCinetpayTest).
+        config(['services.cinetpay.actif' => true]);
         $this->seed();
         $this->configurerCinetpay('chez-awa');
 
@@ -126,6 +128,7 @@ class MobileMoneyTest extends TestCase
 
     public function test_4_avec_les_deux_seul_cinetpay_est_propose_et_une_commande_mobile_money_est_refusee(): void
     {
+        config(['services.cinetpay.actif' => true]);
         $this->seed();
         $this->configurerCinetpay('chez-awa');
         $this->configurerMobileMoney('chez-awa');

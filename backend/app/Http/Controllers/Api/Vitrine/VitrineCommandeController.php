@@ -101,6 +101,17 @@ class VitrineCommandeController extends Controller
             return response()->json(['message' => $exception->getMessage()], 422);
         }
 
+        // REPLI À CONSTRUIRE avec l'intégration CinetPay (CINETPAY_ACTIF,
+        // voir config/services.php) : c'est ICI, la commande créée en mode
+        // "cinetpay", qu'on initialisera la transaction CinetPay. Si cet appel
+        // échoue (service injoignable, refus, délai dépassé) et que
+        // $etablissement->mobileMoneyEstConfigure(), on basculera la commande
+        // en ModePaiement::MobileMoney (avec son expiration de 24 h, voir
+        // CreerCommande) et on renverra le client vers les instructions de
+        // transfert de sa page de confirmation — jamais une erreur sèche,
+        // jamais un cul-de-sac. Sans Mobile Money : la commande reste, le
+        // client est invité à la régler sur WhatsApp.
+
         // Rejouer la même clé d'idempotence redonne la commande déjà créée,
         // avec son adresse déjà posée : cette ré-écriture est sans effet,
         // jamais incorrecte (même soumission, même page, même adresse).

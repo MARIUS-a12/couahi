@@ -2,9 +2,10 @@
  * Les actions d'achat de la fiche produit, dans l'ordre imposé : UN bouton
  * de paiement selon le mode proposé par l'établissement (Étape 13, voir
  * "modePaiement"), commander sur WhatsApp, ajouter au panier.
- * - "cinetpay" : "Payer maintenant". Le paiement en ligne lui-même n'existe
- *   pas encore — le bouton ouvre juste un panneau qui le dit (voir
- *   Étape 6C) : aucun appel à CinetPay n'est fait ici.
+ * - "cinetpay" : "Payer maintenant". Le serveur ne l'envoie que si CinetPay
+ *   est DISPONIBLE (configuré ET intégration active, CINETPAY_ACTIF) —
+ *   jamais un bouton qui ne mène nulle part. Même chemin que le Mobile
+ *   Money : le paiement s'engage à la validation de commande.
  * - "mobile_money" : "Payer par Mobile Money" — met le produit au panier
  *   (s'il n'y est pas déjà) et mène à la validation de commande, d'où le
  *   client reçoit le numéro à payer.
@@ -28,7 +29,6 @@ import type { ModePaiementVitrine, VarianteVitrine } from '../api/vitrine'
 import { genererLienWhatsapp } from '../api/vitrine'
 import { usePanier } from '../hooks/usePanier'
 import { EtatBouton } from './EtatBouton'
-import { PanneauMessage } from './PanneauMessage'
 
 export function BoutonsAchatVitrine({
   produitId,
@@ -47,7 +47,6 @@ export function BoutonsAchatVitrine({
 }) {
   const { ajouter, lignes } = usePanier()
   const navigate = useNavigate()
-  const [panneau, setPanneau] = useState<'paiement' | null>(null)
   const [ajoute, setAjoute] = useState(false)
 
   const aBesoinDuneVariante = variantes.length > 0
@@ -84,7 +83,7 @@ export function BoutonsAchatVitrine({
     return () => clearTimeout(minuteur)
   }, [ajoute])
 
-  function payerParMobileMoney() {
+  function allerPayer() {
     const dejaAuPanier = lignes.some(
       (ligne) => ligne.produitId === produitId && ligne.varianteId === (varianteChoisie?.id ?? null),
     )
@@ -106,13 +105,13 @@ export function BoutonsAchatVitrine({
       <div className="flex flex-col gap-3 md:flex-row">
         {/* Principal : l'action la plus engageante, la plus visible des
             trois — pleine, dense, une vraie ombre qui s'aplatit à la
-            pression pour suggérer la matière. Absent tant que
-            l'établissement n'a pas configuré son paiement. */}
+            pression pour suggérer la matière. Absent tant qu'aucun moyen
+            de paiement n'est réellement disponible. */}
         {modePaiement === 'cinetpay' && (
           <button
             type="button"
             disabled={!peutAcheter}
-            onClick={() => setPanneau('paiement')}
+            onClick={allerPayer}
             className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
             <CreditCard aria-hidden="true" size={20} strokeWidth={1.5} />
@@ -124,7 +123,7 @@ export function BoutonsAchatVitrine({
           <button
             type="button"
             disabled={!peutAcheter}
-            onClick={payerParMobileMoney}
+            onClick={allerPayer}
             className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
             <Smartphone aria-hidden="true" size={20} strokeWidth={1.5} />
@@ -175,14 +174,6 @@ export function BoutonsAchatVitrine({
         <p className="animate-entree-carte mt-2 text-petit text-danger">
           Impossible de préparer le message WhatsApp. Réessayez.
         </p>
-      )}
-
-      {panneau === 'paiement' && (
-        <PanneauMessage
-          titre="Paiement bientôt disponible"
-          message="Le paiement en ligne arrive prochainement. En attendant, commandez sur WhatsApp ou ajoutez au panier."
-          onFermer={() => setPanneau(null)}
-        />
       )}
     </div>
   )

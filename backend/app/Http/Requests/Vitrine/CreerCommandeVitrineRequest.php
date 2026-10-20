@@ -66,7 +66,7 @@ class CreerCommandeVitrineRequest extends FormRequest
                 'sometimes',
                 'boolean',
                 function (string $attribute, mixed $value, callable $fail): void {
-                    if ($value && ! app(ContexteEtablissement::class)->obtenir()?->paiementEstConfigure()) {
+                    if ($value && ! app(ContexteEtablissement::class)->obtenir()?->cinetpayEstDisponible()) {
                         $fail("Le paiement en ligne n'est pas disponible pour cet établissement.");
                     }
                 },
