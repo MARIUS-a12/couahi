@@ -167,7 +167,7 @@ export function PageFicheProduitVitrine() {
             disponible={produit.disponible}
             variantes={produit.variantes}
             varianteChoisie={varianteChoisie}
-            paiementDisponible={etablissement?.paiement_disponible ?? false}
+            modePaiement={etablissement?.mode_paiement ?? null}
           />
         </div>
       </div>

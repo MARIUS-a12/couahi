@@ -90,7 +90,13 @@ export type EtablissementVitrine = {
   // Étape 6C-1 : jamais les identifiants, seulement s'ils existent tous les
   // trois — pilote la présence du bouton "Payer maintenant".
   paiement_disponible: boolean
+  // Étape 13 : LE moyen proposé, jamais deux à la fois — CinetPay s'il est
+  // configuré, sinon le Mobile Money, sinon aucun (voir modePaiementPropose
+  // côté serveur). Seule source pour choisir le bouton à afficher.
+  mode_paiement: ModePaiementVitrine | null
 }
+
+export type ModePaiementVitrine = 'cinetpay' | 'mobile_money'
 
 export type ProduitsVitrinePagines = {
   data: ProduitVitrine[]
@@ -211,6 +217,8 @@ export type NouvelleCommandePayload = {
   commune: string
   quartier: string
   cle_idempotence: string
+  // Étape 13 : refusé par le serveur s'il n'est pas le mode proposé.
+  mode_paiement?: ModePaiementVitrine | null
 }
 
 export type CommandeCreee = {
@@ -241,6 +249,20 @@ export type CommandeVitrine = {
   cree_le: string
   zone_livraison: { nom: string } | null
   lignes: LigneCommandeVitrine[]
+  mode_paiement: 'cinetpay' | 'mobile_money' | 'especes' | null
+  // Vrai SEULEMENT quand le commerçant a constaté l'argent reçu — jamais
+  // déduit du statut de la commande.
+  paiement_confirme: boolean
+  // Null hors Mobile Money, ou si le commerçant l'a retiré depuis.
+  mobile_money: InstructionsMobileMoney | null
+}
+
+export type InstructionsMobileMoney = {
+  numero: string
+  numero_affiche: string
+  operateur: string
+  operateur_libelle: string
+  beneficiaire: string
 }
 
 export async function recupererCommandeVitrine(numero: string, jeton: string): Promise<CommandeVitrine> {

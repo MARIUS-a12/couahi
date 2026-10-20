@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Vitrine;
 
+use App\Enums\ModePaiement;
+use App\Support\Telephone\NormaliseurTelephone;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,12 +26,44 @@ class CommandeVitrineResource extends JsonResource
             'note' => $this->note,
             'cree_le' => $this->created_at,
             'zone_livraison' => $this->zoneLivraison ? ['nom' => $this->zoneLivraison->nom] : null,
+            // Étape 13 — "paiement_confirme" ne devient vrai QUE lorsque le
+            // commerçant a constaté l'argent reçu : jamais déduit du statut
+            // de la commande, qui est une autre machine d'état.
+            'mode_paiement' => $this->mode_paiement?->value,
+            'paiement_confirme' => $this->paiementEstConfirme(),
+            'mobile_money' => $this->instructionsMobileMoney(),
             'lignes' => $this->lignes->map(fn ($ligne) => [
                 'nom' => $ligne->nom_produit_capture,
                 'quantite' => $ligne->quantite,
                 'prix_unitaire' => $ligne->prix_unitaire,
                 'total' => $ligne->total,
             ]),
+        ];
+    }
+
+    /**
+     * Les coordonnées ACTUELLES de l'établissement, pas une copie figée à
+     * la commande : si le commerçant a changé de numéro entre-temps,
+     * l'ancien ne doit plus recevoir d'argent. Null si le mode n'est pas le
+     * Mobile Money, ou si le commerçant l'a retiré depuis (la page invite
+     * alors à le contacter, jamais à envoyer de l'argent à l'aveugle).
+     *
+     * @return array{numero: string, numero_affiche: string, operateur: string, operateur_libelle: string, beneficiaire: string}|null
+     */
+    private function instructionsMobileMoney(): ?array
+    {
+        $etablissement = $this->etablissement;
+
+        if ($this->mode_paiement !== ModePaiement::MobileMoney || ! $etablissement?->mobileMoneyEstConfigure()) {
+            return null;
+        }
+
+        return [
+            'numero' => $etablissement->mm_numero,
+            'numero_affiche' => NormaliseurTelephone::formaterLocal($etablissement->mm_numero),
+            'operateur' => $etablissement->mm_operateur->value,
+            'operateur_libelle' => $etablissement->mm_operateur->libelle(),
+            'beneficiaire' => $etablissement->mm_beneficiaire,
         ];
     }
 }

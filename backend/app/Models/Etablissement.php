@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\ModePaiement;
+use App\Enums\OperateurMobileMoney;
 use App\Enums\StatutEtablissement;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -47,6 +49,7 @@ class Etablissement extends Model
             'cinetpay_cle_api' => 'encrypted',
             'cinetpay_secret' => 'encrypted',
             'paiement_configure_le' => 'datetime',
+            'mm_operateur' => OperateurMobileMoney::class,
         ];
     }
 
@@ -166,6 +169,34 @@ class Etablissement extends Model
         return $this->cinetpay_site_id !== null
             && $this->cinetpay_cle_api !== null
             && $this->cinetpay_secret !== null;
+    }
+
+    /**
+     * Étape 13 — les trois ensemble, jamais un seul : le nom du titulaire
+     * est la protection du client contre un numéro falsifié (son
+     * application Mobile Money l'affiche avant validation), un numéro sans
+     * nom ne doit donc jamais être proposé.
+     */
+    public function mobileMoneyEstConfigure(): bool
+    {
+        return $this->mm_numero !== null
+            && $this->mm_operateur !== null
+            && $this->mm_beneficiaire !== null;
+    }
+
+    /**
+     * UN seul moyen de paiement proposé au client, jamais un choix : CinetPay
+     * s'il est configuré (le moyen privilégié), sinon le Mobile Money, sinon
+     * aucun (panier et WhatsApp seulement). Seule source de vérité, lue par
+     * la vitrine ET par la validation d'une commande.
+     */
+    public function modePaiementPropose(): ?ModePaiement
+    {
+        if ($this->paiementEstConfigure()) {
+            return ModePaiement::Cinetpay;
+        }
+
+        return $this->mobileMoneyEstConfigure() ? ModePaiement::MobileMoney : null;
     }
 
     public function estActif(): bool

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\EtablissementController;
 use App\Http\Controllers\Api\IdentiteEtablissementController;
 use App\Http\Controllers\Api\MediaProduitController;
 use App\Http\Controllers\Api\MembreEquipeController;
+use App\Http\Controllers\Api\MobileMoneyEtablissementController;
 use App\Http\Controllers\Api\PaiementEtablissementController;
 use App\Http\Controllers\Api\ParametresController;
 use App\Http\Controllers\Api\ProduitController;
@@ -111,6 +112,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'update']);
         Route::delete('/etablissements/{etablissement}/paiement', [PaiementEtablissementController::class, 'destroy']);
 
+        // Étape 13 — Mobile Money (chemin super-admin), voir
+        // MobileMoneyEtablissementController.
+        Route::get('/etablissements/{etablissement}/mobile-money', [MobileMoneyEtablissementController::class, 'show']);
+        Route::put('/etablissements/{etablissement}/mobile-money', [MobileMoneyEtablissementController::class, 'update']);
+        Route::delete('/etablissements/{etablissement}/mobile-money', [MobileMoneyEtablissementController::class, 'destroy']);
+
         // Étape 12 — abonnement (chemin super-admin) : réglages et
         // enregistrement d'un paiement reçu, voir AbonnementController.
         Route::get('/etablissements/{etablissement}/abonnement', [AbonnementController::class, 'show']);
@@ -144,6 +151,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/commandes/{commande}/confirmer', [CommandeController::class, 'confirmer']);
         Route::patch('/commandes/{commande}/marquer-prete', [CommandeController::class, 'marquerPrete']);
         Route::patch('/commandes/{commande}/marquer-livree', [CommandeController::class, 'marquerLivree']);
+        // Étape 13 — confirmation d'un paiement reçu : ne change PAS le
+        // statut de la commande (voir ConfirmerPaiementCommande).
+        Route::post('/commandes/{commande}/confirmer-paiement', [CommandeController::class, 'confirmerPaiement']);
         Route::post('/commandes/{commande}/annuler', [CommandeController::class, 'annuler']);
 
         Route::get('/parametres', [ParametresController::class, 'index']);
@@ -162,6 +172,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/parametres/paiement', [PaiementEtablissementController::class, 'show']);
         Route::put('/parametres/paiement', [PaiementEtablissementController::class, 'update']);
         Route::delete('/parametres/paiement', [PaiementEtablissementController::class, 'destroy']);
+
+        // Étape 13 — Mobile Money (chemin commerçant), "gerer_parametres".
+        Route::get('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'show']);
+        Route::put('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'update']);
+        Route::delete('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'destroy']);
 
         Route::get('/statistiques', [StatistiquesController::class, 'index']);
 

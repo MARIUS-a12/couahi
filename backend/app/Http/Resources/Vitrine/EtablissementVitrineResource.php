@@ -47,6 +47,11 @@ class EtablissementVitrineResource extends JsonResource
             // tous les trois — pilote la présence du bouton "Payer
             // maintenant" (voir BoutonsAchatVitrine côté frontend).
             'paiement_disponible' => $this->paiementEstConfigure(),
+            // Étape 13 : LE moyen proposé au client — "cinetpay",
+            // "mobile_money" ou null — jamais les deux à la fois (voir
+            // Etablissement::modePaiementPropose). Le numéro Mobile Money
+            // n'est donné qu'avec une commande (CommandeVitrineResource).
+            'mode_paiement' => $this->modePaiementPropose()?->value,
         ];
     }
 }

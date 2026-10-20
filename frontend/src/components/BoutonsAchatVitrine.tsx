@@ -1,10 +1,16 @@
 /**
- * Les actions d'achat de la fiche produit, dans l'ordre imposé : payer
- * maintenant (seulement si l'établissement a configuré son paiement
- * CinetPay, voir Étape 6C-1 — "paiementDisponible"), commander sur
- * WhatsApp, ajouter au panier. Le paiement en ligne lui-même n'existe pas
- * encore — même visible, le bouton ouvre juste un panneau qui le dit (voir
- * Étape 6C) : aucun appel à CinetPay n'est fait ici. WhatsApp et le panier,
+ * Les actions d'achat de la fiche produit, dans l'ordre imposé : UN bouton
+ * de paiement selon le mode proposé par l'établissement (Étape 13, voir
+ * "modePaiement"), commander sur WhatsApp, ajouter au panier.
+ * - "cinetpay" : "Payer maintenant". Le paiement en ligne lui-même n'existe
+ *   pas encore — le bouton ouvre juste un panneau qui le dit (voir
+ *   Étape 6C) : aucun appel à CinetPay n'est fait ici.
+ * - "mobile_money" : "Payer par Mobile Money" — met le produit au panier
+ *   (s'il n'y est pas déjà) et mène à la validation de commande, d'où le
+ *   client reçoit le numéro à payer.
+ * - aucun : pas de bouton de paiement, seulement WhatsApp et le panier.
+ * Jamais deux boutons de paiement ensemble : un seul chemin, pour ne pas
+ * perdre le client dans un choix. WhatsApp et le panier,
  * eux, fonctionnent réellement : le lien WhatsApp (avec sa référence
  * opaque) est composé côté serveur (voir api/vitrine.ts), le panier vit
  * dans localStorage (voir lib/panier.ts) et confirme l'ajout sans quitter
@@ -15,9 +21,10 @@
  * préciser laquelle.
  */
 import { useEffect, useState } from 'react'
-import { Check, CreditCard, MessageCircle, ShoppingCart } from 'lucide-react'
+import { Check, CreditCard, MessageCircle, ShoppingCart, Smartphone } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
-import type { VarianteVitrine } from '../api/vitrine'
+import { useNavigate } from 'react-router-dom'
+import type { ModePaiementVitrine, VarianteVitrine } from '../api/vitrine'
 import { genererLienWhatsapp } from '../api/vitrine'
 import { usePanier } from '../hooks/usePanier'
 import { EtatBouton } from './EtatBouton'
@@ -29,16 +36,17 @@ export function BoutonsAchatVitrine({
   disponible,
   variantes,
   varianteChoisie,
-  paiementDisponible,
+  modePaiement,
 }: {
   produitId: number
   prix: number
   disponible: boolean
   variantes: VarianteVitrine[]
   varianteChoisie: VarianteVitrine | null
-  paiementDisponible: boolean
+  modePaiement: ModePaiementVitrine | null
 }) {
-  const { ajouter } = usePanier()
+  const { ajouter, lignes } = usePanier()
+  const navigate = useNavigate()
   const [panneau, setPanneau] = useState<'paiement' | null>(null)
   const [ajoute, setAjoute] = useState(false)
 
@@ -76,6 +84,18 @@ export function BoutonsAchatVitrine({
     return () => clearTimeout(minuteur)
   }, [ajoute])
 
+  function payerParMobileMoney() {
+    const dejaAuPanier = lignes.some(
+      (ligne) => ligne.produitId === produitId && ligne.varianteId === (varianteChoisie?.id ?? null),
+    )
+
+    if (!dejaAuPanier) {
+      ajouter(produitId, varianteChoisie?.id ?? null, 1, varianteChoisie?.prix ?? prix)
+    }
+
+    navigate('/commander')
+  }
+
   function ajouterAuPanier() {
     ajouter(produitId, varianteChoisie?.id ?? null, 1, varianteChoisie?.prix ?? prix)
     setAjoute(true)
@@ -88,7 +108,7 @@ export function BoutonsAchatVitrine({
             trois — pleine, dense, une vraie ombre qui s'aplatit à la
             pression pour suggérer la matière. Absent tant que
             l'établissement n'a pas configuré son paiement. */}
-        {paiementDisponible && (
+        {modePaiement === 'cinetpay' && (
           <button
             type="button"
             disabled={!peutAcheter}
@@ -97,6 +117,18 @@ export function BoutonsAchatVitrine({
           >
             <CreditCard aria-hidden="true" size={20} strokeWidth={1.5} />
             Payer maintenant
+          </button>
+        )}
+
+        {modePaiement === 'mobile_money' && (
+          <button
+            type="button"
+            disabled={!peutAcheter}
+            onClick={payerParMobileMoney}
+            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
+          >
+            <Smartphone aria-hidden="true" size={20} strokeWidth={1.5} />
+            Payer par Mobile Money
           </button>
         )}
 

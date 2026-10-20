@@ -27,6 +27,20 @@ export type Commande = {
   nombre_articles: number
   en_retard: boolean
   client?: ClientCommande
+  // Étape 13 — le paiement a sa propre machine d'état, distincte du statut.
+  mode_paiement: 'cinetpay' | 'mobile_money' | 'especes' | null
+  paiement: PaiementCommande
+}
+
+export type PaiementCommande = {
+  confirme: boolean
+  confirme_le: string | null
+  confirme_par?: string | null
+  montant_recu: number | null
+  // montant_recu - total : négatif quand le client a envoyé moins.
+  ecart: number | null
+  reference: string | null
+  en_retard: boolean
 }
 
 export type LigneCommande = {
@@ -44,6 +58,9 @@ export type EntreeHistoriqueCommande = {
   nouveau_statut: string
   utilisateur: string | null
   motif: string | null
+  // "paiement_confirme" pour une entrée qui n'est pas un changement de
+  // statut (Étape 13) ; null pour toutes les autres.
+  evenement: string | null
   date: string
 }
 
@@ -115,6 +132,15 @@ export type MotifAnnulation =
 
 export async function annulerCommande(id: number, motif: MotifAnnulation): Promise<CommandeDetail> {
   const { data } = await client.post<{ data: CommandeDetail }>(`/api/commandes/${id}/annuler`, motif)
+
+  return data.data
+}
+
+export async function confirmerPaiementCommande(
+  id: number,
+  payload: { montant_recu: number; reference: string | null },
+): Promise<CommandeDetail> {
+  const { data } = await client.post<{ data: CommandeDetail }>(`/api/commandes/${id}/confirmer-paiement`, payload)
 
   return data.data
 }

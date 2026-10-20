@@ -5,9 +5,12 @@
  * statut. Le serveur revalide chaque transition (voir CommandeController) :
  * les boutons impossibles n'apparaissent pas ici, mais ce n'est qu'un
  * confort d'affichage, jamais la seule barrière.
+ *
+ * Étape 13 : le paiement (Mobile Money) a sa propre section,
+ * SectionPaiementCommande, indépendante des actions de statut.
  */
 import axios from 'axios'
-import { ImageOff, MapPin, MessageCircle, Package } from 'lucide-react'
+import { ImageOff, MapPin, MessageCircle, Package, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -20,6 +23,8 @@ import { EtatChargement } from '../components/EtatChargement'
 import { EtatErreur } from '../components/EtatErreur'
 import { IconeCanal } from '../components/IconeCanal'
 import { PanneauAnnulationCommande } from '../components/PanneauAnnulationCommande'
+import { PastillePaiement } from '../components/PastillePaiement'
+import { SectionPaiementCommande } from '../components/SectionPaiementCommande'
 import { useCommande } from '../hooks/useCommande'
 import { useMoi } from '../hooks/useMoi'
 import { formaterMontant } from '../lib/formatage'
@@ -127,6 +132,7 @@ export function PageDetailCommande() {
         <BoutonRetour vers="/admin/commandes" />
         <h1 className="font-titre text-titre-page font-bold text-texte">{commande.numero}</h1>
         <BadgeStatutCommande statut={commande.statut} />
+        {commande.mode_paiement === 'mobile_money' && <PastillePaiement commande={commande} />}
       </div>
       <p className="-mt-4 text-petit text-texte-secondaire">{formaterDateHeure(commande.created_at)}</p>
 
@@ -220,6 +226,8 @@ export function PageDetailCommande() {
         </dl>
       </section>
 
+      <SectionPaiementCommande commande={commande} peutGerer={peutGererCommandes} onMiseAJour={appliquerMiseAJour} />
+
       {peutGererCommandes && (
         <section className="rounded-lg border border-bordure bg-surface p-4 sm:p-5">
           <h2 className="text-titre-section font-semibold text-texte">Actions</h2>
@@ -258,12 +266,20 @@ export function PageDetailCommande() {
         <ul className="divide-y divide-bordure">
           {commande.historique.map((entree, index) => (
             <li key={index} className="flex items-start gap-3 p-4">
-              <Package aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-texte-secondaire" />
+              {entree.evenement === 'paiement_confirme' ? (
+                <Wallet aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-succes" />
+              ) : (
+                <Package aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-texte-secondaire" />
+              )}
               <div className="min-w-0 flex-1">
                 <p className="text-corps text-texte">
-                  {entree.ancien_statut
-                    ? `De « ${entree.ancien_statut} » à « ${entree.nouveau_statut} »`
-                    : entree.nouveau_statut}
+                  {/* Étape 13 : une confirmation de paiement n'est pas un
+                      changement de statut — jamais "De X à X". */}
+                  {entree.evenement === 'paiement_confirme'
+                    ? 'Paiement confirmé'
+                    : entree.ancien_statut
+                      ? `De « ${entree.ancien_statut} » à « ${entree.nouveau_statut} »`
+                      : entree.nouveau_statut}
                 </p>
                 <p className="text-petit text-texte-secondaire">
                   Par {entree.utilisateur ?? 'le système'}, le {formaterDateHeure(entree.date)}

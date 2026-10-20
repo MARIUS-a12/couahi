@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\ModePaiement;
 use App\Enums\StatutCommande;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnnulerCommandeRequest;
+use App\Http\Requests\ConfirmerPaiementCommandeRequest;
 use App\Http\Resources\CommandeResource;
 use App\Models\Commande;
 use App\Services\Commandes\AnnulerCommande;
+use App\Services\Commandes\ConfirmerPaiementCommande;
 use App\Services\Commandes\TransitionnerStatutCommande;
 use App\Services\Stock\ConsommerReservation;
 use App\Support\Tenancy\ContexteEtablissement;
@@ -105,6 +108,7 @@ class CommandeController extends Controller
             'lignes.produit.medias' => fn ($requete) => $requete->orderByPivot('ordre'),
             'historique' => fn ($requete) => $requete->orderBy('id'),
             'historique.utilisateur',
+            'paiementConfirmePar',
         ]);
 
         return new CommandeResource($commande);
@@ -119,6 +123,35 @@ class CommandeController extends Controller
         }
 
         $this->consommerReservation->executer($commande);
+
+        return $this->reponseCommandeFraiche($commande);
+    }
+
+    /**
+     * Étape 13 — réservé à gerer_commandes (policy "update") : jamais
+     * accessible au client, qui n'a d'ailleurs aucune session sur ces
+     * routes. Ne change pas le statut de la commande, voir
+     * ConfirmerPaiementCommande.
+     */
+    public function confirmerPaiement(ConfirmerPaiementCommandeRequest $request, Commande $commande, ConfirmerPaiementCommande $confirmer): JsonResponse
+    {
+        Gate::authorize('update', $commande);
+
+        if ($commande->mode_paiement !== ModePaiement::MobileMoney) {
+            return response()->json(['message' => "Cette commande n'est pas réglée par Mobile Money."], 422);
+        }
+
+        $confirme = $confirmer->executer(
+            commande: $commande,
+            montantRecu: (int) $request->validated('montant_recu'),
+            reference: $request->validated('reference'),
+            utilisateur: $request->user(),
+            adresseIp: $request->ip(),
+        );
+
+        if (! $confirme) {
+            return response()->json(['message' => 'Le paiement de cette commande a déjà été confirmé.'], 422);
+        }
 
         return $this->reponseCommandeFraiche($commande);
     }
@@ -177,6 +210,7 @@ class CommandeController extends Controller
             'lignes.produit.medias' => fn ($requete) => $requete->orderByPivot('ordre'),
             'historique' => fn ($requete) => $requete->orderBy('id'),
             'historique.utilisateur',
+            'paiementConfirmePar',
         ]);
 
         return (new CommandeResource($fraiche))->response();

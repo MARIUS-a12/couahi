@@ -103,3 +103,42 @@ Alternative écartée : le créer dans CreerEtablissement. Écartée parce
 que les seeders, les factories de test et tout futur chemin de création
 produiraient alors un établissement sans abonnement — une vitrine que
 rien ne coupe jamais et un trou dans la facturation.
+
+## 2026-10-20 — Le Mobile Money est confirmé à la main, et le paiement a sa propre machine d'état
+
+Un client qui paie par transfert Mobile Money ne déclenche rien
+automatiquement : c'est le commerçant qui constate l'argent reçu et le
+confirme. Alternative écartée : une intégration (CinetPay, Wave Business)
+qui confirmerait seule. Écartée parce que ces services exigent un RCCM
+que la plupart des commerçants visés n'ont pas — sans cette voie, leurs
+clients n'auraient aucun moyen de payer depuis le site.
+Cette confirmation ne change jamais le statut de la commande.
+Alternative écartée : faire passer la commande en « Confirmée » à la
+réception du paiement. Écartée parce que ce sont deux faits distincts :
+une commande peut être acceptée avant d'être payée (paiement à la
+livraison) ou payée avant d'être acceptée — les fusionner ferait mentir
+l'un des deux. Le montant reçu est enregistré tel quel, même s'il diffère
+du total : un client qui arrondit est un cas courant, pas une erreur.
+
+## 2026-10-20 — Un seul moyen de paiement proposé au client
+
+Quand CinetPay et le Mobile Money sont tous deux configurés, seul
+CinetPay est proposé. Alternative écartée : laisser le client choisir.
+Écartée parce qu'un choix de plus au moment de payer fait perdre des
+clients ; le serveur refuse d'ailleurs un mode qui n'est pas celui
+proposé, l'interface n'est pas la seule barrière.
+
+## 2026-10-20 — Une commande Mobile Money réserve son stock 24 heures
+
+Au lieu des 15 minutes d'une commande web ordinaire. Alternative écartée :
+garder 15 minutes. Écartée parce qu'un transfert n'est constaté qu'à la
+main : la commande expirerait, et son stock serait relâché, avant même
+que le commerçant ait vu l'argent arriver.
+
+## 2026-10-20 — La page de confirmation affiche le numéro Mobile Money actuel, pas celui du jour de la commande
+
+Alternative écartée : figer une copie du numéro sur chaque commande.
+Écartée parce qu'un commerçant qui change de numéro (perdu, volé, changé
+d'opérateur) ne doit plus jamais recevoir d'argent sur l'ancien ; si le
+Mobile Money est retiré, la page dit de ne rien envoyer et de contacter
+le commerçant.

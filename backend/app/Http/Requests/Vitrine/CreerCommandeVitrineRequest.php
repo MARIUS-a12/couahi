@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Vitrine;
 
+use App\Enums\ModePaiement;
 use App\Enums\StatutZoneLivraison;
 use App\Models\ZoneLivraison;
 use App\Rules\NumeroTelephoneIvoirien;
@@ -70,6 +71,22 @@ class CreerCommandeVitrineRequest extends FormRequest
                     }
                 },
             ],
+
+            // Étape 13 : le seul mode accepté est celui que l'établissement
+            // propose (voir Etablissement::modePaiementPropose) — jamais un
+            // Mobile Money quand CinetPay est configuré, jamais un mode que
+            // l'établissement n'a pas. Les espèces ne se choisissent pas
+            // depuis la vitrine.
+            'mode_paiement' => [
+                'sometimes',
+                'nullable',
+                Rule::in([ModePaiement::Cinetpay->value, ModePaiement::MobileMoney->value]),
+                function (string $attribute, mixed $value, callable $fail): void {
+                    if ($value !== null && app(ContexteEtablissement::class)->obtenir()?->modePaiementPropose()?->value !== $value) {
+                        $fail("Ce moyen de paiement n'est pas proposé par cet établissement.");
+                    }
+                },
+            ],
         ];
     }
 
@@ -88,7 +105,7 @@ class CreerCommandeVitrineRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'commune.in' => "Choisissez une commune dans la liste proposée.",
+            'commune.in' => 'Choisissez une commune dans la liste proposée.',
         ];
     }
 }

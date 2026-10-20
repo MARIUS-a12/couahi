@@ -13,16 +13,22 @@
  * l'ancien sélecteur de zone de livraison (une liste déroulante quand
  * l'établissement en a, du texte libre sinon) : on ne demande pas deux fois
  * la même chose.
+ *
+ * Étape 13 : quand l'établissement propose le Mobile Money, la commande est
+ * passée dans ce mode — le client reçoit le numéro à payer sur la page de
+ * confirmation, jamais avant d'avoir une commande et son numéro à citer.
  */
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import axios from 'axios'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { Smartphone } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampTexteVitrine } from '../components/ChampTexteVitrine'
 import { EtatBouton } from '../components/EtatBouton'
 import { EtatPanierVide } from '../components/EtatPanierVide'
+import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { usePanier } from '../hooks/usePanier'
 import { useVerifierPanier } from '../hooks/useVerifierPanier'
 import { creerCommandeVitrine, recupererZonesLivraison } from '../api/vitrine'
@@ -46,6 +52,8 @@ export function PageCommander() {
   const requeteVerification = useVerifierPanier(lignes)
   const requeteZones = useQuery({ queryKey: ['zones-livraison'], queryFn: recupererZonesLivraison })
   const navigate = useNavigate()
+  const { data: etablissement } = useEtablissementVitrine()
+  const parMobileMoney = etablissement?.mode_paiement === 'mobile_money'
 
   const [cleIdempotence] = useState(() => crypto.randomUUID())
   const [nom, setNom] = useState('')
@@ -99,6 +107,7 @@ export function PageCommander() {
       commune,
       quartier,
       cle_idempotence: cleIdempotence,
+      mode_paiement: parMobileMoney ? 'mobile_money' : null,
     })
   }
 
@@ -197,12 +206,24 @@ export function PageCommander() {
               erreur={erreurs.quartier}
             />
 
+            {parMobileMoney && (
+              <p className="flex gap-2 border border-bordure bg-surface p-3 text-corps text-texte-secondaire">
+                <Smartphone aria-hidden="true" size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-texte" />
+                <span>
+                  Vous paierez par transfert Mobile Money : le numéro du commerçant et le montant exact vous seront
+                  donnés juste après avoir validé.
+                </span>
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={creation.isPending || uneLigneIndisponible}
               className="h-11 w-full cursor-pointer rounded bg-accent text-corps font-medium text-accent-texte transition-[opacity,transform] hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
             >
-              <EtatBouton chargement={creation.isPending}>Valider la commande</EtatBouton>
+              <EtatBouton chargement={creation.isPending}>
+                {parMobileMoney ? 'Valider et payer par Mobile Money' : 'Valider la commande'}
+              </EtatBouton>
             </button>
           </form>
         </div>

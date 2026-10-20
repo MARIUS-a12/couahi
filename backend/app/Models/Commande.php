@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Canal;
+use App\Enums\ModePaiement;
 use App\Enums\SourceCommande;
 use App\Enums\StatutCommande;
 use App\Models\Concerns\AppartientAEtablissement;
@@ -43,6 +44,7 @@ class Commande extends Model
         'note',
         'commune',
         'quartier',
+        'mode_paiement',
     ];
 
     /**
@@ -73,6 +75,9 @@ class Commande extends Model
             'total' => 'integer',
             'expire_le' => 'datetime',
             'payee_le' => 'datetime',
+            'mode_paiement' => ModePaiement::class,
+            'paiement_confirme_le' => 'datetime',
+            'paiement_montant_recu' => 'integer',
         ];
     }
 
@@ -99,6 +104,29 @@ class Commande extends Model
     public function reservations(): HasMany
     {
         return $this->hasMany(ReservationStock::class);
+    }
+
+    public function paiementConfirmePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paiement_confirme_par');
+    }
+
+    public function paiementEstConfirme(): bool
+    {
+        return $this->paiement_confirme_le !== null;
+    }
+
+    /**
+     * Étape 13 — un transfert attendu depuis plus de 2 heures : le
+     * commerçant doit vérifier son téléphone ou relancer le client. Hors
+     * commandes annulées ou expirées, qu'on n'attend plus.
+     */
+    public function paiementEnRetard(): bool
+    {
+        return $this->mode_paiement === ModePaiement::MobileMoney
+            && ! $this->paiementEstConfirme()
+            && ! in_array($this->statut, [StatutCommande::Annulee, StatutCommande::Expiree], true)
+            && $this->created_at->lt(now()->subHours(2));
     }
 
     public function historique(): HasMany

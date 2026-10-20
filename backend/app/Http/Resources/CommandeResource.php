@@ -38,6 +38,18 @@ class CommandeResource extends JsonResource
             // attend est un client qui part (voir Étape 9).
             'en_retard' => $this->statut === StatutCommande::AttentePaiement
                 && $this->created_at->lt(now()->subHours(2)),
+            // Étape 13 — le paiement, sa propre machine d'état, à côté du
+            // statut de la commande et jamais fusionné avec lui.
+            'mode_paiement' => $this->mode_paiement?->value,
+            'paiement' => [
+                'confirme' => $this->paiementEstConfirme(),
+                'confirme_le' => $this->paiement_confirme_le,
+                'confirme_par' => $this->whenLoaded('paiementConfirmePar', fn () => $this->paiementConfirmePar?->name),
+                'montant_recu' => $this->paiement_montant_recu,
+                'ecart' => $this->paiement_montant_recu === null ? null : $this->paiement_montant_recu - $this->total,
+                'reference' => $this->paiement_reference,
+                'en_retard' => $this->paiementEnRetard(),
+            ],
             'client' => $this->whenLoaded('client', fn () => [
                 'nom' => $this->client->nom,
                 'telephone' => $this->client->telephone,
@@ -69,6 +81,7 @@ class CommandeResource extends JsonResource
                     'nouveau_statut' => $entree->nouveau_statut->libelle(),
                     'utilisateur' => $entree->utilisateur?->name,
                     'motif' => $entree->motif,
+                    'evenement' => $entree->evenement,
                     'date' => $entree->created_at,
                 ])),
         ];

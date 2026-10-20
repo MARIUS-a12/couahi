@@ -3,6 +3,7 @@
 namespace App\Services\Commandes;
 
 use App\Enums\Canal;
+use App\Enums\ModePaiement;
 use App\Enums\ModeStock;
 use App\Enums\SourceCommande;
 use App\Enums\StatutCommande;
@@ -36,6 +37,7 @@ class CreerCommande
         SourceCommande $source,
         string $cleIdempotence,
         ?ZoneLivraison $zoneLivraison = null,
+        ?ModePaiement $modePaiement = null,
     ): Commande {
         // pourTousEtablissements() partout dans ce service, jamais le
         // contexte ambiant : $etablissement, reçu en paramètre, est déjà la
@@ -58,6 +60,7 @@ class CreerCommande
                 $source,
                 $cleIdempotence,
                 $zoneLivraison,
+                $modePaiement,
             ));
         } catch (UniqueConstraintViolationException) {
             // Une commande portant la même clé a été insérée entre notre
@@ -80,6 +83,7 @@ class CreerCommande
         SourceCommande $source,
         string $cleIdempotence,
         ?ZoneLivraison $zoneLivraison,
+        ?ModePaiement $modePaiement,
     ): Commande {
         $lignesResolues = $this->resoudreEtTrierLignes($etablissement, $lignes);
 
@@ -89,9 +93,15 @@ class CreerCommande
             $this->traiterLigne($ligne);
         }
 
-        $expireLe = match ($canal) {
-            Canal::Web => now()->addMinutes(15),
-            Canal::Whatsapp => now()->addHours(2),
+        // Étape 13 : un transfert Mobile Money n'est constaté qu'à la main
+        // par le commerçant — 15 minutes ne lui laisseraient pas le temps
+        // de voir l'argent arriver avant que la commande n'expire et que
+        // son stock ne soit relâché. 24 heures couvrent une soirée et une
+        // nuit sans bloquer le stock indéfiniment.
+        $expireLe = match (true) {
+            $modePaiement === ModePaiement::MobileMoney => now()->addHours(24),
+            $canal === Canal::Web => now()->addMinutes(15),
+            default => now()->addHours(2),
         };
 
         $sousTotal = $lignesResolues->sum(fn (LigneResolue $ligne) => $ligne->total());
@@ -109,6 +119,7 @@ class CreerCommande
             'total' => $sousTotal + $fraisLivraison,
             'cle_idempotence' => $cleIdempotence,
             'expire_le' => $expireLe,
+            'mode_paiement' => $modePaiement,
         ]);
 
         $commande->historique()->make([

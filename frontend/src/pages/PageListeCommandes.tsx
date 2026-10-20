@@ -9,6 +9,7 @@
 import { PackageSearch, Search, ShoppingCart } from 'lucide-react'
 import { useState } from 'react'
 import { BadgeStatutCommande } from '../components/BadgeStatutCommande'
+import { PastillePaiement } from '../components/PastillePaiement'
 import { BandeStatistiquesCommandes } from '../components/BandeStatistiquesCommandes'
 import { Bouton } from '../components/Bouton'
 import { EnteteDePage } from '../components/EnteteDePage'
@@ -120,6 +121,7 @@ export function PageListeCommandes() {
                   <th className="border-b border-bordure px-4 py-2 font-medium">Client</th>
                   <th className="border-b border-bordure px-4 py-2 font-medium">Articles</th>
                   <th className="border-b border-bordure px-4 py-2 font-medium">Total</th>
+                  <th className="border-b border-bordure px-4 py-2 font-medium">Paiement</th>
                   <th className="border-b border-bordure px-4 py-2 font-medium">Canal</th>
                   <th className="border-b border-bordure px-4 py-2 font-medium">Statut</th>
                   <th className="border-b border-bordure px-4 py-2 font-medium">Date</th>
@@ -149,6 +151,9 @@ export function PageListeCommandes() {
                     </td>
                     <td className="border-b border-bordure px-4 py-3 tabular-nums text-corps font-medium text-texte">
                       {formaterMontant(commande.total)}
+                    </td>
+                    <td className="border-b border-bordure px-4 py-3">
+                      <PastillePaiement commande={commande} />
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
                       <IconeCanal canal={commande.canal} />
@@ -211,7 +216,10 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">
-        <IconeCanal canal={commande.canal} />
+        <span className="flex items-center gap-2">
+          <IconeCanal canal={commande.canal} />
+          <PastillePaiement commande={commande} />
+        </span>
         <span className="tabular-nums text-corps font-semibold text-texte">{formaterMontant(commande.total)}</span>
       </div>
 

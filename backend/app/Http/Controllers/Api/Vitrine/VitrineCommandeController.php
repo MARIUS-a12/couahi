@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Vitrine;
 
 use App\Enums\Canal;
+use App\Enums\ModePaiement;
 use App\Enums\SourceCommande;
 use App\Enums\StatutProduit;
 use App\Enums\StatutZoneLivraison;
@@ -92,6 +93,7 @@ class VitrineCommandeController extends Controller
                 source: SourceCommande::PanierWeb,
                 cleIdempotence: $request->validated('cle_idempotence'),
                 zoneLivraison: $zoneLivraison,
+                modePaiement: ModePaiement::tryFrom((string) $request->validated('mode_paiement')),
             );
         } catch (ArticleIndisponibleException $exception) {
             return response()->json(['message' => $exception->getMessage(), 'article' => $exception->nomArticle()], 422);
@@ -120,7 +122,7 @@ class VitrineCommandeController extends Controller
             404,
         );
 
-        $commande->load(['lignes', 'zoneLivraison']);
+        $commande->load(['lignes', 'zoneLivraison', 'etablissement']);
 
         return response()->json(['data' => new CommandeVitrineResource($commande)]);
     }

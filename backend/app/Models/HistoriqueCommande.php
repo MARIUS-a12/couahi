@@ -20,6 +20,7 @@ class HistoriqueCommande extends Model
         'nouveau_statut',
         'utilisateur_id',
         'motif',
+        'evenement',
     ];
 
     protected function casts(): array

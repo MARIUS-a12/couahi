@@ -30,4 +30,18 @@ final class NormaliseurTelephone
 
         return null;
     }
+
+    /**
+     * Étape 13 — forme lisible d'un numéro DÉJÀ normalisé, telle qu'un client
+     * la tape dans son application : "07 01 02 03 04". Renvoie la valeur
+     * telle quelle si elle n'est pas au format canonique.
+     */
+    public static function formaterLocal(string $normalise): string
+    {
+        if (preg_match('/^\+225(0\d{9})$/', $normalise, $correspondances) !== 1) {
+            return $normalise;
+        }
+
+        return trim(chunk_split($correspondances[1], 2, ' '));
+    }
 }
