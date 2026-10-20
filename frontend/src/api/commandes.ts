@@ -30,6 +30,10 @@ export type Commande = {
   // Étape 13 — le paiement a sa propre machine d'état, distincte du statut.
   mode_paiement: 'cinetpay' | 'mobile_money' | 'especes' | null
   paiement: PaiementCommande
+  // Le stock que la commande retient encore, null si aucun. "jusqua" est
+  // null pour une commande payée : elle n'expire plus tant qu'elle n'est
+  // pas traitée.
+  stock_reserve: { jusqua: string | null } | null
 }
 
 export type PaiementCommande = {
@@ -41,6 +45,11 @@ export type PaiementCommande = {
   ecart: number | null
   reference: string | null
   en_retard: boolean
+  // Payée mais pas encore acceptée depuis plus de 2 h : le cas le plus
+  // urgent de la liste, prioritaire sur tous les autres signaux.
+  a_traiter_en_urgence: boolean
+  // Argent reçu pour une commande annulée ou expirée : à rendre au client.
+  a_rembourser: number | null
 }
 
 export type LigneCommande = {
@@ -106,6 +115,8 @@ export async function recupererCommande(id: number): Promise<CommandeDetail> {
 export type StatistiquesCommandes = {
   commandes_du_jour: number
   en_attente: number
+  // Parmi elles, celles déjà payées (Mobile Money confirmé).
+  en_attente_payees: number
   chiffre_affaires_jour: number
   panier_moyen_mois: number
 }

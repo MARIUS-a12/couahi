@@ -14,6 +14,7 @@ const OPTIONS: { valeur: StatutCommande | ''; libelle: string }[] = [
   { valeur: 'prete', libelle: 'Prêtes' },
   { valeur: 'livree', libelle: 'Livrées' },
   { valeur: 'annulee', libelle: 'Annulées' },
+  { valeur: 'expiree', libelle: 'Expirées' },
 ]
 
 export function FiltresStatutCommande({

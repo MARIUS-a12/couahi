@@ -129,6 +129,31 @@ class Commande extends Model
             && $this->created_at->lt(now()->subHours(2));
     }
 
+    /**
+     * Le cas le plus urgent de toute la liste du commerçant : il a reçu
+     * l'argent mais n'a toujours pas accepté la commande, 2 heures après —
+     * il doit de la marchandise (ou un remboursement) à quelqu'un. Une telle
+     * commande n'expire jamais (voir LibererReservationsExpirees).
+     */
+    public function payeeATraiterEnUrgence(): bool
+    {
+        return $this->paiementEstConfirme()
+            && $this->statut === StatutCommande::AttentePaiement
+            && $this->paiement_confirme_le->lt(now()->subHours(2));
+    }
+
+    /**
+     * Argent reçu pour une commande qui ne sera pas honorée (annulée, ou
+     * expirée avant que le paiement soit constaté) : le montant à rendre au
+     * client, sinon null.
+     */
+    public function montantARembourser(): ?int
+    {
+        return $this->paiementEstConfirme() && in_array($this->statut, [StatutCommande::Annulee, StatutCommande::Expiree], true)
+            ? $this->paiement_montant_recu
+            : null;
+    }
+
     public function historique(): HasMany
     {
         return $this->hasMany(HistoriqueCommande::class);

@@ -26,9 +26,20 @@ class LibererReservationsExpirees implements ShouldQueue
 
     public function handle(LibererReservation $libererReservation): void
     {
+        // Étape 13 : une commande dont le paiement a été CONFIRMÉ par le
+        // commerçant n'expire jamais, et sa réservation n'est jamais
+        // relâchée — l'argent est reçu, la marchandise est due. Elle retient
+        // donc son stock tant que le commerçant ne la traite pas : c'est
+        // voulu, et signalé en priorité dans sa liste (voir
+        // Commande::payeeATraiterEnUrgence). paiement_confirme_le n'est
+        // jamais renseigné hors Mobile Money : CinetPay et espèces gardent
+        // exactement leur comportement d'expiration.
+        $commandesPayees = Commande::pourTousEtablissements()->whereNotNull('paiement_confirme_le')->select('id');
+
         ReservationStock::pourTousEtablissements()
             ->where('statut', StatutReservation::Active)
             ->where('expire_le', '<=', now())
+            ->whereNotIn('commande_id', $commandesPayees)
             ->each(fn (ReservationStock $reservation) => $libererReservation->executer($reservation));
 
         // Une commande à la fois (plutôt qu'un UPDATE en masse) : chacune a
@@ -36,6 +47,7 @@ class LibererReservationsExpirees implements ShouldQueue
         // que son passage à `expiree`.
         Commande::pourTousEtablissements()
             ->where('statut', StatutCommande::AttentePaiement)
+            ->whereNull('paiement_confirme_le')
             ->where('expire_le', '<=', now())
             ->get()
             ->each(fn (Commande $commande) => $this->expirerUneCommande($commande));
@@ -51,6 +63,8 @@ class LibererReservationsExpirees implements ShouldQueue
             $affectee = Commande::pourTousEtablissements()
                 ->whereKey($commande->id)
                 ->where('statut', StatutCommande::AttentePaiement)
+                // Un paiement confirmé entre la lecture et cet UPDATE gagne.
+                ->whereNull('paiement_confirme_le')
                 ->update(['statut' => StatutCommande::Expiree]);
 
             if ($affectee === 0) {

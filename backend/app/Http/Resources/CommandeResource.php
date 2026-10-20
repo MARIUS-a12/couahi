@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ModePaiement;
 use App\Enums\StatutCommande;
+use App\Enums\StatutReservation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -15,6 +17,21 @@ use Illuminate\Http\Resources\Json\JsonResource;
  */
 class CommandeResource extends JsonResource
 {
+    /**
+     * En attente ET au moins une réservation active. La liste précharge
+     * l'existence (withExists, voir CommandeController::index) ; le détail
+     * la lit directement — une seule commande, pas de N+1.
+     */
+    private function retientDuStock(): bool
+    {
+        if ($this->statut !== StatutCommande::AttentePaiement) {
+            return false;
+        }
+
+        return (bool) ($this->a_reservation_active
+            ?? $this->reservations()->where('statut', StatutReservation::Active)->exists());
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -36,8 +53,18 @@ class CommandeResource extends JsonResource
             'nombre_articles' => $this->lignes->sum('quantite'),
             // Une commande non traitée depuis plus de 2h : un client qui
             // attend est un client qui part (voir Étape 9).
+            // Étape 13 : pas pour le Mobile Money, qui a son propre signal
+            // de retard (paiement.en_retard) — deux alertes pour le même
+            // fait sur la même ligne se brouillaient l'une l'autre.
             'en_retard' => $this->statut === StatutCommande::AttentePaiement
+                && $this->mode_paiement !== ModePaiement::MobileMoney
                 && $this->created_at->lt(now()->subHours(2)),
+            // Étape 13 : le stock que cette commande retient encore.
+            // "jusqua" est null pour une commande payée : elle n'expire plus
+            // et retient son stock tant qu'elle n'est pas traitée.
+            'stock_reserve' => $this->retientDuStock() ? [
+                'jusqua' => $this->paiementEstConfirme() ? null : $this->expire_le,
+            ] : null,
             // Étape 13 — le paiement, sa propre machine d'état, à côté du
             // statut de la commande et jamais fusionné avec lui.
             'mode_paiement' => $this->mode_paiement?->value,
@@ -49,6 +76,8 @@ class CommandeResource extends JsonResource
                 'ecart' => $this->paiement_montant_recu === null ? null : $this->paiement_montant_recu - $this->total,
                 'reference' => $this->paiement_reference,
                 'en_retard' => $this->paiementEnRetard(),
+                'a_traiter_en_urgence' => $this->payeeATraiterEnUrgence(),
+                'a_rembourser' => $this->montantARembourser(),
             ],
             'client' => $this->whenLoaded('client', fn () => [
                 'nom' => $this->client->nom,

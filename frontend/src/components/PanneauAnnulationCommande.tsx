@@ -6,6 +6,7 @@
  * bibliothèque de modale).
  */
 import { useState } from 'react'
+import { formaterMontant } from '../lib/formatage'
 import type { FormEvent } from 'react'
 import type { MotifAnnulation } from '../api/commandes'
 import { Bouton } from './Bouton'
@@ -19,12 +20,16 @@ const OPTIONS_MOTIF: { valeur: string; libelle: string }[] = [
 
 export function PanneauAnnulationCommande({
   numero,
+  montantPaye = null,
   enCours,
   erreur,
   onConfirmer,
   onFermer,
 }: {
   numero: string
+  // Étape 13 : argent déjà reçu pour cette commande — l'annuler oblige à le
+  // rendre, le commerçant doit le lire AVANT de confirmer.
+  montantPaye?: number | null
   enCours: boolean
   erreur: string | null
   onConfirmer: (motif: MotifAnnulation) => void
@@ -79,6 +84,11 @@ export function PanneauAnnulationCommande({
       >
         <h2 className="text-titre-section font-semibold text-texte">Annuler la commande {numero}</h2>
         <p className="mt-2 text-corps text-texte-secondaire">Cette action est irréversible.</p>
+        {montantPaye !== null && (
+          <p role="alert" className="mt-3 rounded-md border border-alerte bg-alerte/10 p-3 text-corps font-medium text-alerte">
+            Le client a déjà payé {formaterMontant(montantPaye)} : pensez à le rembourser.
+          </p>
+        )}
 
         <form onSubmit={soumettre} className="mt-4 space-y-3">
           <fieldset className="space-y-2">

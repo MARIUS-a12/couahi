@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\ModePaiement;
 use App\Enums\StatutCommande;
+use App\Enums\StatutReservation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnnulerCommandeRequest;
 use App\Http\Requests\ConfirmerPaiementCommandeRequest;
@@ -43,7 +44,10 @@ class CommandeController extends Controller
     {
         Gate::authorize('viewAny', Commande::class);
 
-        $requete = Commande::query()->with(['client', 'lignes'])->latest('created_at');
+        $requete = Commande::query()
+            ->with(['client', 'lignes'])
+            ->withExists(['reservations as a_reservation_active' => fn ($q) => $q->where('statut', StatutReservation::Active)])
+            ->latest('created_at');
 
         $recherche = trim((string) $request->query('recherche', ''));
         if ($recherche !== '') {
@@ -77,6 +81,13 @@ class CommandeController extends Controller
 
         $enAttente = $etablissement->commandes()->where('statut', StatutCommande::AttentePaiement->value)->count();
 
+        // Étape 13 : parmi elles, celles déjà PAYÉES — le commerçant doit
+        // de la marchandise, à lire sans ouvrir la liste.
+        $enAttentePayees = $etablissement->commandes()
+            ->where('statut', StatutCommande::AttentePaiement->value)
+            ->whereNotNull('paiement_confirme_le')
+            ->count();
+
         $chiffreAffairesJour = (int) $etablissement->commandes()
             ->whereDate('created_at', today())
             ->whereIn('statut', $statutsConfirmes)
@@ -92,6 +103,7 @@ class CommandeController extends Controller
         return response()->json([
             'commandes_du_jour' => $commandesDuJour,
             'en_attente' => $enAttente,
+            'en_attente_payees' => $enAttentePayees,
             'chiffre_affaires_jour' => $chiffreAffairesJour,
             'panier_moyen_mois' => $panierMoyenMois,
         ]);

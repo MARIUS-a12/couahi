@@ -36,6 +36,13 @@ export function BandeStatistiquesCommandes() {
         libelle="En attente de traitement"
         valeur={data?.en_attente}
         contexte={data && data.en_attente > 0 ? 'À traiter' : 'Rien à traiter'}
+        // Étape 13 : les commandes déjà PAYÉES se lisent sans ouvrir la
+        // liste — le commerçant doit de la marchandise à ces clients-là.
+        alerte={
+          data && data.en_attente_payees > 0
+            ? `dont ${data.en_attente_payees} déjà payée${data.en_attente_payees > 1 ? 's' : ''} — à traiter en priorité`
+            : undefined
+        }
         chargement={isPending}
       />
       <CarteStatistique
@@ -64,6 +71,7 @@ function CarteStatistique({
   libelle,
   valeur,
   contexte,
+  alerte,
   chargement,
 }: {
   icone: ComponentType<{ 'aria-hidden'?: boolean; size?: number; strokeWidth?: number }>
@@ -71,6 +79,7 @@ function CarteStatistique({
   libelle: string
   valeur: number | string | undefined
   contexte: string
+  alerte?: string
   chargement: boolean
 }) {
   return (
@@ -84,6 +93,11 @@ function CarteStatistique({
       <div className="mt-3 text-titre-page font-bold tabular-nums text-texte">{chargement ? '—' : valeur}</div>
       <div className="text-corps font-medium text-texte">{libelle}</div>
       <div className="text-petit text-texte-secondaire">{contexte}</div>
+      {alerte && (
+        <div className="mt-2 animate-entree-champ rounded-md bg-danger/10 px-2 py-1 text-petit font-semibold text-danger">
+          {alerte}
+        </div>
+      )}
     </div>
   )
 }

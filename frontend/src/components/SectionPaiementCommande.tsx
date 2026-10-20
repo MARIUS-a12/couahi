@@ -16,6 +16,7 @@ import { CheckCircle2, Clock, Smartphone, Wallet } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import type { CommandeDetail } from '../api/commandes'
+import { LigneStockReserve } from './PastillePaiement'
 import { confirmerPaiementCommande } from '../api/commandes'
 import { extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
@@ -119,6 +120,26 @@ export function SectionPaiementCommande({
           {LIBELLES_MODE[commande.mode_paiement] ?? commande.mode_paiement}
         </span>
       </div>
+
+      {paiement.a_rembourser !== null && (
+        <p role="alert" className="mt-3 rounded-md border border-alerte bg-alerte/10 p-3 text-corps font-semibold text-alerte">
+          Commande {commande.statut === 'expiree' ? 'expirée' : 'annulée'} après paiement : le client a payé{' '}
+          {formaterMontant(paiement.a_rembourser)}, pensez à le rembourser.
+        </p>
+      )}
+
+      {paiement.a_traiter_en_urgence && (
+        <p role="alert" className="mt-3 rounded-md bg-danger p-3 text-corps font-semibold text-white">
+          Payée depuis plus de 2 heures et toujours pas traitée : le client attend sa commande. Elle retient son
+          stock tant que vous ne la confirmez ou ne l'annulez pas.
+        </p>
+      )}
+
+      {commande.stock_reserve && (
+        <p className="mt-2">
+          <LigneStockReserve commande={commande} />
+        </p>
+      )}
 
       {paiement.confirme ? (
         <div className="mt-3 rounded-md bg-succes/10 p-3 text-corps text-texte">

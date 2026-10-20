@@ -132,15 +132,11 @@ export function PageListeCommandes() {
                   <tr
                     key={commande.id}
                     onClick={() => navigate(`/admin/commandes/${commande.id}`)}
-                    className={`cursor-pointer transition-colors hover:bg-surface-alt ${
-                      commande.en_retard ? 'bg-danger/5' : ''
-                    }`}
+                    className={`cursor-pointer transition-colors hover:bg-surface-alt ${classeSignalLigne(commande)}`}
                   >
                     <td className="border-b border-bordure px-4 py-3">
                       <span className="text-corps font-bold tabular-nums text-texte">{commande.numero}</span>
-                      {commande.en_retard && (
-                        <span className="ml-2 text-petit font-medium text-danger">En attente depuis +2h</span>
-                      )}
+                      <SignalLigne commande={commande} />
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
                       <div className="text-corps text-texte">{commande.client?.nom ?? '—'}</div>
@@ -153,7 +149,7 @@ export function PageListeCommandes() {
                       {formaterMontant(commande.total)}
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
-                      <PastillePaiement commande={commande} />
+                      <PastillePaiement commande={commande} avecStock />
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
                       <IconeCanal canal={commande.canal} />
@@ -203,9 +199,7 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-lg border border-bordure bg-surface p-4 text-left transition-colors active:scale-[0.99] ${
-        commande.en_retard ? 'bg-danger/5' : ''
-      }`}
+      className={`w-full rounded-lg border border-bordure bg-surface p-4 text-left transition-colors active:scale-[0.99] ${classeSignalLigne(commande)}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -218,7 +212,7 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
       <div className="mt-2 flex items-center justify-between gap-3">
         <span className="flex items-center gap-2">
           <IconeCanal canal={commande.canal} />
-          <PastillePaiement commande={commande} />
+          <PastillePaiement commande={commande} avecStock />
         </span>
         <span className="tabular-nums text-corps font-semibold text-texte">{formaterMontant(commande.total)}</span>
       </div>
@@ -228,9 +222,44 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
         <span className="tabular-nums">{formaterDateHeure(commande.created_at)}</span>
       </div>
 
-      {commande.en_retard && (
-        <p className="mt-2 text-petit font-medium text-danger">En attente depuis plus de 2 heures</p>
-      )}
+      <SignalLigne commande={commande} enBloc />
     </button>
+  )
+}
+
+/**
+ * Étape 13 — UN seul signal par ligne, le plus urgent : une commande payée
+ * mais pas acceptée depuis plus de 2 h passe avant tout le reste (le
+ * commerçant doit de la marchandise ou un remboursement à quelqu'un).
+ */
+function classeSignalLigne(commande: Commande): string {
+  if (commande.paiement.a_traiter_en_urgence) {
+    return 'bg-danger/10 shadow-[inset_4px_0_0_var(--color-danger)]'
+  }
+
+  return commande.en_retard || commande.paiement.en_retard ? 'bg-danger/5' : ''
+}
+
+function SignalLigne({ commande, enBloc = false }: { commande: Commande; enBloc?: boolean }) {
+  const texte = commande.paiement.a_traiter_en_urgence
+    ? 'Payée, pas encore traitée depuis +2h'
+    : commande.en_retard
+      ? enBloc
+        ? 'En attente depuis plus de 2 heures'
+        : 'En attente depuis +2h'
+      : null
+
+  if (!texte) {
+    return null
+  }
+
+  return (
+    <span
+      className={`${enBloc ? 'mt-2 block' : 'ml-2'} text-petit ${
+        commande.paiement.a_traiter_en_urgence ? 'font-bold' : 'font-medium'
+      } text-danger`}
+    >
+      {texte}
+    </span>
   )
 }

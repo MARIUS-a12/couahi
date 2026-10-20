@@ -294,6 +294,7 @@ export function PageDetailCommande() {
       {panneauAnnulationOuvert && (
         <PanneauAnnulationCommande
           numero={commande.numero}
+          montantPaye={commande.paiement.confirme ? commande.paiement.montant_recu : null}
           enCours={annulation.isPending}
           erreur={erreurAnnulation}
           onConfirmer={(motif) => annulation.mutate(motif)}
