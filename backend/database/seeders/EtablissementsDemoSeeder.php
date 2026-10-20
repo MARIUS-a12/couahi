@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Enums\OperateurMobileMoney;
 use App\Enums\StatutProduit;
 use App\Models\Categorie;
 use App\Models\Domaine;
 use App\Models\Etablissement;
 use App\Models\Produit;
+use App\Models\VarianteProduit;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
 use App\Services\Medias\GenerateurVariantesImage;
 use Illuminate\Database\Seeder;
@@ -23,6 +25,14 @@ use Illuminate\Support\Facades\Storage;
  * générées par le système de médias (jamais une ligne "medias" fabriquée à
  * la main), et le catalogue couvre les cas réels (plusieurs photos, aucune
  * photo, épuisé, archivé) plutôt que des produits tous identiques.
+ *
+ * Les trois configurations de paiement sont couvertes : chez-awa et
+ * maquis-du-port n'en ont aucune (panier et WhatsApp seulement), Wax Adjamé
+ * n'a que le Mobile Money, avec un catalogue en STOCK COMPTÉ — le cas qui a
+ * révélé que la tâche d'expiration ne s'exécutait jamais (une commande
+ * Mobile Money retient du stock compté, que rien ne relâchait). CinetPay
+ * n'est volontairement configuré nulle part : de faux identifiants dans un
+ * seeder finissent un jour par être pris pour des vrais.
  *
  * La taille de SORTIE des images générées est elle aussi réduite pendant
  * les tests (voir tests/TestCase) — mais le décodage et le redimensionnement
@@ -80,11 +90,43 @@ class EtablissementsDemoSeeder extends Seeder
             'est_principal' => true,
         ]);
 
+        // Créée en dernier : les identifiants des deux premiers
+        // établissements, et de leurs produits, restent ceux qu'ils ont
+        // toujours eus.
+        $waxAdjame = Etablissement::factory()->boutique()->create([
+            'nom' => 'Wax Adjamé',
+            'slug' => 'wax-adjame',
+            'description' => "Pagnes wax, bazin et kita à la pièce, directement depuis le marché d'Adjamé. Livraison dans tout Abidjan.",
+            'couleur_accent' => '#9A3412',
+            'telephone_whatsapp' => '+2250758123456',
+            'telephone_fixe' => '+2252720371122',
+            'email_contact' => 'contact@wax-adjame.example.test',
+            'adresse' => "Grand marché d'Adjamé, allée des tissus, Abidjan",
+            'horaires' => $this->horairesMarche(),
+            'lien_facebook' => 'https://facebook.com/waxadjame',
+            'lien_instagram' => 'https://instagram.com/wax.adjame',
+            'lien_tiktok' => 'https://tiktok.com/@wax.adjame',
+            'lien_site_web' => null,
+            // Mobile Money seul, assigné directement : passer par
+            // ConfigurerMobileMoney écrirait une ligne de journal d'audit
+            // sans auteur. Numéro déjà au format stocké (E.164).
+            'mm_numero' => '+2250758123456',
+            'mm_operateur' => OperateurMobileMoney::OrangeMoney,
+            'mm_beneficiaire' => 'DIALLO FATOU AMINATA',
+        ]);
+
+        Domaine::factory()->for($waxAdjame)->create([
+            'hote' => 'wax-adjame.localhost',
+            'est_principal' => true,
+        ]);
+
         $this->poserLogo($chezAwa, 'logo-chez-awa.jpg');
         $this->poserLogo($maquisDuPort, 'logo-maquis-du-port.jpg');
+        $this->poserLogo($waxAdjame, 'logo-wax-adjame.jpg');
 
         $this->peuplerBoutique($chezAwa);
         $this->peuplerRestaurant($maquisDuPort);
+        $this->peuplerTissus($waxAdjame);
     }
 
     /**
@@ -129,6 +171,22 @@ class EtablissementsDemoSeeder extends Seeder
             'vendredi' => ['ouverture' => '18:00', 'fermeture' => '02:00', 'ferme' => false],
             'samedi' => ['ouverture' => '12:00', 'fermeture' => '02:00', 'ferme' => false],
             'dimanche' => ['ouverture' => '12:00', 'fermeture' => '23:00', 'ferme' => false],
+        ];
+    }
+
+    /** Horaires de marché : tôt le matin, et le dimanche matin seulement. */
+    private function horairesMarche(): array
+    {
+        $jour = ['ouverture' => '07:30', 'fermeture' => '18:30', 'ferme' => false];
+
+        return [
+            'lundi' => $jour,
+            'mardi' => $jour,
+            'mercredi' => $jour,
+            'jeudi' => $jour,
+            'vendredi' => $jour,
+            'samedi' => $jour,
+            'dimanche' => ['ouverture' => '09:00', 'fermeture' => '13:00', 'ferme' => false],
         ];
     }
 
@@ -232,6 +290,73 @@ class EtablissementsDemoSeeder extends Seeder
 
         $archive = Produit::factory()->for($maquisDuPort)->create([
             'categorie_id' => $categorieB->id,
+            'statut' => StatutProduit::Archive,
+        ]);
+        $this->ajouterPhotos($archive, 1);
+    }
+
+    /**
+     * De vrais noms de tissus plutôt que du faux latin : c'est la vitrine
+     * du parcours Mobile Money. Tout est en stock compté (déduit du type
+     * boutique, jamais forcé) et couvre les mêmes cas que chez-awa :
+     * plusieurs photos, aucune photo, variantes, épuisé, archivé.
+     */
+    private function peuplerTissus(Etablissement $waxAdjame): void
+    {
+        $wax = Categorie::factory()->for($waxAdjame)->create(['nom' => 'Pagnes wax', 'slug' => 'pagnes-wax', 'ordre' => 1]);
+        $bazin = Categorie::factory()->for($waxAdjame)->create(['nom' => 'Bazin et kita', 'slug' => 'bazin-et-kita', 'ordre' => 2]);
+
+        $avecPlusieursPhotos = Produit::factory()->for($waxAdjame)->publie()->create([
+            'categorie_id' => $wax->id,
+            'nom' => 'Pagne wax hollandais 6 yards',
+            'slug' => 'pagne-wax-hollandais-6-yards',
+            'description' => 'Wax hollandais véritable, motif « Fleurs de mariage ». Coton 100 %, couleurs garanties au lavage.',
+            'prix' => 15000,
+            'quantite_stock' => 12,
+        ]);
+        $this->ajouterPhotos($avecPlusieursPhotos, 3);
+
+        // Sans photo, et presque épuisé : le cas où une seule commande
+        // Mobile Money non payée bloque tout le stock restant.
+        Produit::factory()->for($waxAdjame)->publie()->create([
+            'categorie_id' => $bazin->id,
+            'nom' => 'Bazin riche brodé',
+            'slug' => 'bazin-riche-brode',
+            'description' => 'Bazin riche teint à la main, broderie dorée au col. Vendu par pièce de 5 mètres.',
+            'prix' => 35000,
+            'quantite_stock' => 2,
+        ]);
+
+        $avecVariantes = Produit::factory()->for($waxAdjame)->publie()->create([
+            'categorie_id' => $wax->id,
+            'nom' => 'Wax imprimé « Bouche de Sika »',
+            'slug' => 'wax-imprime-bouche-de-sika',
+            'description' => 'Le même motif en trois longueurs : 2 yards pour une jupe, 6 pour une tenue, 12 pour un couple.',
+            'prix' => 6000,
+            'quantite_stock' => 0,
+        ]);
+        foreach ([['2 yards', 6000, 8], ['6 yards', 14000, 5], ['12 yards', 26000, 1]] as [$nom, $prix, $stock]) {
+            VarianteProduit::factory()->pourProduit($avecVariantes)->create([
+                'nom' => $nom,
+                'prix' => $prix,
+                'quantite_stock' => $stock,
+            ]);
+        }
+        $this->ajouterPhotos($avecVariantes, 1);
+
+        Produit::factory()->for($waxAdjame)->publie()->epuise()->create([
+            'categorie_id' => $bazin->id,
+            'nom' => 'Kita tissé main',
+            'slug' => 'kita-tisse-main',
+            'description' => 'Pagne kita baoulé tissé à la main. Arrivages irréguliers.',
+            'prix' => 45000,
+        ]);
+
+        $archive = Produit::factory()->for($waxAdjame)->create([
+            'categorie_id' => $wax->id,
+            'nom' => 'Wax collection Tabaski 2025',
+            'slug' => 'wax-collection-tabaski-2025',
+            'prix' => 12000,
             'statut' => StatutProduit::Archive,
         ]);
         $this->ajouterPhotos($archive, 1);

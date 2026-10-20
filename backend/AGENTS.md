@@ -189,6 +189,11 @@ pour une image, pas une ligne fabriquée à la main) plutôt que de le
 laisser vide "pour aller plus vite" — un raccourci dans les seeders cache
 exactement la classe de bug qu'un test est censé attraper.
 
+De même, chaque configuration qu'un commerçant peut choisir a au moins un
+établissement de démo qui l'utilise : aucun paiement (chez-awa,
+maquis-du-port), Mobile Money seul avec du stock compté (wax-adjame).
+DonneesDemoTest le vérifie.
+
 ## Tâches planifiées
 Toute tâche planifiée a au moins un test qui l'exécute PAR LE
 PLANIFICATEUR (schedule:run), jamais seulement par appel direct à son

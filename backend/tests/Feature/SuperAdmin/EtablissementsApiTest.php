@@ -32,12 +32,14 @@ class EtablissementsApiTest extends TestCase
         $reponse = $this->depuis('admin.localhost')->getJson('http://admin.localhost:8000/api/etablissements');
 
         $reponse->assertStatus(200);
-        $reponse->assertJsonCount(2, 'data');
+        $reponse->assertJsonCount(3, 'data');
         $etablissements = collect($reponse->json('data'))->keyBy('nom');
         $this->assertSame('boutique', $etablissements['Chez Awa']['type']);
         $this->assertSame('chez-awa.localhost', $etablissements['Chez Awa']['sous_domaine']);
         $this->assertSame('restaurant', $etablissements['Maquis du Port']['type']);
         $this->assertSame('maquis-du-port.localhost', $etablissements['Maquis du Port']['sous_domaine']);
+        $this->assertSame('boutique', $etablissements['Wax Adjamé']['type']);
+        $this->assertSame('wax-adjame.localhost', $etablissements['Wax Adjamé']['sous_domaine']);
     }
 
     /**

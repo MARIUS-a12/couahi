@@ -9,10 +9,11 @@ use App\Services\Utilisateurs\CreerRattachementUtilisateur;
 use Illuminate\Database\Seeder;
 
 /**
- * Quatre comptes de démo, un mot de passe identique en clair (données de
+ * Cinq comptes de démo, un mot de passe identique en clair (données de
  * démo uniquement, jamais en production) : voir la table de l'Étape 1.
  * S'appuie sur les établissements déjà créés par EtablissementsDemoSeeder
- * (slugs "chez-awa" et "maquis-du-port") — à exécuter après lui.
+ * (slugs "chez-awa", "maquis-du-port" et "wax-adjame") — à exécuter après
+ * lui.
  */
 class UtilisateursDemoSeeder extends Seeder
 {
@@ -22,6 +23,7 @@ class UtilisateursDemoSeeder extends Seeder
     {
         $chezAwa = Etablissement::where('slug', 'chez-awa')->firstOrFail();
         $maquisDuPort = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
+        $waxAdjame = Etablissement::where('slug', 'wax-adjame')->firstOrFail();
 
         $roleAdminEtablissement = Role::where('nom', 'admin_etablissement')->value('id');
         $roleOperateur = Role::where('nom', 'operateur')->value('id');
@@ -65,5 +67,13 @@ class UtilisateursDemoSeeder extends Seeder
             'mot_de_passe_defini' => true,
         ]);
         $creerRattachement->executer($adjoua, $maquisDuPort, $roleAdminEtablissement);
+
+        $fatou = User::factory()->create([
+            'name' => 'Fatou Diallo',
+            'email' => 'fatou@wax-adjame.test',
+            'password' => self::MOT_DE_PASSE,
+            'mot_de_passe_defini' => true,
+        ]);
+        $creerRattachement->executer($fatou, $waxAdjame, $roleAdminEtablissement);
     }
 }
