@@ -7,6 +7,7 @@ use App\Enums\StatutReservation;
 use App\Models\Commande;
 use App\Models\ReservationStock;
 use App\Services\Stock\LibererReservation;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -19,10 +20,17 @@ use Illuminate\Support\Facades\DB;
  * plutôt que de compter sur l'échappatoire console du scope global, qui ne
  * vaudrait plus si ce job passait un jour sur une file synchrone au sein
  * d'une requête HTTP.
+ *
+ * Correctif : "Queueable" manquait depuis l'origine. Sans lui, le
+ * planificateur ne pouvait ni mettre ce job en file ni l'exécuter (il
+ * appelle onConnection()/onQueue(), que seul ce trait fournit) — et
+ * affichait pourtant "DONE" chaque minute : aucune commande n'a jamais
+ * expiré par cette voie. Voir le test ExecutionParLePlanificateurTest, qui
+ * passe par le planificateur lui-même, jamais par handle().
  */
 class LibererReservationsExpirees implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function handle(LibererReservation $libererReservation): void
     {

@@ -189,6 +189,15 @@ pour une image, pas une ligne fabriquée à la main) plutôt que de le
 laisser vide "pour aller plus vite" — un raccourci dans les seeders cache
 exactement la classe de bug qu'un test est censé attraper.
 
+## Tâches planifiées
+Toute tâche planifiée a au moins un test qui l'exécute PAR LE
+PLANIFICATEUR (schedule:run), jamais seulement par appel direct à son
+code. Un test qui appelle la tâche à la main prouve qu'elle fonctionne,
+pas qu'elle est branchée : la tâche d'expiration des commandes avait des
+tests verts et n'avait pourtant jamais été exécutée une seule fois par le
+planificateur, qui affichait « DONE » chaque minute. Toute nouvelle tâche
+s'ajoute aussi à l'inventaire d'ExecutionParLePlanificateurTest.
+
 ## Montants en francs CFA
 Tout montant d'argent est un entier, en francs CFA : colonne entière en
 base, règle "integer" en validation, jamais un float ni un decimal. Le

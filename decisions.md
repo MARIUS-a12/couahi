@@ -142,3 +142,24 @@ Alternative écartée : figer une copie du numéro sur chaque commande.
 d'opérateur) ne doit plus jamais recevoir d'argent sur l'ancien ; si le
 Mobile Money est retiré, la page dit de ne rien envoyer et de contacter
 le commerçant.
+
+## 2026-10-20 — Les tâches planifiées s'exécutent dans le processus du planificateur
+
+L'expiration des commandes (chaque minute) et l'actualisation des
+abonnements (chaque nuit) tournent directement dans le processus de
+schedule:run, sans file d'attente ni sous-processus. Alternative écartée :
+une file d'attente (driver database) avec un worker permanent. Écartée
+parce qu'un worker est un second processus à surveiller, en développement
+comme en production, et qu'une tâche mal branchée s'y perd sans bruit —
+c'est exactement ce qui est arrivé : la tâche d'expiration n'a jamais
+tourné, sans une seule erreur visible, pendant trois semaines. Les
+sous-processus de Schedule::command() sont écartés pour la même raison :
+leur sortie part dans NUL, un échec y est invisible.
+À réexaminer — et remettre une file — dès que l'une de ces conditions
+apparaît : un passage de la tâche d'expiration dépasse régulièrement
+20 secondes (le volume de commandes correspondant n'a pas été mesuré :
+c'est la durée du passage qu'il faut surveiller) ; une tâche doit appeler un service
+externe lent (envoi d'e-mails ou de SMS, appel CinetPay) ; ou
+l'application tourne sur plusieurs serveurs (ajouter alors onOneServer()
+au minimum). Au-delà d'une minute par passage, les exécutions se
+chevaucheraient.
