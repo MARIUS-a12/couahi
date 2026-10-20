@@ -9,31 +9,27 @@ use App\Models\Produit;
 use App\Services\Commandes\CreerCommande;
 use App\Services\Commandes\GenererNumeroCommande;
 use App\Services\Commandes\LigneCommandeDemandee;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\PostgresTestCase;
 
 /**
- * La séquence `commandes_numero_seq` est un objet PostgreSQL natif : la suite
- * rapide SQLite passe par un repli et ne peut donc rien garantir ici. Seule
- * cette suite vérifie le vrai mécanisme de numérotation.
+ * Anciennement NumeroCommandeSequenceTest : la séquence globale
+ * commandes_numero_seq a été remplacée par un compteur par établissement
+ * (voir GenererNumeroCommande). Mêmes deux vérifications, sur le vrai
+ * PostgreSQL : numéros formatés et consécutifs, deux commandes distinctes.
  */
-class NumeroCommandeSequenceTest extends PostgresTestCase
+class NumeroCommandeCompteurTest extends PostgresTestCase
 {
-    public function test_la_sequence_produit_des_numeros_formates_et_croissants(): void
+    public function test_le_compteur_produit_des_numeros_formates_et_consecutifs(): void
     {
+        $etablissement = Etablissement::factory()->boutique()->create();
         $generateur = app(GenererNumeroCommande::class);
 
-        $premier = $generateur->executer();
-        $second = $generateur->executer();
+        [$premier, $second] = DB::transaction(fn () => [$generateur->executer($etablissement->id), $generateur->executer($etablissement->id)]);
 
-        // `%06d` garantit au moins 6 chiffres : la séquence n'est pas remise
-        // à zéro par migrate:fresh (voir la migration), elle peut donc
-        // dépasser 999999 au fil des exécutions de la suite.
-        $this->assertMatchesRegularExpression('/^CMD-\d{6,}$/', $premier);
-        $this->assertMatchesRegularExpression('/^CMD-\d{6,}$/', $second);
-        $this->assertGreaterThan(
-            (int) substr($premier, 4),
-            (int) substr($second, 4),
-        );
+        $this->assertSame('CMD-000001', $premier);
+        $this->assertSame('CMD-000002', $second);
     }
 
     public function test_deux_commandes_recoivent_deux_numeros_distincts(): void
@@ -56,7 +52,13 @@ class NumeroCommandeSequenceTest extends PostgresTestCase
             Canal::Web, SourceCommande::PanierWeb, 'cle-numero-2',
         );
 
-        $this->assertMatchesRegularExpression('/^CMD-\d{6,}$/', $premiere->numero);
-        $this->assertNotSame($premiere->numero, $seconde->numero);
+        $this->assertSame('CMD-000001', $premiere->numero);
+        $this->assertSame('CMD-000002', $seconde->numero);
+    }
+
+    public function test_la_sequence_globale_nexiste_plus(): void
+    {
+        $this->assertNull(DB::selectOne("select to_regclass('commandes_numero_seq') as seq")->seq);
+        $this->assertTrue(Schema::hasTable('compteurs_numero_commande'));
     }
 }

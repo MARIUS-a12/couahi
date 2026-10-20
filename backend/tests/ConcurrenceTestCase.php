@@ -62,7 +62,7 @@ abstract class ConcurrenceTestCase extends PostgresTestCase
 
     /**
      * @param  list<array{produit_id:int,variante_id?:int|null,quantite:int}>  $lignes
-     * @return list<string>  arguments artisan (sans "php artisan")
+     * @return list<string> arguments artisan (sans "php artisan")
      */
     protected function commandeCreerCommande(
         Etablissement $etablissement,
@@ -71,6 +71,7 @@ abstract class ConcurrenceTestCase extends PostgresTestCase
         string $cle,
         string $canal = 'web',
         string $source = 'panier_web',
+        ?string $delaiVerrou = null,
     ): array {
         return [
             'concurrence:creer-commande',
@@ -80,6 +81,7 @@ abstract class ConcurrenceTestCase extends PostgresTestCase
             '--canal='.$canal,
             '--source='.$source,
             '--cle='.$cle,
+            ...($delaiVerrou ? ['--delai-verrou='.$delaiVerrou] : []),
         ];
     }
 

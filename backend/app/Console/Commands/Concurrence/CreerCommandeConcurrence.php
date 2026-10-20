@@ -10,6 +10,8 @@ use App\Models\Etablissement;
 use App\Services\Commandes\CreerCommande;
 use App\Services\Commandes\LigneCommandeDemandee;
 use Illuminate\Console\Command;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Point d'entrée process-isolé pour les tests de concurrence réelle
@@ -27,6 +29,11 @@ use Illuminate\Console\Command;
  * encodée dans le JSON avec un code de sortie SUCCESS. Toute autre exception
  * remonte telle quelle : Artisan l'imprime sur stderr et sort en échec, ce
  * que Tests\ConcurrenceTestCase::decoderResultat() fait échouer bruyamment.
+ *
+ * Avec --delai-verrou (lock_timeout de la session) : une attente anormale
+ * échoue franchement au lieu de bloquer le test, et une erreur de BASE
+ * (interblocage 40P01, délai de verrou dépassé 55P03...) est encodée avec
+ * son SQLSTATE, pour qu'un test puisse affirmer qu'aucune n'est survenue.
  */
 class CreerCommandeConcurrence extends Command
 {
@@ -36,7 +43,8 @@ class CreerCommandeConcurrence extends Command
         {--lignes= : JSON, ex. [{"produit_id":1,"variante_id":null,"quantite":1}]}
         {--canal=web : web|whatsapp}
         {--source=panier_web}
-        {--cle= : clé d\'idempotence}';
+        {--cle= : clé d\'idempotence}
+        {--delai-verrou= : lock_timeout PostgreSQL de la session, ex. 5s}';
 
     protected $description = 'Exécute un seul appel à CreerCommande dans un processus séparé (résultat JSON sur stdout).';
 
@@ -56,6 +64,10 @@ class CreerCommandeConcurrence extends Command
             ),
             json_decode((string) $this->option('lignes'), true, flags: JSON_THROW_ON_ERROR),
         );
+
+        if ($this->option('delai-verrou')) {
+            DB::statement('set lock_timeout = '.DB::getPdo()->quote((string) $this->option('delai-verrou')));
+        }
 
         try {
             $commande = $service->executer(
@@ -82,6 +94,20 @@ class CreerCommandeConcurrence extends Command
             $this->line(json_encode([
                 'ok' => false,
                 'raison' => 'selection_invalide',
+                'message' => $e->getMessage(),
+            ]));
+        } catch (QueryException $e) {
+            // Seulement quand le test l'a demandé : ailleurs, une erreur de
+            // base doit toujours faire échouer bruyamment (voir docblock),
+            // jamais compter comme un échec métier ordinaire.
+            if (! $this->option('delai-verrou')) {
+                throw $e;
+            }
+
+            $this->line(json_encode([
+                'ok' => false,
+                'raison' => 'base',
+                'sqlstate' => $e->getCode(),
                 'message' => $e->getMessage(),
             ]));
         }

@@ -109,7 +109,13 @@ class CreerCommande
 
         $commande = $etablissement->commandes()->create([
             'client_id' => $client->id,
-            'numero' => $this->genererNumero->executer(),
+            // Pris en DERNIER (après les verrous de stock) : le verrou du
+            // compteur, tenu jusqu'au commit, fait attendre toutes les autres
+            // commandes de cette boutique. Après lui, rien que des INSERT
+            // (commande, historique, lignes, réservations) — jamais d'appel
+            // réseau, d'envoi de message ni de traitement lourd ici : à
+            // faire après le commit, hors de cette transaction.
+            'numero' => $this->genererNumero->executer($etablissement->id),
             'source' => $source,
             'canal' => $canal,
             'zone_livraison_id' => $zoneLivraison?->id,

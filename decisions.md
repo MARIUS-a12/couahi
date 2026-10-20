@@ -193,3 +193,32 @@ Le greffon couvre vite dev et vite preview. En production, le serveur
 qui renverra index.html devra faire la même injection (même route
 d'API) ; APP_URL devra être l'adresse publique, sans quoi og:image
 pointerait vers une adresse que WhatsApp ne peut pas joindre.
+
+## 2026-10-20 — Les commandes sont numérotées par établissement, sur une ligne de compteur
+
+Chaque établissement a sa ligne dans compteurs_numero_commande ; le
+numéro s'obtient par un seul INSERT … ON CONFLICT DO UPDATE … RETURNING,
+pris en DERNIER dans la transaction de CreerCommande (après les verrous
+de stock), suivi seulement de quelques INSERT. La première commande d'un
+nouveau commerçant est CMD-000001. Alternative écartée : garder la
+séquence PostgreSQL globale commandes_numero_seq. Elle ne bloque jamais,
+mais elle est commune à toute la plateforme — un nouveau commerçant
+commençait à CMD-000017 et voyait l'activité des autres — et elle laisse
+des trous (un numéro tiré par une commande qui échoue n'est jamais
+rendu) ; elle survivait en plus à migrate:fresh. Une séquence par
+établissement a aussi été écartée : un objet de schéma créé à chaque
+nouvelle boutique, avec les mêmes trous.
+Limite connue : toutes les commandes SIMULTANÉES d'une même boutique se
+sérialisent sur sa ligne de compteur, de la prise du numéro au commit.
+Mesuré en développement (Windows, PostgreSQL local, commande de 3
+lignes, hors coût du commit) : verrou tenu 10 ms en médiane, 15 ms au
+90e centile — soit un plafond théorique de l'ordre de 60 à 100 commandes
+par seconde pour UNE boutique ; les boutiques entre elles ne s'attendent
+jamais. Sans conséquence à l'échelle d'un maquis ou d'une boutique de
+quartier. À réexaminer quand une seule boutique dépasse régulièrement une
+dizaine de commandes par seconde en pointe (environ 600 à la minute), ou
+dès que des commandes échouent sur lock_timeout. Pistes alors : réserver
+le numéro hors de la transaction (au prix de trous), ou numéroter après
+coup par lots. Règle qui découle de cette décision : rien de lent (appel
+réseau, envoi de message, traitement d'image) ne doit s'exécuter dans la
+transaction de CreerCommande après la prise du numéro.
