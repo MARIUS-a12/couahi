@@ -14,12 +14,14 @@ import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import type { Moi } from '../api/auth'
 import { chargerPolicesBackOffice } from '../lib/chargerPolicesBackOffice'
+import { useTitreDocument } from '../hooks/useTitreDocument'
 import { BarreLateraleSuperAdmin } from './BarreLateraleSuperAdmin'
 import { BarreSuperieure } from './BarreSuperieure'
 import { TransitionPage } from './TransitionPage'
 
 export function CoquilleSuperAdmin({ moi, children }: { moi: Moi; children: ReactNode }) {
   const [menuLateralOuvert, setMenuLateralOuvert] = useState(false)
+  useTitreDocument('Super-admin · Plateforme')
 
   useEffect(() => {
     chargerPolicesBackOffice()

@@ -56,6 +56,7 @@ Route::middleware(['resoudre.etablissement', 'abonnement.vitrine'])->prefix('vit
     Route::post('/produits/{id}/lien-whatsapp', [VitrineProduitController::class, 'lienWhatsapp']);
     Route::get('/categories', [VitrineCategorieController::class, 'index']);
     Route::get('/etablissement', [VitrineEtablissementController::class, 'show']);
+    Route::get('/partage', [VitrineEtablissementController::class, 'partage']);
 
     // Étape 6B — panier et commande : le navigateur n'envoie que des
     // identifiants et des quantités, jamais un prix (voir

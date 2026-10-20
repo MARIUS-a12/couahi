@@ -18,6 +18,7 @@ import { connecter } from '../api/auth'
 import { EtatBouton } from '../components/EtatBouton'
 import { CLE_MOI } from '../hooks/useMoi'
 import { reinitialiserGardeRedirection } from '../lib/gardeRedirectionConnexion'
+import { useTitreDocument } from '../hooks/useTitreDocument'
 
 /**
  * Extrait un message d'erreur à afficher tel quel. Le corps de la réponse
@@ -42,6 +43,7 @@ function messageErreur(erreur: unknown): string {
 }
 
 export function PageConnexionUtilisateur() {
+  useTitreDocument('Connexion · Back-office')
   const [email, setEmail] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
   const navigate = useNavigate()

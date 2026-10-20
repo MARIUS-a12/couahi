@@ -22,10 +22,15 @@ import { BandeauAbonnement } from './BandeauAbonnement'
 import { BarreLaterale } from './BarreLaterale'
 import { BarreSuperieure } from './BarreSuperieure'
 import { chargerPolicesBackOffice } from '../lib/chargerPolicesBackOffice'
+import { useTitreDocument } from '../hooks/useTitreDocument'
 import { TransitionPage } from './TransitionPage'
 
 export function CoquilleApplication({ moi, children }: { moi: Moi; children: ReactNode }) {
   const [menuLateralOuvert, setMenuLateralOuvert] = useState(false)
+
+  // Distinct de la vitrine (qui porte le seul nom de la boutique) : un
+  // commerçant qui a les deux ouverts doit les distinguer d'un coup d'œil.
+  useTitreDocument(moi.etablissement ? `${moi.etablissement.nom} · Back-office` : 'Back-office')
 
   useEffect(() => {
     chargerPolicesBackOffice()

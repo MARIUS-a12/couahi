@@ -13,8 +13,10 @@
  * s'agit, ni calculer lui-même le contraste.
  */
 import type { CSSProperties } from 'react'
-import { Link, Outlet } from 'react-router-dom'
+import { Link, Outlet, useMatch } from 'react-router-dom'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
+import { useProduitVitrine } from '../hooks/useProduitVitrine'
+import { useTitreDocument } from '../hooks/useTitreDocument'
 import { couleurTexteSurAccent } from '../lib/couleurAccent'
 import { LienPanier } from './LienPanier'
 import { PiedDePageVitrine } from './PiedDePageVitrine'
@@ -22,6 +24,17 @@ import { TransitionPage } from './TransitionPage'
 
 export function DispositionVitrine() {
   const { data: etablissement, isPending } = useEtablissementVitrine()
+
+  // Titre de l'onglet décidé ICI, pour toute la vitrine : le nom de la
+  // boutique, et sur une fiche produit "Produit — Boutique". La requête du
+  // produit est la même (même clé) que celle de la fiche : aucun appel en
+  // plus. Un produit introuvable garde le nom de la boutique.
+  const routeProduit = useMatch('/produit/:id')
+  const idProduit = routeProduit ? Number(routeProduit.params.id) || null : null
+  const { data: produit } = useProduitVitrine(idProduit)
+  useTitreDocument(
+    etablissement ? (idProduit !== null && produit ? `${produit.nom} — ${etablissement.nom}` : etablissement.nom) : null,
+  )
 
   const styleAccent: CSSProperties | undefined = etablissement
     ? ({

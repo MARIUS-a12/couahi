@@ -22,6 +22,7 @@ import { IndicateurForceMotDePasse } from '../components/IndicateurForceMotDePas
 import { CLE_MOI } from '../hooks/useMoi'
 import { extraireErreursChamps } from '../lib/erreursValidation'
 import { reinitialiserGardeRedirection } from '../lib/gardeRedirectionConnexion'
+import { useTitreDocument } from '../hooks/useTitreDocument'
 
 function messageErreurGenerique(erreur: unknown): string | null {
   if (axios.isAxiosError(erreur)) {
@@ -40,6 +41,7 @@ function messageErreurGenerique(erreur: unknown): string | null {
 }
 
 export function PageActivationCompte() {
+  useTitreDocument('Activation du compte · Back-office')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState('')

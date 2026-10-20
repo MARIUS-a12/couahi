@@ -178,3 +178,18 @@ d'environnement plutôt qu'une détection automatique : le jour où
 l'intégration existe, on le passe à vrai et rien d'autre ne change. Le
 repli vers le Mobile Money en cas d'échec d'un appel CinetPay n'est pas
 construit ; son emplacement est marqué dans VitrineCommandeController.
+
+## 2026-10-20 — L'aperçu d'un lien de vitrine est posé dans le HTML par le serveur
+
+WhatsApp et Facebook ne lisent que le HTML renvoyé, jamais ce que React
+affiche ensuite : le titre, la description et l'image d'aperçu (Open
+Graph) sont donc injectés dans index.html avant l'envoi, par un greffon
+du serveur Vite (vite/metadonneesPartage.ts), à partir d'une route de
+l'API (GET /api/vitrine/partage) qui reste la seule source de vérité.
+Alternative écartée : poser ces balises depuis React (document.title,
+react-helmet). Écartée parce qu'aucun robot d'aperçu n'exécute le
+JavaScript : l'aperçu montrerait toujours le titre par défaut.
+Le greffon couvre vite dev et vite preview. En production, le serveur
+qui renverra index.html devra faire la même injection (même route
+d'API) ; APP_URL devra être l'adresse publique, sans quoi og:image
+pointerait vers une adresse que WhatsApp ne peut pas joindre.
