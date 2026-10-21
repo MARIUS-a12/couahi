@@ -101,7 +101,7 @@ export function PagePanier() {
                   evenement.preventDefault()
                 }
               }}
-              className={`flex h-11 w-full items-center justify-center rounded text-corps font-medium transition-[opacity,transform] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 ${
+              className={`flex min-h-11 py-2 text-center leading-snug w-full items-center justify-center rounded text-corps font-medium transition-[opacity,transform] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 ${
                 peutCommander
                   ? 'cursor-pointer bg-accent text-accent-texte hover:opacity-90'
                   : 'cursor-not-allowed bg-bordure text-texte-secondaire'

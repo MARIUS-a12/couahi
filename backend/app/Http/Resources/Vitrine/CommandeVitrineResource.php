@@ -31,7 +31,22 @@ class CommandeVitrineResource extends JsonResource
             // de la commande, qui est une autre machine d'état.
             'mode_paiement' => $this->mode_paiement?->value,
             'paiement_confirme' => $this->paiementEstConfirme(),
-            'mobile_money' => $this->instructionsMobileMoney(),
+            // Ce que la cliente doit savoir de SON argent, sans jamais
+            // déduire quoi que ce soit du statut : montant constaté par le
+            // commerçant, reste à envoyer (paiement partiel sur une commande
+            // vivante), remboursement dû ou effectué (commande annulée ou
+            // expirée après paiement).
+            'montant_recu' => $this->paiementEstConfirme() ? $this->paiement_montant_recu : null,
+            'reste_du' => $this->resteDu(),
+            'a_rembourser' => $this->montantARembourser(),
+            'remboursement' => $this->rembourse_le === null ? null : [
+                'montant' => $this->remboursement_montant,
+                'le' => $this->rembourse_le,
+            ],
+            // Une commande annulée ou expirée ne se paie plus : aucune
+            // instruction de transfert, jamais un numéro où envoyer de
+            // l'argent pour rien.
+            'mobile_money' => $this->estAbandonnee() ? null : $this->instructionsMobileMoney(),
             'lignes' => $this->lignes->map(fn ($ligne) => [
                 'nom' => $ligne->nom_produit_capture,
                 'quantite' => $ligne->quantite,

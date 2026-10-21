@@ -11,8 +11,15 @@
  * ne dit JAMAIS que le paiement est reçu tant que le commerçant ne l'a pas
  * confirmé (paiement_confirme, venu du serveur) — et le statut de la
  * commande n'en dit rien non plus : "Confirmée" n'y signifie pas "payée".
+ *
+ * Un paiement PARTIEL n'est jamais présenté comme réglé : la page donne le
+ * montant reçu et le reste à envoyer, avec les instructions pour ce reste.
+ * Une commande ANNULÉE ou EXPIRÉE ne se paie plus (aucune instruction de
+ * transfert) et ne remercie jamais : si de l'argent a été reçu, la page dit
+ * franchement qu'un remboursement est dû et comment le demander (WhatsApp,
+ * numéro de commande dans le message).
  */
-import { CheckCircle2, MessageCircle, ShieldCheck, Smartphone } from 'lucide-react'
+import { CheckCircle2, CircleDashed, MessageCircle, ShieldCheck, XCircle } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useSearchParams } from 'react-router-dom'
 import type { CommandeVitrine, InstructionsMobileMoney } from '../api/vitrine'
@@ -21,6 +28,7 @@ import { EtatErreur } from '../components/EtatErreur'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { recupererCommandeVitrine } from '../api/vitrine'
 import { formaterMontant } from '../lib/formatage'
+import { IconeMobileMoney } from '../components/IconeMobileMoney'
 
 const LIBELLES_STATUT: Record<string, string> = {
   attente_paiement: 'En attente de confirmation',
@@ -31,8 +39,34 @@ const LIBELLES_STATUT: Record<string, string> = {
   annulee: 'Annulée',
 }
 
+function estAbandonnee(commande: CommandeVitrine): boolean {
+  return commande.statut === 'annulee' || commande.statut === 'expiree'
+}
+
+function participeAbandon(commande: CommandeVitrine): string {
+  return commande.statut === 'expiree' ? 'expirée' : 'annulée'
+}
+
 function messageWhatsapp(commande: CommandeVitrine): string {
   const mm = commande.mobile_money
+
+  if (estAbandonnee(commande)) {
+    if (commande.a_rembourser != null) {
+      return (
+        `Bonjour, ma commande ${commande.numero} a été ${participeAbandon(commande)}. ` +
+        `Je vous avais envoyé ${formaterMontant(commande.a_rembourser)} : je souhaite être remboursé(e).`
+      )
+    }
+
+    return `Bonjour, à propos de ma commande ${commande.numero}, ${participeAbandon(commande)}.`
+  }
+
+  if (commande.reste_du != null && mm) {
+    return (
+      `Bonjour, pour ma commande ${commande.numero}, vous avez reçu ${formaterMontant(commande.montant_recu)} ; ` +
+      `il me reste ${formaterMontant(commande.reste_du)} à envoyer par ${mm.operateur_libelle} au ${mm.numero_affiche}.`
+    )
+  }
 
   if (commande.mode_paiement === 'mobile_money' && mm && !commande.paiement_confirme) {
     return (
@@ -76,6 +110,7 @@ export function PageConfirmationCommande() {
   }
 
   const parMobileMoney = commande.mode_paiement === 'mobile_money'
+  const abandonnee = estAbandonnee(commande)
   const lienWhatsapp = etablissement?.numero_whatsapp
     ? `https://wa.me/${etablissement.numero_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
         messageWhatsapp(commande),
@@ -84,7 +119,11 @@ export function PageConfirmationCommande() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6 pb-4">
-      {parMobileMoney && <BlocPaiementMobileMoney commande={commande} />}
+      {abandonnee ? (
+        <BlocCommandeAbandonnee commande={commande} lienWhatsapp={lienWhatsapp} />
+      ) : (
+        parMobileMoney && <BlocPaiementMobileMoney commande={commande} />
+      )}
 
       <div>
         <p className="text-petit text-texte-secondaire">Commande</p>
@@ -94,7 +133,7 @@ export function PageConfirmationCommande() {
         </p>
       </div>
 
-      {!parMobileMoney && (
+      {!parMobileMoney && !abandonnee && (
         <p className="border border-bordure bg-surface p-3 text-corps text-texte-secondaire">
           Le paiement en ligne n'est pas encore disponible. Le commerçant va vous recontacter pour organiser le
           règlement.
@@ -129,14 +168,17 @@ export function PageConfirmationCommande() {
         </div>
       </div>
 
-      {lienWhatsapp && (
+      {lienWhatsapp && !abandonnee && (
         <a
           href={lienWhatsapp}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded border border-texte text-corps font-medium text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
+          className="block min-h-11 w-full cursor-pointer rounded border px-3 py-2.5 text-center leading-snug border-texte text-corps font-medium text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
         >
-          <MessageCircle aria-hidden="true" size={20} strokeWidth={1.5} />
+          {/* Icône DANS le texte, pas à côté : sur deux lignes (libellé long,
+              écran de 320-390 px), elle reste collée au premier mot au lieu de
+              partir au bord du bouton. */}
+          <MessageCircle aria-hidden="true" size={20} strokeWidth={1.5} className="mr-1.5 inline-block align-[-5px]" />
           Suivre ma commande sur WhatsApp
         </a>
       )}
@@ -144,7 +186,81 @@ export function PageConfirmationCommande() {
   )
 }
 
+/**
+ * Annulée ou expirée : jamais de remerciement ni de "vous serez contacté".
+ * Trois cas, dits franchement : argent reçu et à rendre (avec le moyen de
+ * le réclamer), argent déjà rendu, ou rien n'a été payé (et rien ne doit
+ * plus l'être).
+ */
+function BlocCommandeAbandonnee({ commande, lienWhatsapp }: { commande: CommandeVitrine; lienWhatsapp: string | null }) {
+  return (
+    <section role="status" className="animate-entree-carte space-y-3 border-2 border-texte bg-surface p-4 text-corps text-texte">
+      <p className="flex items-start gap-2 font-semibold">
+        <XCircle aria-hidden="true" size={22} strokeWidth={1.75} className="mt-0.5 shrink-0" />
+        Cette commande a été {participeAbandon(commande)}.
+      </p>
+
+      {commande.a_rembourser != null ? (
+        <p>
+          Le commerçant a reçu <span className="font-semibold tabular-nums">{formaterMontant(commande.a_rembourser)}</span>{' '}
+          de votre part pour cette commande : <span className="font-semibold">un remboursement vous est dû.</span>{' '}
+          Contactez-le pour l'obtenir, en rappelant le numéro {commande.numero}.
+        </p>
+      ) : commande.remboursement ? (
+        <p>
+          Le commerçant indique vous avoir remboursé{' '}
+          <span className="font-semibold tabular-nums">{formaterMontant(commande.remboursement.montant)}</span> le{' '}
+          {new Date(commande.remboursement.le).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          . Si vous ne l'avez pas reçu, contactez-le.
+        </p>
+      ) : (
+        <p>N'envoyez pas d'argent pour cette commande. Pour toute question, contactez le commerçant.</p>
+      )}
+
+      {lienWhatsapp && (
+        <a
+          href={lienWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block min-h-11 w-full cursor-pointer rounded border px-3 py-2.5 text-center leading-snug border-texte text-corps font-medium text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
+        >
+          {/* Icône DANS le texte, pas à côté : sur deux lignes (libellé long,
+              écran de 320-390 px), elle reste collée au premier mot au lieu de
+              partir au bord du bouton. */}
+          <MessageCircle aria-hidden="true" size={20} strokeWidth={1.5} className="mr-1.5 inline-block align-[-5px]" />
+          {commande.a_rembourser != null ? 'Demander mon remboursement sur WhatsApp' : 'Contacter le commerçant sur WhatsApp'}
+        </a>
+      )}
+    </section>
+  )
+}
+
 function BlocPaiementMobileMoney({ commande }: { commande: CommandeVitrine }) {
+  if (commande.paiement_confirme && commande.reste_du != null) {
+    return (
+      <div className="space-y-4">
+        <section className="animate-entree-carte flex gap-3 border-2 border-alerte bg-surface p-4 text-corps text-texte">
+          <CircleDashed aria-hidden="true" size={24} strokeWidth={1.75} className="shrink-0 text-alerte" />
+          <p>
+            <span className="font-semibold">Paiement incomplet.</span> Le commerçant a reçu{' '}
+            <span className="tabular-nums">{formaterMontant(commande.montant_recu)}</span> sur{' '}
+            <span className="tabular-nums">{formaterMontant(commande.total)}</span>. Il reste{' '}
+            <span className="font-semibold tabular-nums">{formaterMontant(commande.reste_du)}</span> à envoyer.
+          </p>
+        </section>
+        {commande.mobile_money && (
+          <InstructionsTransfert
+            commande={commande}
+            mm={commande.mobile_money}
+            montant={commande.reste_du}
+            libelleMontant="Montant restant à envoyer"
+            phraseFin={`Votre commande sera confirmée dès que le commerçant aura reçu les ${formaterMontant(commande.reste_du)} restants.`}
+          />
+        )}
+      </div>
+    )
+  }
+
   if (commande.paiement_confirme) {
     return (
       <section className="animate-entree-carte flex gap-3 border-2 border-succes bg-surface p-4 text-corps text-texte">
@@ -166,10 +282,30 @@ function BlocPaiementMobileMoney({ commande }: { commande: CommandeVitrine }) {
     )
   }
 
-  return <InstructionsTransfert commande={commande} mm={commande.mobile_money} />
+  return (
+    <InstructionsTransfert
+      commande={commande}
+      mm={commande.mobile_money}
+      montant={commande.total}
+      libelleMontant="Montant exact à envoyer"
+      phraseFin="Votre commande sera confirmée dès que le commerçant aura reçu votre paiement."
+    />
+  )
 }
 
-function InstructionsTransfert({ commande, mm }: { commande: CommandeVitrine; mm: InstructionsMobileMoney }) {
+function InstructionsTransfert({
+  commande,
+  mm,
+  montant,
+  libelleMontant,
+  phraseFin,
+}: {
+  commande: CommandeVitrine
+  mm: InstructionsMobileMoney
+  montant: number
+  libelleMontant: string
+  phraseFin: string
+}) {
   return (
     <section
       aria-labelledby="titre-paiement-mm"
@@ -177,13 +313,11 @@ function InstructionsTransfert({ commande, mm }: { commande: CommandeVitrine; mm
     >
       <div className="p-4 sm:p-5">
         <h2 id="titre-paiement-mm" className="flex items-center gap-2 text-corps font-semibold text-texte">
-          <Smartphone aria-hidden="true" size={20} strokeWidth={1.75} />
+          <IconeMobileMoney size={20} strokeWidth={1.75} />
           Payez par {mm.operateur_libelle}
         </h2>
-        <p className="mt-3 text-petit text-texte-secondaire">Montant exact à envoyer</p>
-        <p className="text-[2.5rem] font-bold leading-tight tabular-nums text-texte">
-          {formaterMontant(commande.total)}
-        </p>
+        <p className="mt-3 text-petit text-texte-secondaire">{libelleMontant}</p>
+        <p className="text-[2.5rem] font-bold leading-tight tabular-nums text-texte">{formaterMontant(montant)}</p>
       </div>
 
       <div className="p-4 sm:p-5">
@@ -213,9 +347,7 @@ function InstructionsTransfert({ commande, mm }: { commande: CommandeVitrine; mm
         </div>
       </div>
 
-      <p className="bg-surface-alt p-4 text-corps text-texte sm:p-5">
-        Votre commande sera confirmée dès que le commerçant aura reçu votre paiement.
-      </p>
+      <p className="bg-surface-alt p-4 text-corps text-texte sm:p-5">{phraseFin}</p>
     </section>
   )
 }

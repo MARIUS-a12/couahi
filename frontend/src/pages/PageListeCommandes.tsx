@@ -230,10 +230,17 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
 /**
  * Étape 13 — UN seul signal par ligne, le plus urgent : une commande payée
  * mais pas acceptée depuis plus de 2 h passe avant tout le reste (le
- * commerçant doit de la marchandise ou un remboursement à quelqu'un).
+ * commerçant doit de la marchandise ou un remboursement à quelqu'un). Une
+ * commande payée PARTIELLEMENT et pas encore acceptée a le même rang : le
+ * client a versé de l'argent, il faut décider (relancer, accepter, ou
+ * annuler et rembourser).
  */
+function signalPrioritaire(commande: Commande): boolean {
+  return commande.paiement.a_traiter_en_urgence || commande.paiement.partielle_a_decider
+}
+
 function classeSignalLigne(commande: Commande): string {
-  if (commande.paiement.a_traiter_en_urgence) {
+  if (signalPrioritaire(commande)) {
     return 'bg-danger/10 shadow-[inset_4px_0_0_var(--color-danger)]'
   }
 
@@ -243,7 +250,9 @@ function classeSignalLigne(commande: Commande): string {
 function SignalLigne({ commande, enBloc = false }: { commande: Commande; enBloc?: boolean }) {
   const texte = commande.paiement.a_traiter_en_urgence
     ? 'Payée, pas encore traitée depuis +2h'
-    : commande.en_retard
+    : commande.paiement.partielle_a_decider
+      ? `Payée partiellement — reste ${formaterMontant(commande.paiement.reste_du)} dû, à décider`
+      : commande.en_retard
       ? enBloc
         ? 'En attente depuis plus de 2 heures'
         : 'En attente depuis +2h'
@@ -256,7 +265,7 @@ function SignalLigne({ commande, enBloc = false }: { commande: Commande; enBloc?
   return (
     <span
       className={`${enBloc ? 'mt-2 block' : 'ml-2'} text-petit ${
-        commande.paiement.a_traiter_en_urgence ? 'font-bold' : 'font-medium'
+        signalPrioritaire(commande) ? 'font-bold' : 'font-medium'
       } text-danger`}
     >
       {texte}

@@ -79,10 +79,16 @@ class ExpirationMobileMoneyTest extends TestCase
         return Commande::pourTousEtablissements()->where('numero', $reponse->json('numero'))->firstOrFail();
     }
 
-    private function confirmerPaiement(Commande $commande, int $montant = 20309): void
+    /**
+     * Par défaut, le TOTAL de la commande : un paiement complet. (Un
+     * montant fixe de 20 309 servait ici pour 3 articles à 20 309 — soit un
+     * paiement partiel, qui n'est jamais "payée", voir
+     * PaiementPartielEtRemboursementTest.)
+     */
+    private function confirmerPaiement(Commande $commande, ?int $montant = null): void
     {
         $this->depuis('chez-awa.localhost')
-            ->postJson("http://chez-awa.localhost:8000/api/commandes/{$commande->id}/confirmer-paiement", ['montant_recu' => $montant])
+            ->postJson("http://chez-awa.localhost:8000/api/commandes/{$commande->id}/confirmer-paiement", ['montant_recu' => $montant ?? $commande->total])
             ->assertStatus(200);
     }
 

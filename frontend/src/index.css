@@ -286,3 +286,15 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/*
+ * Une icône dans un bouton ou un lien garde toujours sa taille : quand un
+ * libellé long passe sur deux lignes (vitrine à 320-390 px), c'est le texte
+ * qui s'enroule, jamais l'icône qui s'écrase. Hors @layer, la règle
+ * l'emporte sur les utilitaires : voulu, aucune icône de bouton ne doit
+ * jamais rétrécir.
+ */
+:where(button, a) > svg,
+:where(button, a) > :where(span) > svg {
+  flex-shrink: 0;
+}

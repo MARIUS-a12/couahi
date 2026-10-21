@@ -253,7 +253,15 @@ export type CommandeVitrine = {
   // Vrai SEULEMENT quand le commerçant a constaté l'argent reçu — jamais
   // déduit du statut de la commande.
   paiement_confirme: boolean
-  // Null hors Mobile Money, ou si le commerçant l'a retiré depuis.
+  // Montant constaté par le commerçant (null tant qu'il n'a rien confirmé).
+  montant_recu: number | null
+  // Paiement partiel sur une commande vivante : ce qu'il reste à envoyer.
+  reste_du: number | null
+  // Commande annulée ou expirée après paiement, pas encore remboursée.
+  a_rembourser: number | null
+  remboursement: { montant: number; le: string } | null
+  // Null hors Mobile Money, si le commerçant l'a retiré depuis, ou si la
+  // commande est annulée ou expirée (elle ne se paie plus).
   mobile_money: InstructionsMobileMoney | null
 }
 

@@ -77,7 +77,19 @@ class CommandeResource extends JsonResource
                 'reference' => $this->paiement_reference,
                 'en_retard' => $this->paiementEnRetard(),
                 'a_traiter_en_urgence' => $this->payeeATraiterEnUrgence(),
+                // Moins que le total : jamais "payée" (voir Commande::
+                // paiementPartiel). reste_du est null une fois la commande
+                // annulée ou expirée — il n'y a plus rien à encaisser.
+                'partiel' => $this->paiementPartiel(),
+                'reste_du' => $this->resteDu(),
+                'partielle_a_decider' => $this->partielleADecider(),
                 'a_rembourser' => $this->montantARembourser(),
+                'remboursement' => $this->rembourse_le === null ? null : [
+                    'le' => $this->rembourse_le,
+                    'par' => $this->whenLoaded('remboursePar', fn () => $this->remboursePar?->name),
+                    'montant' => $this->remboursement_montant,
+                    'reference' => $this->remboursement_reference,
+                ],
             ],
             'client' => $this->whenLoaded('client', fn () => [
                 'nom' => $this->client->nom,

@@ -36,11 +36,12 @@ export function BandeStatistiquesCommandes() {
         libelle="En attente de traitement"
         valeur={data?.en_attente}
         contexte={data && data.en_attente > 0 ? 'À traiter' : 'Rien à traiter'}
-        // Étape 13 : les commandes déjà PAYÉES se lisent sans ouvrir la
-        // liste — le commerçant doit de la marchandise à ces clients-là.
+        // Étape 13 : les commandes pour lesquelles de l'argent a DÉJÀ été
+        // reçu se lisent sans ouvrir la liste. "avec paiement reçu" et non
+        // "payées" : un paiement partiel en fait partie, et n'est pas réglé.
         alerte={
           data && data.en_attente_payees > 0
-            ? `dont ${data.en_attente_payees} déjà payée${data.en_attente_payees > 1 ? 's' : ''} — à traiter en priorité`
+            ? `dont ${data.en_attente_payees} avec paiement reçu — à traiter en priorité`
             : undefined
         }
         chargement={isPending}

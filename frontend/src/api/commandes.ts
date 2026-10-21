@@ -48,8 +48,16 @@ export type PaiementCommande = {
   // Payée mais pas encore acceptée depuis plus de 2 h : le cas le plus
   // urgent de la liste, prioritaire sur tous les autres signaux.
   a_traiter_en_urgence: boolean
-  // Argent reçu pour une commande annulée ou expirée : à rendre au client.
+  // Moins que le total : jamais "payée" ; reste_du null une fois la
+  // commande annulée ou expirée.
+  partiel: boolean
+  reste_du: number | null
+  // Paiement partiel sur une commande pas encore acceptée : décision à
+  // prendre, signalée en priorité dans la liste.
+  partielle_a_decider: boolean
+  // Argent reçu pour une commande annulée ou expirée, pas encore rendu.
   a_rembourser: number | null
+  remboursement: { le: string; par?: string | null; montant: number; reference: string | null } | null
 }
 
 export type LigneCommande = {
@@ -143,6 +151,15 @@ export type MotifAnnulation =
 
 export async function annulerCommande(id: number, motif: MotifAnnulation): Promise<CommandeDetail> {
   const { data } = await client.post<{ data: CommandeDetail }>(`/api/commandes/${id}/annuler`, motif)
+
+  return data.data
+}
+
+export async function enregistrerRemboursementCommande(
+  id: number,
+  payload: { montant: number; reference: string | null },
+): Promise<CommandeDetail> {
+  const { data } = await client.post<{ data: CommandeDetail }>(`/api/commandes/${id}/rembourser`, payload)
 
   return data.data
 }

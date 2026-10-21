@@ -10,7 +10,7 @@
  * SectionPaiementCommande, indépendante des actions de statut.
  */
 import axios from 'axios'
-import { ImageOff, MapPin, MessageCircle, Package, Wallet } from 'lucide-react'
+import { ImageOff, MapPin, MessageCircle, Package, Undo2, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
@@ -28,6 +28,8 @@ import { SectionPaiementCommande } from '../components/SectionPaiementCommande'
 import { useCommande } from '../hooks/useCommande'
 import { useMoi } from '../hooks/useMoi'
 import { formaterMontant } from '../lib/formatage'
+
+const STATUTS_TERMINAUX = ['annulee', 'expiree', 'livree']
 
 function formaterDateHeure(date: string): string {
   return new Date(date).toLocaleString('fr-FR', {
@@ -68,6 +70,11 @@ export function PageDetailCommande() {
 
   function messageErreurTransition(erreur: unknown): string {
     if (axios.isAxiosError(erreur) && erreur.response?.status === 422) {
+      // Le serveur a refusé la transition : l'état affiché était périmé
+      // (commande changée ailleurs — autre onglet, autre membre de
+      // l'équipe). On le recharge, pour que les boutons proposés
+      // redeviennent ceux de l'état réel.
+      refetch()
       const message = erreur.response.data?.message
       if (typeof message === 'string') {
         return message
@@ -228,7 +235,11 @@ export function PageDetailCommande() {
 
       <SectionPaiementCommande commande={commande} peutGerer={peutGererCommandes} onMiseAJour={appliquerMiseAJour} />
 
-      {peutGererCommandes && (
+      {/* Aucune action de transition sur une commande annulée, expirée ou
+          livrée (états terminaux) : la section entière disparaît plutôt que
+          d'afficher un titre "Actions" sans rien dessous. Le serveur refuse
+          de toute façon ces transitions (voir CommandeController). */}
+      {peutGererCommandes && !STATUTS_TERMINAUX.includes(commande.statut) && (
         <section className="rounded-lg border border-bordure bg-surface p-4 sm:p-5">
           <h2 className="text-titre-section font-semibold text-texte">Actions</h2>
           {erreurTransition && (
@@ -268,6 +279,8 @@ export function PageDetailCommande() {
             <li key={index} className="flex items-start gap-3 p-4">
               {entree.evenement === 'paiement_confirme' ? (
                 <Wallet aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-succes" />
+              ) : entree.evenement === 'remboursement' ? (
+                <Undo2 aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-texte-secondaire" />
               ) : (
                 <Package aria-hidden="true" size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-texte-secondaire" />
               )}
@@ -277,7 +290,9 @@ export function PageDetailCommande() {
                       changement de statut — jamais "De X à X". */}
                   {entree.evenement === 'paiement_confirme'
                     ? 'Paiement confirmé'
-                    : entree.ancien_statut
+                    : entree.evenement === 'remboursement'
+                      ? 'Remboursement effectué'
+                      : entree.ancien_statut
                       ? `De « ${entree.ancien_statut} » à « ${entree.nouveau_statut} »`
                       : entree.nouveau_statut}
                 </p>

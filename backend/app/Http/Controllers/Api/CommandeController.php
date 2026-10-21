@@ -8,10 +8,12 @@ use App\Enums\StatutReservation;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnnulerCommandeRequest;
 use App\Http\Requests\ConfirmerPaiementCommandeRequest;
+use App\Http\Requests\EnregistrerRemboursementCommandeRequest;
 use App\Http\Resources\CommandeResource;
 use App\Models\Commande;
 use App\Services\Commandes\AnnulerCommande;
 use App\Services\Commandes\ConfirmerPaiementCommande;
+use App\Services\Commandes\EnregistrerRemboursementCommande;
 use App\Services\Commandes\TransitionnerStatutCommande;
 use App\Services\Stock\ConsommerReservation;
 use App\Support\Tenancy\ContexteEtablissement;
@@ -121,6 +123,7 @@ class CommandeController extends Controller
             'historique' => fn ($requete) => $requete->orderBy('id'),
             'historique.utilisateur',
             'paiementConfirmePar',
+            'remboursePar',
         ]);
 
         return new CommandeResource($commande);
@@ -163,6 +166,33 @@ class CommandeController extends Controller
 
         if (! $confirme) {
             return response()->json(['message' => 'Le paiement de cette commande a déjà été confirmé.'], 422);
+        }
+
+        return $this->reponseCommandeFraiche($commande);
+    }
+
+    /**
+     * Le commerçant a rendu l'argent d'une commande annulée ou expirée après
+     * paiement (voir EnregistrerRemboursementCommande). gerer_commandes est
+     * vérifié par la requête, avant toute validation. Ne change pas le
+     * statut de la commande.
+     */
+    public function rembourser(EnregistrerRemboursementCommandeRequest $request, Commande $commande, EnregistrerRemboursementCommande $rembourser): JsonResponse
+    {
+        if ($commande->montantARembourser() === null) {
+            return response()->json(['message' => "Cette commande n'a aucun remboursement en attente."], 422);
+        }
+
+        $enregistre = $rembourser->executer(
+            commande: $commande,
+            montant: (int) $request->validated('montant'),
+            reference: $request->validated('reference'),
+            utilisateur: $request->user(),
+            adresseIp: $request->ip(),
+        );
+
+        if (! $enregistre) {
+            return response()->json(['message' => 'Le remboursement de cette commande a déjà été enregistré.'], 422);
         }
 
         return $this->reponseCommandeFraiche($commande);
@@ -223,6 +253,7 @@ class CommandeController extends Controller
             'historique' => fn ($requete) => $requete->orderBy('id'),
             'historique.utilisateur',
             'paiementConfirmePar',
+            'remboursePar',
         ]);
 
         return (new CommandeResource($fraiche))->response();

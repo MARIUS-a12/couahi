@@ -16,7 +16,7 @@ export function PageIntrouvableVitrine() {
       </p>
       <Link
         to="/"
-        className="mt-2 inline-flex h-11 cursor-pointer items-center rounded bg-primaire px-4 text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] active:bg-primaire-fonce focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1"
+        className="mt-2 inline-flex min-h-11 py-2 text-center leading-snug cursor-pointer items-center rounded bg-primaire px-4 text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] active:bg-primaire-fonce focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1"
       >
         Retour à la boutique
       </Link>

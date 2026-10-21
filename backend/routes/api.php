@@ -155,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Étape 13 — confirmation d'un paiement reçu : ne change PAS le
         // statut de la commande (voir ConfirmerPaiementCommande).
         Route::post('/commandes/{commande}/confirmer-paiement', [CommandeController::class, 'confirmerPaiement']);
+        Route::post('/commandes/{commande}/rembourser', [CommandeController::class, 'rembourser']);
         Route::post('/commandes/{commande}/annuler', [CommandeController::class, 'annuler']);
 
         Route::get('/parametres', [ParametresController::class, 'index']);

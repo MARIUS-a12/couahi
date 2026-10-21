@@ -16,7 +16,7 @@ export function EtatPanierVide() {
       </p>
       <Link
         to="/"
-        className="mt-2 inline-flex h-11 cursor-pointer items-center rounded bg-accent px-4 text-corps font-medium text-accent-texte transition-[opacity,transform] hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
+        className="mt-2 inline-flex min-h-11 py-2 text-center leading-snug cursor-pointer items-center rounded bg-accent px-4 text-corps font-medium text-accent-texte transition-[opacity,transform] hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
       >
         Voir les produits
       </Link>

@@ -22,13 +22,14 @@
  * préciser laquelle.
  */
 import { useEffect, useState } from 'react'
-import { Check, CreditCard, MessageCircle, ShoppingCart, Smartphone } from 'lucide-react'
+import { Check, CreditCard, MessageCircle, ShoppingCart } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import type { ModePaiementVitrine, VarianteVitrine } from '../api/vitrine'
 import { genererLienWhatsapp } from '../api/vitrine'
 import { usePanier } from '../hooks/usePanier'
 import { EtatBouton } from './EtatBouton'
+import { IconeMobileMoney } from './IconeMobileMoney'
 
 export function BoutonsAchatVitrine({
   produitId,
@@ -112,7 +113,7 @@ export function BoutonsAchatVitrine({
             type="button"
             disabled={!peutAcheter}
             onClick={allerPayer}
-            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
+            className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
             <CreditCard aria-hidden="true" size={20} strokeWidth={1.5} />
             Payer maintenant
@@ -124,9 +125,9 @@ export function BoutonsAchatVitrine({
             type="button"
             disabled={!peutAcheter}
             onClick={allerPayer}
-            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
+            className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
-            <Smartphone aria-hidden="true" size={20} strokeWidth={1.5} />
+            <IconeMobileMoney size={20} strokeWidth={1.5} />
             Payer par Mobile Money
           </button>
         )}
@@ -137,7 +138,7 @@ export function BoutonsAchatVitrine({
           type="button"
           disabled={!peutAcheter || lienWhatsapp.isPending}
           onClick={() => lienWhatsapp.mutate()}
-          className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-texte text-corps font-medium text-texte transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+          className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-texte text-corps font-medium text-texte transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           <EtatBouton chargement={lienWhatsapp.isPending}>
             <MessageCircle aria-hidden="true" size={20} strokeWidth={1.5} />
@@ -150,7 +151,7 @@ export function BoutonsAchatVitrine({
           type="button"
           disabled={!peutAcheter}
           onClick={ajouterAuPanier}
-          className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md text-corps font-medium text-texte-secondaire transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+          className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md text-corps font-medium text-texte-secondaire transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {ajoute ? (
             <>

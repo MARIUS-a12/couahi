@@ -54,7 +54,7 @@ export function BoutonCopier({ valeur, libelle }: { valeur: string; libelle: str
       type="button"
       onClick={surClic}
       aria-label={`Copier ${libelle}`}
-      className="flex h-12 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border-2 border-texte px-4 text-corps font-semibold text-texte transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
+      className="flex min-h-12 py-2 text-center leading-snug shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md border-2 border-texte px-4 text-corps font-semibold text-texte transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
     >
       {etat === 'copie' ? (
         <Check aria-hidden="true" size={20} strokeWidth={2} />

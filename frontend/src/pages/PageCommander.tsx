@@ -22,7 +22,6 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import axios from 'axios'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Smartphone } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampTexteVitrine } from '../components/ChampTexteVitrine'
@@ -34,6 +33,7 @@ import { useVerifierPanier } from '../hooks/useVerifierPanier'
 import { creerCommandeVitrine, recupererZonesLivraison } from '../api/vitrine'
 import { allerAuPremierChampEnErreur, extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
+import { IconeMobileMoney } from '../components/IconeMobileMoney'
 
 const ORDRE_CHAMPS = ['client.nom', 'client.telephone', 'commune', 'quartier']
 
@@ -210,7 +210,7 @@ export function PageCommander() {
 
             {parMobileMoney && (
               <p className="flex gap-2 border border-bordure bg-surface p-3 text-corps text-texte-secondaire">
-                <Smartphone aria-hidden="true" size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-texte" />
+                <IconeMobileMoney size={20} strokeWidth={1.5} className="mt-0.5 shrink-0 text-texte" />
                 <span>
                   Vous paierez par transfert Mobile Money : le numéro du commerçant et le montant exact vous seront
                   donnés juste après avoir validé.
@@ -221,7 +221,7 @@ export function PageCommander() {
             <button
               type="submit"
               disabled={creation.isPending || uneLigneIndisponible}
-              className="h-11 w-full cursor-pointer rounded bg-accent text-corps font-medium text-accent-texte transition-[opacity,transform] hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+              className="min-h-11 py-2 text-center leading-snug px-4 w-full cursor-pointer rounded bg-accent text-corps font-medium text-accent-texte transition-[opacity,transform] hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
             >
               <EtatBouton chargement={creation.isPending}>
                 {parMobileMoney ? 'Valider et payer par Mobile Money' : 'Valider la commande'}

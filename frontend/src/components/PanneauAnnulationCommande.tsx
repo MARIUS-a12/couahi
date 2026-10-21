@@ -84,7 +84,7 @@ export function PanneauAnnulationCommande({
       >
         <h2 className="text-titre-section font-semibold text-texte">Annuler la commande {numero}</h2>
         <p className="mt-2 text-corps text-texte-secondaire">Cette action est irréversible.</p>
-        {montantPaye !== null && (
+        {montantPaye != null && (
           <p role="alert" className="mt-3 rounded-md border border-alerte bg-alerte/10 p-3 text-corps font-medium text-alerte">
             Le client a déjà payé {formaterMontant(montantPaye)} : pensez à le rembourser.
           </p>

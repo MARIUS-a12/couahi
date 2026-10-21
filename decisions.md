@@ -222,3 +222,23 @@ le numéro hors de la transaction (au prix de trous), ou numéroter après
 coup par lots. Règle qui découle de cette décision : rien de lent (appel
 réseau, envoi de message, traitement d'image) ne doit s'exécuter dans la
 transaction de CreerCommande après la prise du numéro.
+
+## 2026-10-21 — Un paiement partiel n'est jamais « payée », et le remboursement se constate à la main
+
+Un montant reçu inférieur au total donne un état à part, « Payée
+partiellement », avec le reste dû, en orange et jamais dans le vert du
+paiement complet. Tant que la commande n'est pas acceptée, elle est
+signalée en priorité dans la liste, sans attendre 2 heures : le client a
+versé de l'argent, la commande n'expire plus, une décision est due
+(relancer, accepter quand même, ou annuler et rembourser). Alternative
+écartée : traiter tout montant confirmé comme un paiement, l'écart étant
+seulement noté. Écartée parce que c'est exactement ce qui faisait croire
+au commerçant qu'il était réglé alors qu'il lui manquait un tiers du prix.
+Le remboursement d'une commande annulée ou expirée après paiement est
+enregistré par le commerçant (montant, référence facultative), comme la
+confirmation du paiement : aucune intégration ne rend l'argent seule. Il
+solde la mention « À rembourser » sans rien effacer ; l'historique et le
+journal d'audit gardent qui, quand et combien. Alternative écartée :
+laisser la mention jusqu'à ce que la commande sorte de la liste. Écartée
+parce qu'une alerte qu'on ne peut jamais éteindre finit par ne plus être
+lue.

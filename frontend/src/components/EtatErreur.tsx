@@ -39,7 +39,7 @@ export function EtatErreur({ erreur, onReessayer }: { erreur?: unknown; onReessa
       <button
         type="button"
         onClick={onReessayer}
-        className="mt-2 inline-flex h-11 cursor-pointer items-center rounded border border-bordure bg-surface px-4 text-corps font-medium text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1"
+        className="mt-2 inline-flex min-h-11 py-2 text-center leading-snug cursor-pointer items-center rounded border border-bordure bg-surface px-4 text-corps font-medium text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1"
       >
         Réessayer
       </button>

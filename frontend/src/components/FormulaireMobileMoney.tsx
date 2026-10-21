@@ -11,7 +11,7 @@
  * des chiffres, un nom commercial...) déclenche un avertissement visible.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, ShieldCheck, Smartphone } from 'lucide-react'
+import { AlertTriangle, ShieldCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useState } from 'react'
 import type { MobileMoneyEtablissement, OperateurMobileMoney, ServiceMobileMoney } from '../api/mobileMoney'
@@ -21,6 +21,7 @@ import { formaterMontant } from '../lib/formatage'
 import { Bouton } from './Bouton'
 import { EtatChargement } from './EtatChargement'
 import { EtatErreur } from './EtatErreur'
+import { IconeMobileMoney } from './IconeMobileMoney'
 
 const MONTANT_EXEMPLE = 20309
 
@@ -140,7 +141,7 @@ function Formulaire({
     <section className="space-y-4">
       <div>
         <h2 className="flex items-center gap-2 text-titre-section font-semibold text-texte">
-          <Smartphone aria-hidden="true" size={22} strokeWidth={1.75} />
+          <IconeMobileMoney size={22} strokeWidth={1.75} />
           Paiement par Mobile Money
         </h2>
         <p className="mt-1 text-corps text-texte-secondaire">

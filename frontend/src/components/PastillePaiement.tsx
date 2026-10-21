@@ -9,16 +9,20 @@
  *    marchandise (ou un remboursement) à quelqu'un, et la commande retient
  *    son stock sans limite de temps ;
  * 2. argent reçu pour une commande annulée ou expirée — à rembourser ;
- * 3. payée ;
- * 4. annulée ou expirée sans paiement — plus rien à attendre ;
- * 5. transfert attendu depuis plus de 2 h ;
- * 6. à vérifier.
+ * 3. remboursement enregistré — soldée, gardée visible ;
+ * 4. payée PARTIELLEMENT — jamais le vert de "Payée" : il manque de
+ *    l'argent, le reste dû est affiché ;
+ * 5. payée ;
+ * 6. annulée ou expirée sans paiement — plus rien à attendre ;
+ * 7. transfert attendu depuis plus de 2 h ;
+ * 8. à vérifier.
  *
  * Sous la pastille, le stock encore retenu (voir LigneStockReserve).
  */
-import { AlertOctagon, CheckCircle2, Clock, RotateCcw, Smartphone, XCircle } from 'lucide-react'
+import { AlertOctagon, CheckCircle2, CircleDashed, Clock, RotateCcw, Undo2, XCircle } from 'lucide-react'
 import type { Commande } from '../api/commandes'
 import { formaterMontant } from '../lib/formatage'
+import { IconeMobileMoney } from './IconeMobileMoney'
 
 type CommandePastille = Pick<Commande, 'mode_paiement' | 'paiement' | 'statut' | 'stock_reserve'>
 
@@ -58,6 +62,24 @@ function Pastille({ commande }: { commande: CommandePastille }) {
     )
   }
 
+  if (paiement.remboursement !== null) {
+    return (
+      <span className={`${BASE} bg-texte-secondaire/10 text-texte-secondaire`}>
+        <Undo2 aria-hidden="true" size={14} strokeWidth={2} />
+        Remboursée : {formaterMontant(paiement.remboursement.montant)}
+      </span>
+    )
+  }
+
+  if (paiement.partiel && paiement.reste_du !== null) {
+    return (
+      <span className={`${BASE} border border-alerte bg-alerte/10 text-alerte`}>
+        <CircleDashed aria-hidden="true" size={14} strokeWidth={2} />
+        Payée partiellement — reste {formaterMontant(paiement.reste_du)}
+      </span>
+    )
+  }
+
   if (paiement.confirme) {
     return (
       <span className={`${BASE} bg-succes/10 text-succes`}>
@@ -87,7 +109,7 @@ function Pastille({ commande }: { commande: CommandePastille }) {
 
   return (
     <span className={`${BASE} bg-alerte/10 text-alerte`}>
-      <Smartphone aria-hidden="true" size={14} strokeWidth={2} />
+      <IconeMobileMoney size={14} strokeWidth={2} />
       À vérifier
     </span>
   )

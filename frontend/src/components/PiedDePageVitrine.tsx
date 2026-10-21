@@ -14,7 +14,7 @@ function LienSocial({ href, libelle }: { href: string; libelle: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex h-11 items-center gap-1.5 text-corps text-texte-secondaire transition-colors hover:text-texte focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
+      className="flex min-h-11 py-2 text-center leading-snug items-center gap-1.5 text-corps text-texte-secondaire transition-colors hover:text-texte focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1"
     >
       <ExternalLink aria-hidden="true" size={16} strokeWidth={1.5} />
       {libelle}
