@@ -241,57 +241,158 @@ class EtablissementsDemoSeeder extends Seeder
     }
 
     /**
-     * mode_stock n'est jamais forcé ici : il est déduit du type de
-     * l'établissement par Produit::booted(), exactement comme en
-     * production. Le catalogue couvre volontairement les cas réels d'une
-     * boutique plutôt que des produits tous identiques : plusieurs photos,
-     * aucune photo, épuisé, archivé — voir la docblock de la classe.
+     * L'épicerie d'Awa : de vrais produits plutôt que du faux latin (voir
+     * AGENTS.md, données de démo réalistes). mode_stock n'est jamais forcé
+     * ici : il est déduit du type de l'établissement par Produit::booted(),
+     * exactement comme en production. Les cas limites sont dans les données,
+     * pas découverts en production : nom long et accentué, plusieurs
+     * photos, aucune photo, variantes, épuisé, archivé. Quatre produits
+     * publiés et un archivé : des tests comptent sur cette forme.
      */
     private function peuplerBoutique(Etablissement $chezAwa): void
     {
-        [$categorieA, $categorieB] = Categorie::factory()->for($chezAwa)->count(2)->create();
+        $epicerie = Categorie::factory()->for($chezAwa)->create(['nom' => 'Épicerie', 'slug' => 'epicerie', 'ordre' => 1]);
+        $frais = Categorie::factory()->for($chezAwa)->create(['nom' => 'Produits frais', 'slug' => 'produits-frais', 'ordre' => 2]);
 
-        $avecPlusieursPhotos = Produit::factory()->for($chezAwa)->publie()->create(['categorie_id' => $categorieA->id]);
+        $avecPlusieursPhotos = Produit::factory()->for($chezAwa)->publie()->create([
+            'categorie_id' => $epicerie->id,
+            'nom' => 'Huile de palme rouge non raffinée, pressée au village — bouteille de 1 litre',
+            'slug' => 'huile-de-palme-rouge-non-raffinee-bouteille-1-litre',
+            'description' => 'Huile de palme artisanale de Dabou, pressée à froid. Idéale pour la sauce graine et le kedjenou.',
+            'prix' => 1500,
+            'quantite_stock' => 24,
+        ]);
         $this->ajouterPhotos($avecPlusieursPhotos, 3);
 
-        // Sans aucune photo : cas réel et fréquent juste après la création
-        // d'un produit, avant que le commerçant n'ait eu le temps d'en
-        // ajouter une.
+        // Sans aucune photo, et une seule pièce : cas réel et fréquent juste
+        // après la création d'un produit, avant que le commerçant n'ait eu
+        // le temps d'en ajouter une.
         Produit::factory()->for($chezAwa)->publie()->create([
-            'categorie_id' => $categorieB->id,
+            'categorie_id' => $frais->id,
+            'nom' => 'Attiéké frais du jour',
+            'slug' => 'attieke-frais-du-jour',
+            'description' => 'Sachet de 500 g, livré chaque matin depuis Jacqueville.',
+            'prix' => 500,
             'quantite_stock' => 1,
         ]);
 
-        $avecVariantes = Produit::factory()->for($chezAwa)->publie()->avecVariantes(2)->create([
-            'categorie_id' => $categorieA->id,
+        $avecVariantes = Produit::factory()->for($chezAwa)->publie()->create([
+            'categorie_id' => $epicerie->id,
+            'nom' => 'Riz parfumé long grain',
+            'slug' => 'riz-parfume-long-grain',
+            'description' => 'Riz parfumé, grain long. Au kilo, en sac de 5 kg ou en sac de 25 kg.',
+            'prix' => 1000,
+            'quantite_stock' => 0,
         ]);
+        foreach ([['1 kg', 1000, 40], ['Sac de 5 kg', 4500, 12], ['Sac de 25 kg', 21000, 3]] as [$nom, $prix, $stock]) {
+            VarianteProduit::factory()->pourProduit($avecVariantes)->create([
+                'nom' => $nom,
+                'prix' => $prix,
+                'quantite_stock' => $stock,
+            ]);
+        }
         $this->ajouterPhotos($avecVariantes, 1);
 
-        Produit::factory()->for($chezAwa)->publie()->epuise()->create(['categorie_id' => $categorieB->id]);
+        Produit::factory()->for($chezAwa)->publie()->epuise()->create([
+            'categorie_id' => $frais->id,
+            'nom' => 'Banane plantain mûre (le régime)',
+            'slug' => 'banane-plantain-mure-le-regime',
+            'description' => "Régime de 10 à 12 doigts, pour l'alloco ou le foutou. Arrivage le mardi et le vendredi.",
+            'prix' => 2500,
+        ]);
 
         $archive = Produit::factory()->for($chezAwa)->create([
-            'categorie_id' => $categorieA->id,
+            'categorie_id' => $frais->id,
+            'nom' => 'Lait caillé maison, bouteille de 50 cl',
+            'slug' => 'lait-caille-maison-50-cl',
+            'prix' => 700,
             'statut' => StatutProduit::Archive,
         ]);
         $this->ajouterPhotos($archive, 1);
     }
 
+    /**
+     * La carte d'un maquis d'Abidjan, prix de quartier (500 à 3 500 FCFA).
+     * Restaurant : stock en mode interrupteur (déduit du type, jamais
+     * forcé), une rupture s'y marque par "disponible" à faux. Couvre les
+     * mêmes cas limites que l'épicerie : nom long et accentué sans photo,
+     * variantes, rupture, archivé.
+     */
     private function peuplerRestaurant(Etablissement $maquisDuPort): void
     {
-        [$categorieA, $categorieB] = Categorie::factory()->for($maquisDuPort)->count(2)->create();
+        $plats = Categorie::factory()->for($maquisDuPort)->create(['nom' => 'Plats', 'slug' => 'plats', 'ordre' => 1]);
+        $boissons = Categorie::factory()->for($maquisDuPort)->create(['nom' => 'Boissons', 'slug' => 'boissons', 'ordre' => 2]);
 
-        $avecPlusieursPhotos = Produit::factory()->for($maquisDuPort)->publie()->create(['categorie_id' => $categorieA->id]);
-        $this->ajouterPhotos($avecPlusieursPhotos, 2);
+        $plat = fn (array $attributs) => Produit::factory()->for($maquisDuPort)->publie()->create(['categorie_id' => $plats->id, ...$attributs]);
 
-        Produit::factory()->for($maquisDuPort)->publie()->create(['categorie_id' => $categorieB->id]);
+        $this->ajouterPhotos($plat([
+            'nom' => 'Attiéké poisson braisé',
+            'slug' => 'attieke-poisson-braise',
+            'description' => 'Carpe braisée au feu de bois, attiéké, oignons et piment frais.',
+            'prix' => 3000,
+        ]), 2);
 
-        $avecUnePhoto = Produit::factory()->for($maquisDuPort)->publie()->create(['categorie_id' => $categorieA->id]);
-        $this->ajouterPhotos($avecUnePhoto, 1);
+        $this->ajouterPhotos($plat([
+            'nom' => 'Alloco poulet',
+            'slug' => 'alloco-poulet',
+            'description' => 'Banane plantain frite et cuisse de poulet braisée, sauce tomate pimentée.',
+            'prix' => 2500,
+        ]), 1);
 
-        Produit::factory()->for($maquisDuPort)->publie()->epuise()->create(['categorie_id' => $categorieB->id]);
+        $this->ajouterPhotos($plat([
+            'nom' => 'Garba',
+            'slug' => 'garba',
+            'description' => 'Attiéké et thon frit, piment et oignon cru. Le classique de midi.',
+            'prix' => 1000,
+        ]), 1);
+
+        $poulet = $plat([
+            'nom' => 'Poulet braisé',
+            'slug' => 'poulet-braise',
+            'description' => 'Poulet bicyclette mariné et braisé, servi avec attiéké.',
+            'prix' => 1500,
+        ]);
+        foreach ([['Quart', 1500], ['Demi', 3000]] as [$nom, $prix]) {
+            VarianteProduit::factory()->pourProduit($poulet)->create(['nom' => $nom, 'prix' => $prix]);
+        }
+        $this->ajouterPhotos($poulet, 1);
+
+        // Nom long et accentué, et aucune photo : les deux cas limites
+        // d'affichage d'une carte réelle, réunis sur un même plat.
+        $plat([
+            'nom' => "Kedjenou de poulet à l'étouffée, cuit au canari, servi avec attiéké ou riz blanc",
+            'slug' => 'kedjenou-de-poulet',
+            'description' => "Poulet mijoté dans son jus avec tomates, aubergines et piment, sans une goutte d'eau.",
+            'prix' => 3500,
+        ]);
+
+        $this->ajouterPhotos(Produit::factory()->for($maquisDuPort)->publie()->epuise()->create([
+            'categorie_id' => $plats->id,
+            'nom' => 'Riz sauce graine',
+            'slug' => 'riz-sauce-graine',
+            'description' => 'Sauce graine au poisson fumé et à la viande de bœuf. Servi le vendredi seulement.',
+            'prix' => 2000,
+        ]), 1);
+
+        $boissonsCarte = [
+            ['Jus de bissap', 'jus-de-bissap', "Fleurs d'hibiscus, menthe et sucre de canne, servi bien frais."],
+            ['Jus de gingembre', 'jus-de-gingembre', 'Gingembre frais pressé et citron. Ça pique.'],
+        ];
+        foreach ($boissonsCarte as [$nom, $slug, $description]) {
+            $this->ajouterPhotos(Produit::factory()->for($maquisDuPort)->publie()->create([
+                'categorie_id' => $boissons->id,
+                'nom' => $nom,
+                'slug' => $slug,
+                'description' => $description,
+                'prix' => 500,
+            ]), 1);
+        }
 
         $archive = Produit::factory()->for($maquisDuPort)->create([
-            'categorie_id' => $categorieB->id,
+            'categorie_id' => $plats->id,
+            'nom' => 'Placali sauce kopè',
+            'slug' => 'placali-sauce-kope',
+            'prix' => 2000,
             'statut' => StatutProduit::Archive,
         ]);
         $this->ajouterPhotos($archive, 1);

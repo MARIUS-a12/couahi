@@ -299,8 +299,8 @@ class ProduitsApiTest extends TestCase
         $this->seed();
 
         Produit::factory()->for(Etablissement::where('slug', 'chez-awa')->firstOrFail())->create([
-            'nom' => 'Poulet Braisé',
-            'slug' => 'poulet-braise',
+            'nom' => 'Brochettes de bœuf',
+            'slug' => 'brochettes-de-boeuf',
         ]);
 
         $maquisDuPort = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
@@ -309,8 +309,8 @@ class ProduitsApiTest extends TestCase
         $this->connecte('maquis-du-port.localhost', $adminMaquis->email);
 
         $ailleurs = $this->depuis('maquis-du-port.localhost')->postJson('http://maquis-du-port.localhost:8000/api/produits', [
-            'nom' => 'Poulet Braisé',
-            'slug' => 'poulet-braise',
+            'nom' => 'Brochettes de bœuf',
+            'slug' => 'brochettes-de-boeuf',
             'prix' => 2800,
         ]);
         $ailleurs->assertStatus(201);
