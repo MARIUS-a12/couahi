@@ -1,6 +1,6 @@
 /**
  * Une carte de la grille publique (voir PageAccueilVitrine) : photo,
- * nom, prix, pastille "Épuisé" si le produit n'est pas disponible. Mène à
+ * nom (deux lignes au plus), prix, pastille "Épuisé" si le produit n'est pas disponible. Mène à
  * la fiche produit. Sans photo, un repli neutre (icône) plutôt qu'une image
  * cassée. Légère élévation au survol sur écran large (hover: de Tailwind ne
  * s'applique déjà qu'aux appareils qui supportent réellement le survol —
@@ -51,7 +51,10 @@ export function CarteProduitVitrine({ produit }: { produit: ProduitVitrine }) {
       </div>
 
       <div className={`p-3 ${produit.disponible ? '' : 'opacity-60'}`}>
-        <p className="truncate text-corps text-texte-secondaire">{produit.nom}</p>
+        {/* Deux lignes au plus, et TOUJOURS la hauteur de deux (2lh) : un
+            nom court garde la place du second rang, sinon les prix d'une
+            même rangée de la grille ne s'alignent plus. */}
+        <p className="line-clamp-2 min-h-[2lh] break-words text-corps text-texte-secondaire">{produit.nom}</p>
         <p className="tabular-nums text-titre-section font-bold text-texte">{formaterMontant(produit.prix)}</p>
       </div>
     </Link>
