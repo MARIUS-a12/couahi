@@ -209,6 +209,15 @@ base, règle "integer" en validation, jamais un float ni un decimal. Le
 franc CFA n'a pas de subdivision en usage, et un nombre à virgule finit
 toujours par produire un arrondi faux sur une somme d'argent.
 
+## Consultations par la plateforme
+Toute route du super-admin qui montre les données commerciales d'un
+établissement (commandes, clients, chiffre d'affaires) est journalisée
+pour le commerçant, qui le voit dans son back-office. Une nouvelle route
+super-admin sur un établissement est soit journalisée, soit déclarée
+administrative dans ConsultationsPlateformeTest, en sachant que la
+déclarer administrative revient à affirmer qu'elle ne montre aucune de
+ces données. Jamais le contenu consulté dans la trace.
+
 ## Documentation
 Voir decisions.md à la racine pour le pourquoi des choix d'architecture
 non évidents. Ce fichier (AGENTS.md) ne contient que des règles de

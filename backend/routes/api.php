@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ActivationController;
 use App\Http\Controllers\Api\CategorieController;
 use App\Http\Controllers\Api\CommandeController;
 use App\Http\Controllers\Api\CompteController;
+use App\Http\Controllers\Api\ConsultationPlateformeController;
 use App\Http\Controllers\Api\EtablissementController;
 use App\Http\Controllers\Api\IdentiteEtablissementController;
 use App\Http\Controllers\Api\MediaProduitController;
@@ -92,6 +93,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // faute de sous-domaine à résoudre sur l'hôte du super-admin. UN SEUL
     // endroit pose ce contexte — jamais pourTousEtablissements() pour
     // contourner le scope depuis une route web.
+    //
+    // Toute route de ce groupe qui renvoie des données commerciales de
+    // l'établissement (commandes, clients, chiffre d'affaires) porte
+    // "journaliser.consultation:{page}" : le commerçant voit ces
+    // consultations dans son back-office. ConsultationsPlateformeTest
+    // refuse toute nouvelle route ici qui n'est ni journalisée, ni
+    // explicitement classée administrative.
     Route::middleware('definir.etablissement.cible')->group(function () {
         Route::get('/etablissements/{etablissement}', [EtablissementController::class, 'show']);
         Route::post('/etablissements/{etablissement}/suspendre', [EtablissementController::class, 'suspendre']);
@@ -187,6 +195,10 @@ Route::middleware('auth:sanctum')->group(function () {
         // "abonnement.vitrine" : un commerçant suspendu doit toujours y
         // accéder pour régulariser.
         Route::get('/abonnement', [AbonnementController::class, 'show']);
+
+        // Ce que l'équipe de la plateforme a consulté de ses données
+        // commerciales (voir JournaliserConsultationPlateforme).
+        Route::get('/parametres/consultations-plateforme', [ConsultationPlateformeController::class, 'index']);
 
         // Étape 10 — équipe : réservée à gerer_equipe (voir
         // EtablissementUtilisateurPolicy), en pratique le seul

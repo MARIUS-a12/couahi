@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\ModePaiement;
 use App\Enums\StatutCommande;
 use App\Enums\StatutReservation;
+use App\Exceptions\EtablissementNonResoluException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AnnulerCommandeRequest;
 use App\Http\Requests\ConfirmerPaiementCommandeRequest;
@@ -76,7 +77,11 @@ class CommandeController extends Controller
     {
         Gate::authorize('viewAny', Commande::class);
 
-        $etablissement = app(ContexteEtablissement::class)->obtenir();
+        // Sur l'hôte du super-admin, aucun établissement : le même 400 que
+        // toute autre lecture scopée (voir ScopeEtablissement), pas un 500
+        // sur un appel de méthode sur null.
+        $etablissement = app(ContexteEtablissement::class)->obtenir()
+            ?? throw new EtablissementNonResoluException('Aucun établissement résolu pour ce domaine : accès refusé aux statistiques de commandes.');
         $statutsConfirmes = [StatutCommande::Payee->value, StatutCommande::Prete->value, StatutCommande::Livree->value];
 
         $commandesDuJour = $etablissement->commandes()->whereDate('created_at', today())->count();

@@ -2,10 +2,12 @@
  * Écran /admin/identite — chemin commerçant du formulaire d'identité unique
  * (voir FormulaireIdentiteEtablissement), sur son propre établissement.
  * N'apparaît dans la navigation que pour qui a gerer_parametres (voir
- * CoquilleApplication).
+ * CoquilleApplication) — la même permission que l'historique des
+ * consultations par la plateforme, affiché sous le formulaire.
  */
 import { BoutonRetour } from '../components/BoutonRetour'
 import { FormulaireIdentiteEtablissement } from '../components/FormulaireIdentiteEtablissement'
+import { SectionConsultationsPlateforme } from '../components/SectionConsultationsPlateforme'
 import { serviceIdentiteCommercant } from '../api/identite'
 
 const service = serviceIdentiteCommercant()
@@ -19,6 +21,10 @@ export function PageIdentiteEtablissement() {
       </div>
 
       <FormulaireIdentiteEtablissement service={service} />
+
+      <div className="mt-6 pb-4">
+        <SectionConsultationsPlateforme />
+      </div>
     </div>
   )
 }

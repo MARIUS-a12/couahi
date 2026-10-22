@@ -242,3 +242,20 @@ journal d'audit gardent qui, quand et combien. Alternative écartée :
 laisser la mention jusqu'à ce que la commande sorte de la liste. Écartée
 parce qu'une alerte qu'on ne peut jamais éteindre finit par ne plus être
 lue.
+
+## 2026-10-21 — Le commerçant voit ce que la plateforme a consulté de ses données commerciales
+
+Chaque consultation, par le super-admin, des commandes, des clients ou du
+chiffre d'affaires d'un établissement est notée (qui, quand, quelle page)
+et montrée au commerçant dans son propre back-office. Ce qui a été vu
+n'est jamais noté, pas même le numéro de la commande ouverte : le journal
+dit qu'on a regardé, il ne recopie pas ce qu'on a regardé. Alternative
+écartée : un journal interne, lisible par la plateforme seule. Écartée
+parce qu'une surveillance que le surveillé ne voit pas ne protège que
+celui qui surveille ; c'est la visibilité qui en fait de la transparence.
+Les pages d'administration (fiche, identité, abonnement, configuration de
+paiement) ne sont pas notées : elles ne contiennent pas l'activité du
+commerçant, et les noter noierait les consultations qui comptent.
+Si la trace ne peut pas être écrite, les données ne sont pas envoyées.
+Une même page rechargée dans les 10 minutes n'ajoute pas de ligne, pour
+qu'un écran qui se rafraîchit seul ne remplisse pas l'historique.

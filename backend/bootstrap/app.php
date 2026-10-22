@@ -2,6 +2,7 @@
 
 use App\Exceptions\EtablissementNonResoluException;
 use App\Http\Middleware\DefinirEtablissementCible;
+use App\Http\Middleware\JournaliserConsultationPlateforme;
 use App\Http\Middleware\ResoudreEtablissement;
 use App\Http\Middleware\VerifierAbonnementVitrine;
 use Illuminate\Foundation\Application;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'resoudre.etablissement' => ResoudreEtablissement::class,
             'definir.etablissement.cible' => DefinirEtablissementCible::class,
             'abonnement.vitrine' => VerifierAbonnementVitrine::class,
+            'journaliser.consultation' => JournaliserConsultationPlateforme::class,
         ]);
 
         // ResoudreEtablissement n'est pas dans la liste de priorité de
