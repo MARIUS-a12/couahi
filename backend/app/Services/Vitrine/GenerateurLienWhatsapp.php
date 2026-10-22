@@ -11,9 +11,10 @@ use Illuminate\Support\Str;
  * Construit le lien wa.me du bouton "Commander sur WhatsApp" de la fiche
  * produit. Le message est composé ICI, côté serveur, jamais par le
  * frontend : c'est ce qui garantit que la référence opaque [REF:XXXXXXXX]
- * qu'il contient correspond exactement à une ligne de references_whatsapp,
- * que l'IA pourra résoudre plus tard sans avoir à deviner un produit ou une
- * variante à partir du texte du message.
+ * qu'il contient correspond exactement à une ligne de references_whatsapp.
+ * Le reste du texte (nom, prix) n'est qu'un confort de lecture pour le
+ * client, qui peut le modifier : il n'est jamais relu (voir
+ * ResoudreReferenceWhatsapp).
  */
 class GenerateurLienWhatsapp
 {

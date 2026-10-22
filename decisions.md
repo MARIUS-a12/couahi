@@ -259,3 +259,23 @@ commerçant, et les noter noierait les consultations qui comptent.
 Si la trace ne peut pas être écrite, les données ne sont pas envoyées.
 Une même page rechargée dans les 10 minutes n'ajoute pas de ligne, pour
 qu'un écran qui se rafraîchit seul ne remplisse pas l'historique.
+
+## 2026-10-22 — Dans un message WhatsApp, seule la référence fait foi
+
+Le message pré-rempli par la vitrine contient le nom du produit, le prix
+et une référence [REF:XXXXXXXX]. C'est un message WhatsApp ordinaire : le
+client peut en réécrire chaque mot avant de l'envoyer, prix compris.
+Règle absolue : seule la référence fait foi. Le produit, la variante, le
+prix et la quantité sont résolus côté serveur à partir d'elle et de la
+base, jamais lus dans le texte du message ; le prix est celui de la base
+au moment de la résolution, pas celui affiché dans le message. Une
+référence absente, inconnue, expirée ou ambiguë ne résout rien.
+Alternative écartée : lire le prix et l'article dans le texte, ou
+comparer le texte à la base et ne refuser qu'en cas d'écart. Écartée
+parce que le texte est entièrement sous le contrôle du client : s'y fier,
+même partiellement, revient à lui laisser fixer son prix.
+Cela vaut dès aujourd'hui pour toute résolution de référence, et vaudra
+pour l'IA WhatsApp : elle n'accepte jamais un montant, une quantité ou un
+article énoncés dans la conversation sans les avoir vérifiés en base. Un
+prix proposé par le client n'est qu'une demande de remise, soumise au
+commerçant, jamais appliquée par l'IA.

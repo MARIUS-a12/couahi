@@ -218,6 +218,14 @@ administrative dans ConsultationsPlateformeTest, en sachant que la
 déclarer administrative revient à affirmer qu'elle ne montre aucune de
 ces données. Jamais le contenu consulté dans la trace.
 
+## Messages WhatsApp : seule la référence fait foi
+Un prix, une quantité, une variante ou un article ne sont jamais lus dans
+le texte d'un message WhatsApp ni dans une conversation : ils viennent de
+la base, via la référence. Cela vaut pour l'IA WhatsApp : un montant
+proposé par le client est une demande de remise à soumettre au
+commerçant, jamais un prix à appliquer. Tout test de résolution part d'un
+message falsifié, pas d'un message intact.
+
 ## Documentation
 Voir decisions.md à la racine pour le pourquoi des choix d'architecture
 non évidents. Ce fichier (AGENTS.md) ne contient que des règles de

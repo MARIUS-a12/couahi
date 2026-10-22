@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Jeton opaque glissé dans le message WhatsApp pré-rempli d'une fiche
  * produit (voir GenerateurLienWhatsapp) : quand le client répond sur
- * WhatsApp, c'est ce code — jamais un texte à deviner — qui permettra plus
- * tard de retrouver le produit et la variante exacts. Expire après 7 jours,
+ * WhatsApp, c'est ce code — jamais un texte à deviner — qui retrouve le
+ * produit et la variante exacts (voir ResoudreReferenceWhatsapp). Expire après 7 jours,
  * voir estValide().
  */
 class ReferenceWhatsapp extends Model
