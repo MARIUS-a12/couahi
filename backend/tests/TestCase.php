@@ -4,7 +4,6 @@ namespace Tests;
 
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -25,20 +24,21 @@ abstract class TestCase extends BaseTestCase
      * spécifiquement à ce service. Un test qui veut un scénario précis
      * (compromis, sain, service indisponible) pose son propre Http::fake().
      *
-     * Storage::fake('public') de même ici, pas seulement dans les tests qui
+     * Disque "public" simulé de même ici, pas seulement dans les tests qui
      * envoient eux-mêmes un fichier : EtablissementsDemoSeeder génère un
      * vrai logo et de vraies photos (voir sa docblock) à chaque $this->seed(),
-     * donc dans quasiment chaque test de la suite — sans disque simulé, ce
-     * sont des fichiers réels qui s'accumuleraient sur le disque à chaque
-     * exécution. Un test qui veut vérifier un disque précis repose son
-     * propre Storage::fake(), sans effet différent (idempotent).
+     * donc dans quasiment chaque test de la suite. EN MÉMOIRE (voir
+     * DisqueEnMemoire), pas Storage::fake() : sur disque, ces ~140 fichiers
+     * par seed() étaient l'essentiel de la durée de la suite. Un test qui
+     * veut vérifier un vrai disque local repose son propre Storage::fake()
+     * (voir MediasProduitApiTest).
      */
     protected function setUp(): void
     {
         parent::setUp();
 
         Http::preventStrayRequests();
-        Storage::fake('public');
+        DisqueEnMemoire::installer('public');
 
         // EtablissementsDemoSeeder génère un vrai logo et de vraies photos à
         // chaque $this->seed() (voir sa docblock) : la FORME des données

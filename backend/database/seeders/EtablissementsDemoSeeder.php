@@ -10,7 +10,6 @@ use App\Models\Etablissement;
 use App\Models\Produit;
 use App\Models\VarianteProduit;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
-use App\Services\Medias\GenerateurVariantesImage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
@@ -200,7 +199,9 @@ class EtablissementsDemoSeeder extends Seeder
      */
     private function poserLogo(Etablissement $etablissement, string $nomFichier): void
     {
-        app(MettreAJourLogoEtablissement::class)->remplacer(
+        // Le vrai service, avec le générateur de démo qui ne ré-encode pas
+        // une image déjà produite dans ce processus (voir sa docblock).
+        (new MettreAJourLogoEtablissement(new GenerateurVariantesImageDemo))->remplacer(
             $etablissement,
             (new ImagesDemo($this->tailleSourceImage()))->logo($etablissement->nom, $etablissement->couleur_accent, $nomFichier),
         );
@@ -215,7 +216,7 @@ class EtablissementsDemoSeeder extends Seeder
     private function ajouterPhotos(Produit $produit, int $nombre): void
     {
         $disque = (string) config('medias.disque');
-        $generateur = app(GenerateurVariantesImage::class);
+        $generateur = new GenerateurVariantesImageDemo;
 
         for ($i = 0; $i < $nombre; $i++) {
             $variantes = $generateur->generer(

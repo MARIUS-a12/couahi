@@ -212,6 +212,15 @@ tests verts et n'avait pourtant jamais été exécutée une seule fois par le
 planificateur, qui affichait « DONE » chaque minute. Toute nouvelle tâche
 s'ajoute aussi à l'inventaire d'ExecutionParLePlanificateurTest.
 
+## Durée de la suite de tests
+La suite complète (`php artisan test`, Postgres compris) se lance en
+entier avant chaque commit. Au-delà de 8 minutes de durée réelle
+(chronométrée, pas le chiffre affiché par le rapport), on traite la
+lenteur avant d'ouvrir un nouveau lot : une suite trop longue finit par ne
+plus être lancée, et c'est là que les régressions passent. On mesure avant
+de corriger (la lenteur venait des écritures de fichiers, pas de ce qu'on
+croyait), et on ne supprime jamais un test pour gagner du temps.
+
 ## Montants en francs CFA
 Tout montant d'argent est un entier, en francs CFA : colonne entière en
 base, règle "integer" en validation, jamais un float ni un decimal. Le
