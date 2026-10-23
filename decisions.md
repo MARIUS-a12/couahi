@@ -454,3 +454,18 @@ toujours : c'est un document comptable. Une commande qui a vendu un
 Hors champ, assumé : les migrations, instantanés historiques figés, et
 les factories de test, qui doivent pouvoir fabriquer des états invalides
 pour prouver qu'ils sont refusés.
+
+## 2026-10-25 — Le harnais PostgreSQL recopie une méthode de Laravel
+
+RefreshDatabase ne migre qu'une fois par processus, toutes bases
+confondues. Dans la suite complète, les tests SQLite passaient d'abord :
+la base PostgreSQL de test n'était jamais remigrée, depuis la création du
+harnais (23 septembre). PostgresTestCase recopie donc
+RefreshDatabase::refreshTestDatabase() de Laravel 13.33.0 avec son propre
+drapeau. Écart à la règle « ne pas explorer vendor/ » : la méthode y a été
+lue pour en reprendre exactement le déroulé. Le risque est qu'une mise à
+jour de Laravel renomme cette méthode et rende la surcharge inopérante
+sans erreur ; RefreshDatabaseInchangeTest casse dans ce cas.
+Alternative écartée : une base PostgreSQL migrée à part, par un script,
+avant la suite. Écartée parce qu'elle redonne exactement le défaut
+corrigé : une suite qui tourne sur un schéma qu'elle n'a pas construit.

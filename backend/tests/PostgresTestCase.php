@@ -39,6 +39,17 @@ abstract class PostgresTestCase extends TestCase
      * tests tournaient sur le schéma laissé par le dernier lancement isolé
      * — une nouvelle table y manquait (SQLSTATE 42P01). Cette base a donc
      * son propre drapeau.
+     *
+     * Recopie de Illuminate\Foundation\Testing\RefreshDatabase::
+     * refreshTestDatabase(), Laravel 13.33.0 (lue dans vendor/ pour en
+     * reprendre exactement le déroulé : migrateDatabases(), puis
+     * setArtisan(null), puis beginDatabaseTransaction()), moins
+     * updateLocalCacheOfInMemoryDatabases(), sans objet pour PostgreSQL.
+     * Une mise à jour de Laravel qui renomme cette méthode ou ce drapeau
+     * rendrait cette surcharge silencieusement inopérante :
+     * RefreshDatabaseInchangeTest casse alors, et c'est ici qu'il faut
+     * revenir (voir decisions.md, « Le harnais PostgreSQL recopie une
+     * méthode de Laravel »).
      */
     private static bool $postgresMigree = false;
 
