@@ -2,8 +2,8 @@
  * Écran de création (/admin/produits/nouveau) ET de modification
  * (/admin/produits/:id/modifier) d'un produit — un seul composant pour les deux,
  * le paramètre d'URL décide du mode. Le bloc stock change de forme selon le
- * type de l'établissement (voir BlocStock) ; le mode de stock lui-même
- * n'est jamais un choix de ce formulaire.
+ * mode de stock (voir BlocStock) : hérité du type de l'établissement à la
+ * création, modifiable ensuite.
  *
  * Séparé en deux composants : PageFormulaireProduit attend que les données
  * nécessaires soient prêtes (produit existant en modification, catégories
@@ -43,6 +43,7 @@ const ORDRE_CHAMPS = [
   'categorie_id',
   'prix',
   'prix_barre',
+  'mode_stock',
   'quantite_stock',
   'disponible',
   'statut',
@@ -107,7 +108,7 @@ export function PageFormulaireProduit() {
       key={produitId ?? 'nouveau'}
       produitId={produitId}
       produitExistant={produit}
-      modeStock={modeStock}
+      modeStockInitial={modeStock}
       categories={categories}
       categorieInitiale={categorieExistante}
     />
@@ -117,13 +118,13 @@ export function PageFormulaireProduit() {
 function FormulaireProduit({
   produitId,
   produitExistant,
-  modeStock,
+  modeStockInitial,
   categories,
   categorieInitiale,
 }: {
   produitId: number | null
   produitExistant: Produit | null
-  modeStock: ModeStock
+  modeStockInitial: ModeStock
   categories: Categorie[]
   categorieInitiale: Categorie | null
 }) {
@@ -145,6 +146,7 @@ function FormulaireProduit({
   const [prixBarre, setPrixBarre] = useState<number | null>(produitExistant?.prix_barre ?? null)
   const [description, setDescription] = useState(produitExistant?.description ?? '')
   const [reference, setReference] = useState(produitExistant?.reference ?? '')
+  const [modeStock, setModeStock] = useState<ModeStock>(modeStockInitial)
   const [quantiteStock, setQuantiteStock] = useState(produitExistant?.quantite_stock ?? 0)
   const [disponible, setDisponible] = useState(produitExistant?.disponible ?? true)
   const [statut, setStatut] = useState<'brouillon' | 'publie'>(
@@ -167,6 +169,9 @@ function FormulaireProduit({
       prix_barre: prixBarre,
       description: description || null,
       reference: reference || null,
+      // Envoyé seulement s'il change : c'est le seul cas que l'API
+      // vérifie (voir ChangerModeStock).
+      ...(modeStock !== modeStockInitial ? { mode_stock: modeStock } : {}),
       ...(modeStock === 'interrupteur' ? { disponible } : { quantite_stock: quantiteStock }),
       ...(produitEstArchive ? {} : { statut }),
     }
@@ -334,6 +339,11 @@ function FormulaireProduit({
 
         <BlocStock
           modeStock={modeStock}
+          onModeStockChange={(valeur) => {
+            setModeStock(valeur)
+            marquerModifie()
+          }}
+          erreurModeStock={erreurs.mode_stock}
           estModification={estModification}
           quantiteStock={quantiteStock}
           onQuantiteStockChange={(valeur) => {

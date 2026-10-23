@@ -309,3 +309,54 @@ qu'en développement : un problème de cookie entre sous-domaines se règle
 autrement, jamais en élargissant SESSION_DOMAIN. Les fonctions qui ont
 besoin d'identifier un visiteur (la déduplication des liens WhatsApp) le
 font à l'intérieur d'une seule boutique, où ce cookie suffit.
+
+
+## 2026-10-23 — Le mode de stock se change tant qu'aucune commande en cours n'en dépend
+
+Le mode de stock d'un produit (quantité suivie, ou disponibilité manuelle)
+naît du type de l'établissement, et le commerçant peut ensuite le changer
+sur la fiche du produit : une boutique vend parfois du sur-mesure, un
+restaurant des boissons en bouteille. Le changement est refusé tant
+qu'une commande en cours contient le produit (en attente de paiement, ou
+avec une réservation active sur lui ou ses variantes). La vraie raison du
+verrou est la cohérence des compteurs. Dans un sens, une réservation
+active a déjà augmenté quantite_reservee ; consommée ou libérée après la
+bascule, elle toucherait des colonnes que le nouveau mode ne lit plus.
+Dans l'autre, une commande en attente en disponibilité manuelle n'a rien
+réservé ; confirmée après la bascule, elle ne décompterait rien du stock,
+puisque la confirmation ne consomme que des réservations. La condition
+porte donc sur les commandes en cours, pas sur les seules réservations,
+qui ne couvrent que le premier sens.
+Alternative écartée : le mode figé à la création (la règle d'origine,
+jamais justifiée par écrit). Écartée parce qu'elle liait le stock d'un
+produit au métier de la boutique, et qu'un type mal choisi condamnait
+tout le catalogue. Une commande qui a lu l'ancien mode à l'instant même
+de la bascule peut encore aboutir selon lui ; l'écart reste borné à
+cette commande et se voit dans le stock, ce qui ne justifiait pas de
+verrouiller chaque produit à chaque commande.
+
+## 2026-10-23 — Différé au lot restauration, en connaissance de cause
+
+Le lancement se fait avec la boutique. Les besoins propres au restaurant
+sont reportés au lot restauration. Ils sont consignés ici pour qu'on ne
+les redécouvre pas comme des oublis :
+- Suppléments et options payantes sur un plat. Les variantes ne
+  permettent qu'un seul choix exclusif par ligne.
+- Statuts propres au restaurant (en préparation, servie). Le parcours est
+  le même que la boutique : en attente, confirmée, prête, livrée.
+- Commandes bloquées hors horaires. Les horaires ne servent qu'à
+  l'affichage : une commande à 3 h du matin est acceptée.
+- Sur place ou à emporter. La commune et le quartier sont exigés de tous.
+- Remise à « disponible » chaque matin des plats épuisés. Rien ne le
+  fait aujourd'hui ; c'est pourquoi l'interrupteur dit « Disponible » et
+  non plus « Disponible aujourd'hui », qui promettait une remise à zéro
+  inexistante.
+- Plusieurs plages horaires par jour (midi et soir). Une seule est
+  acceptée.
+- Un délai d'expiration propre au restaurant.
+
+Ce dernier point est un bug, pas une évolution souhaitable : une
+commande de restaurant passée sur la vitrine expire 15 minutes après sa
+création, comme une commande de boutique, souvent avant que le
+commerçant ne l'ait vue. Il est différé avec le lot restauration, pas
+oublié.

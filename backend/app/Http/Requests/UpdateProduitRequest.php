@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ModeStock;
 use App\Enums\StatutProduit;
 use App\Models\Categorie;
 use Illuminate\Foundation\Http\FormRequest;
@@ -69,7 +70,10 @@ class UpdateProduitRequest extends FormRequest
             'quantite_stock' => ['sometimes', 'integer', 'min:0'],
             'disponible' => ['sometimes', 'boolean'],
             'statut' => ['sometimes', Rule::enum(StatutProduit::class)],
-            'mode_stock' => ['prohibited'],
+            // Modifiable sous condition, vérifiée sous verrou par
+            // ChangerModeStock (ProduitController::update) : la validation
+            // tourne avant toute transaction et ne peut pas la garantir.
+            'mode_stock' => ['sometimes', Rule::enum(ModeStock::class)],
         ];
     }
 
@@ -80,7 +84,6 @@ class UpdateProduitRequest extends FormRequest
             'prix_barre.integer' => 'Le prix barré doit être un nombre entier (XOF), sans décimale.',
             'slug.regex' => 'Le slug doit être en kebab-case (lettres minuscules, chiffres, tirets).',
             'slug.unique' => 'Ce slug est déjà utilisé par un autre produit de cet établissement.',
-            'mode_stock.prohibited' => "Le mode de stock n'est pas modifiable après création.",
         ];
     }
 }

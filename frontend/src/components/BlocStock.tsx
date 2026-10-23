@@ -1,22 +1,25 @@
 import type { ModeStock } from '../api/produits'
 import { Bascule } from './Bascule'
 import { ChampQuantite } from './ChampQuantite'
+import { GroupeSegmente } from './GroupeSegmente'
 
-const LIBELLE_MODE: Record<ModeStock, string> = {
-  compte: 'Suivi par quantité',
-  interrupteur: 'Disponibilité manuelle',
-}
+const OPTIONS_MODE: { valeur: ModeStock; libelle: string }[] = [
+  { valeur: 'compte', libelle: 'Suivi par quantité' },
+  { valeur: 'interrupteur', libelle: 'Disponibilité manuelle' },
+]
 
 /**
- * Bloc stock du formulaire produit — sa forme dépend du mode de
- * l'établissement, jamais d'un choix de l'utilisateur : boutique (compte)
- * a une quantité, restaurant (interrupteur) un simple booléen disponible.
- * En modification, le mode lui-même est affiché en lecture seule avec une
- * explication : l'API le refuse s'il change, et le masquer laisserait le
- * commerçant sans réponse à "pourquoi je ne peux pas le changer ?".
+ * Bloc stock du formulaire produit — sa forme dépend du mode de stock :
+ * une quantité (compte) ou un simple booléen disponible (interrupteur).
+ * À la création, le mode découle du type de l'établissement et n'est pas
+ * proposé. En modification, le commerçant peut le changer ; l'API le
+ * refuse tant qu'une commande en cours contient le produit, et son
+ * message s'affiche sous le choix (erreurModeStock).
  */
 export function BlocStock({
   modeStock,
+  onModeStockChange,
+  erreurModeStock,
   estModification,
   quantiteStock,
   onQuantiteStockChange,
@@ -26,6 +29,8 @@ export function BlocStock({
   erreurDisponible,
 }: {
   modeStock: ModeStock
+  onModeStockChange: (valeur: ModeStock) => void
+  erreurModeStock?: string
   estModification: boolean
   quantiteStock: number
   onQuantiteStockChange: (valeur: number) => void
@@ -39,10 +44,15 @@ export function BlocStock({
       <h2 className="mb-2 text-titre-section font-semibold text-texte">Stock</h2>
 
       {estModification && (
-        <p className="mb-3 text-petit text-texte-secondaire">
-          Mode de stock : <span className="font-medium text-texte">{LIBELLE_MODE[modeStock]}</span>.
-          Ce réglage est fixé à la création et ne peut plus être modifié.
-        </p>
+        <div className="mb-3">
+          <p id="libelle-mode-stock" className="mb-1 text-petit text-texte-secondaire">
+            Mode de stock
+          </p>
+          <div role="group" aria-labelledby="libelle-mode-stock">
+            <GroupeSegmente id="mode_stock" options={OPTIONS_MODE} valeur={modeStock} onChange={onModeStockChange} />
+          </div>
+          {erreurModeStock && <p className="mt-1 text-petit text-danger">{erreurModeStock}</p>}
+        </div>
       )}
 
       {modeStock === 'compte' ? (
@@ -58,11 +68,11 @@ export function BlocStock({
           <Bascule
             actif={disponible}
             onChange={onDisponibleChange}
-            libelleActif="Disponible aujourd’hui"
+            libelleActif="Disponible"
             libelleInactif="Épuisé"
           />
           <p className="mt-2 text-petit text-texte-secondaire">
-            Les plats épuisés restent visibles sur votre carte mais ne peuvent plus être commandés.
+            Un produit épuisé reste visible en vitrine mais ne peut plus être commandé.
           </p>
           {erreurDisponible && <p className="mt-1 text-petit text-danger">{erreurDisponible}</p>}
         </div>

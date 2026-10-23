@@ -1,6 +1,6 @@
 /**
- * Interrupteur (mode "interrupteur", restaurant) : disponible aujourd'hui
- * ou épuisé. Pas de quantité en jeu, juste un booléen.
+ * Interrupteur (mode "interrupteur") : disponible ou épuisé, jusqu'à ce que
+ * le commerçant le rebascule. Pas de quantité en jeu, juste un booléen.
  */
 export function Bascule({
   id,

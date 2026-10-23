@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\Catalogue;
 
+use App\Enums\Canal;
+use App\Enums\SourceCommande;
+use App\Enums\StatutVariante;
 use App\Enums\TypeOffre;
 use App\Models\Categorie;
 use App\Models\Etablissement;
@@ -9,6 +12,9 @@ use App\Models\EtablissementUtilisateur;
 use App\Models\Produit;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\VarianteProduit;
+use App\Services\Commandes\CreerCommande;
+use App\Services\Commandes\LigneCommandeDemandee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -232,7 +238,12 @@ class ProduitsApiTest extends TestCase
         $this->assertSame('archive', $produit->statut->value);
     }
 
-    public function test_7_mode_stock_modifie_apres_creation_refuse(): void
+    /**
+     * Lot A : le mode de stock n'est plus figé à la création. Il reste
+     * refusé tant qu'une commande en cours en dépend — ici une réservation
+     * active ; les autres cas sont dans ChangementModeStockTest.
+     */
+    public function test_7_mode_stock_modifie_refuse_tant_quune_reservation_est_active(): void
     {
         $this->seed();
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
@@ -240,9 +251,16 @@ class ProduitsApiTest extends TestCase
         $creation = $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/produits', [
             'nom' => 'Produit stock compte',
             'prix' => 500,
+            'quantite_stock' => 10,
         ]);
         $id = $creation->json('data.id');
         $this->assertSame('compte', Produit::pourTousEtablissements()->find($id)->mode_stock->value);
+
+        $chezAwa = Etablissement::where('slug', 'chez-awa')->firstOrFail();
+        app(CreerCommande::class)->executer(
+            $chezAwa, $chezAwa->clients()->create(['nom' => 'Client Test']), [new LigneCommandeDemandee($id, null, 2)],
+            Canal::Web, SourceCommande::PanierWeb, 'cle-test-7',
+        );
 
         $reponse = $this->depuis('chez-awa.localhost')->putJson("http://chez-awa.localhost:8000/api/produits/{$id}", [
             'mode_stock' => 'interrupteur',
@@ -405,5 +423,46 @@ class ProduitsApiTest extends TestCase
 
         $produit = Produit::pourTousEtablissements()->findOrFail($creation->json('data.id'));
         $this->assertSame(TypeOffre::Bien, $produit->type_offre);
+    }
+
+    /**
+     * Lot A — la pastille du back-office lisait le stock du produit, qui
+     * vaut 0 quand le stock vit sur les variantes : le riz s'affichait
+     * « Épuisé » avec trois sacs en stock. L'API résume désormais le
+     * stock des seules variantes actives.
+     */
+    public function test_13a_le_stock_dun_produit_a_variantes_est_celui_de_ses_variantes_actives(): void
+    {
+        $this->seed();
+        $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
+
+        $stockDe = fn (string $hote, string $slug) => collect(
+            $this->depuis($hote)->getJson("http://{$hote}:8000/api/produits?par_page=100")->assertStatus(200)->json('data')
+        )->firstWhere('slug', $slug)['stock_variantes'];
+
+        $this->assertSame(['nombre' => 3, 'quantite_disponible' => 55, 'disponible' => true], $stockDe('chez-awa.localhost', 'riz-parfume-long-grain'));
+        $this->assertNull($stockDe('chez-awa.localhost', 'huile-de-palme-rouge-non-raffinee-bouteille-1-litre'));
+
+        $riz = Produit::pourTousEtablissements()->where('slug', 'riz-parfume-long-grain')->firstOrFail();
+        VarianteProduit::pourTousEtablissements()->where('produit_id', $riz->id)->where('nom', '1 kg')->update(['statut' => StatutVariante::Inactif]);
+        $this->assertSame(['nombre' => 2, 'quantite_disponible' => 15, 'disponible' => true], $stockDe('chez-awa.localhost', 'riz-parfume-long-grain'));
+    }
+
+    public function test_13b_en_disponibilite_manuelle_le_stock_suit_les_variantes_et_non_le_produit(): void
+    {
+        $this->seed();
+        $admin = $this->creerAdminPour(Etablissement::where('slug', 'maquis-du-port')->firstOrFail());
+        $this->connecte('maquis-du-port.localhost', $admin->email);
+
+        $stockDe = fn (string $hote, string $slug) => collect(
+            $this->depuis($hote)->getJson("http://{$hote}:8000/api/produits?par_page=100")->assertStatus(200)->json('data')
+        )->firstWhere('slug', $slug)['stock_variantes'];
+
+        $this->assertSame(['nombre' => 2, 'quantite_disponible' => null, 'disponible' => true], $stockDe('maquis-du-port.localhost', 'poulet-braise'));
+
+        $poulet = Produit::pourTousEtablissements()->where('slug', 'poulet-braise')->firstOrFail();
+        VarianteProduit::pourTousEtablissements()->where('produit_id', $poulet->id)->update(['disponible' => false]);
+        $this->assertTrue($poulet->fresh()->disponible, 'le drapeau du produit, lui, reste à disponible');
+        $this->assertSame(['nombre' => 2, 'quantite_disponible' => null, 'disponible' => false], $stockDe('maquis-du-port.localhost', 'poulet-braise'));
     }
 }

@@ -10,6 +10,13 @@ import type { Media } from './medias'
 export type StatutProduit = 'brouillon' | 'publie' | 'archive'
 export type ModeStock = 'compte' | 'interrupteur'
 
+export type StockVariantes = {
+  nombre: number
+  // Somme des quantités disponibles des variantes ; null en mode interrupteur.
+  quantite_disponible: number | null
+  disponible: boolean
+}
+
 export type Produit = {
   id: number
   categorie_id: number | null
@@ -23,6 +30,9 @@ export type Produit = {
   quantite_stock: number
   quantite_reservee: number
   disponible: boolean
+  // Null pour un produit sans variante active : ses propres colonnes font
+  // foi. Sinon, seules ses variantes comptent (voir ProduitResource).
+  stock_variantes: StockVariantes | null
   statut: StatutProduit
   publie_le: string | null
   // Triées par ordre, la première est la photo principale. Toujours présent
@@ -83,6 +93,8 @@ export type ProduitPayload = {
   prix_barre: number | null
   description: string | null
   reference: string | null
+  // Seulement en modification, et seulement quand il change.
+  mode_stock?: ModeStock
   quantite_stock?: number
   disponible?: boolean
   // Absent quand on modifie un produit déjà archivé : ce formulaire ne
