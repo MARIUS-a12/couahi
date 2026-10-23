@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
 
     /*
@@ -127,10 +125,10 @@ return [
     |
     */
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
-    ),
+    // Nom NEUTRE, jamais dérivé de APP_NAME : ce cookie est posé sur le
+    // domaine de chaque boutique, donc visible du client final, et Couahi
+    // doit lui rester invisible (voir decisions.md).
+    'cookie' => env('SESSION_COOKIE', 'session'),
 
     /*
     |--------------------------------------------------------------------------
