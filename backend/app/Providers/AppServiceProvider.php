@@ -6,8 +6,10 @@ use App\Models\User;
 use App\Support\RateLimiting\LimiteurEmailEtIp;
 use App\Support\Tenancy\ContexteEtablissement;
 use App\Validation\PwnedPasswordVerifier;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Http\Client\Factory as HttpFactory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -53,5 +55,12 @@ class AppServiceProvider extends ServiceProvider
         // seul endroit à auditer pour les deux.
         RateLimiter::for('connexion', LimiteurEmailEtIp::pour('connexion'));
         RateLimiter::for('activation', LimiteurEmailEtIp::pour('activation'));
+
+        // Génération de lien WhatsApp (route publique anonyme) : la vraie
+        // protection est l'idempotence de la génération (voir
+        // GenerateurLienWhatsapp). Ceci n'est qu'un plafond de secours, large,
+        // par IP ET par établissement (l'hôte : ce limiteur passe avant
+        // ResoudreEtablissement, voir la liste de priorité de bootstrap/app.php).
+        RateLimiter::for('lien-whatsapp', fn (Request $request) => Limit::perHour(60)->by($request->ip().'|'.$request->getHost()));
     }
 }

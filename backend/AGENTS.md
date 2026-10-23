@@ -178,6 +178,15 @@ activation, etc.) se fait par email ET par IP, jamais par IP seule.
 Une IP seule pénalise des utilisateurs sans lien entre eux qui la
 partagent (opérateurs mobiles). Voir App\Support\RateLimiting\LimiteurEmailEtIp.
 
+Dérogation : une route publique ANONYME (aucun email, ex. la génération
+de lien WhatsApp de la vitrine) ne peut pas appliquer cette règle. Sa
+protection repose alors sur l'idempotence de ce qu'elle crée (même
+visiteur, même demande, peu de temps après : on renvoie l'existant, aucune
+ligne de plus), le visiteur étant identifié par sa session — jamais par
+l'IP d'abord, qui confond les abonnés d'un même opérateur. La limite par
+IP n'y est qu'un plafond de secours large (60/heure par IP et par
+établissement), pas la serrure.
+
 ## Données de démonstration réalistes
 Les données de démonstration doivent ressembler aux données de
 production. Un champ facultatif jamais rempli dans les seeders est un bug

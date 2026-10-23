@@ -54,7 +54,10 @@ Route::middleware('resoudre.etablissement')->post('/activation', [ActivationCont
 Route::middleware(['resoudre.etablissement', 'abonnement.vitrine'])->prefix('vitrine')->group(function () {
     Route::get('/produits', [VitrineProduitController::class, 'index']);
     Route::get('/produits/{id}', [VitrineProduitController::class, 'show']);
-    Route::post('/produits/{id}/lien-whatsapp', [VitrineProduitController::class, 'lienWhatsapp']);
+    // Génération idempotente (voir GenerateurLienWhatsapp) + plafond de
+    // secours par IP et établissement — voir AGENTS.md, dérogation à la
+    // règle email + IP pour une route publique anonyme.
+    Route::post('/produits/{id}/lien-whatsapp', [VitrineProduitController::class, 'lienWhatsapp'])->middleware('throttle:lien-whatsapp');
     Route::get('/categories', [VitrineCategorieController::class, 'index']);
     Route::get('/etablissement', [VitrineEtablissementController::class, 'show']);
     Route::get('/partage', [VitrineEtablissementController::class, 'partage']);

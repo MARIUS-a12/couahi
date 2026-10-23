@@ -124,4 +124,18 @@ class LienWhatsappDeduplicationTest extends TestCase
 
         $this->assertNotSame($premiere, $seconde);
     }
+
+    public function test_le_61e_appel_dans_lheure_renvoie_429(): void
+    {
+        $this->seed();
+        $produit = $this->produit();
+
+        for ($appel = 1; $appel <= 60; $appel++) {
+            $this->cliquer($produit)->assertStatus(200);
+        }
+
+        $this->cliquer($produit)->assertStatus(429);
+        // Les 60 appels n'ont créé qu'une seule demande pour le commerçant.
+        $this->assertSame(1, ReferenceWhatsapp::pourTousEtablissements()->where('produit_id', $produit->id)->count());
+    }
 }
