@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
@@ -28,6 +29,28 @@ abstract class PostgresTestCase extends TestCase
         $app['config']->set('database.default', 'pgsql_testing');
 
         return $app;
+    }
+
+    /**
+     * RefreshDatabase ne migre qu'une fois par processus (un seul drapeau,
+     * RefreshDatabaseState::$migrated), quelle que soit la base. Dans la
+     * suite complète, les tests SQLite passent d'abord et lèvent ce
+     * drapeau : la base PostgreSQL n'était alors jamais remigrée, et ces
+     * tests tournaient sur le schéma laissé par le dernier lancement isolé
+     * — une nouvelle table y manquait (SQLSTATE 42P01). Cette base a donc
+     * son propre drapeau.
+     */
+    private static bool $postgresMigree = false;
+
+    protected function refreshTestDatabase(): void
+    {
+        if (! self::$postgresMigree) {
+            $this->migrateDatabases();
+            $this->app[Kernel::class]->setArtisan(null);
+            self::$postgresMigree = true;
+        }
+
+        $this->beginDatabaseTransaction();
     }
 
     protected function migrateFreshUsing(): array
