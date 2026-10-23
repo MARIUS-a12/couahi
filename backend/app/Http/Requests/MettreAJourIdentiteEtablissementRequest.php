@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Rules\NumeroTelephoneIvoirien;
 use App\Rules\UrlReseauSocial;
+use App\Support\Couleur\CouleurAccent;
 use App\Support\Url\ForceHttps;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -85,7 +86,7 @@ class MettreAJourIdentiteEtablissementRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'couleur_accent.regex' => 'La couleur doit être un code hexadécimal à 6 chiffres (ex. #146C43).',
+            'couleur_accent.regex' => 'La couleur doit être un code hexadécimal à 6 chiffres (ex. '.strtoupper(CouleurAccent::PAR_DEFAUT).').',
             'horaires.*.ouverture.date_format' => "L'heure d'ouverture doit être au format HH:MM.",
             'horaires.*.fermeture.date_format' => "L'heure de fermeture doit être au format HH:MM.",
         ];

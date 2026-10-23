@@ -48,6 +48,7 @@ export type EtablissementDetail = {
   email: string | null
   telephone: string | null
   couleur_accent: string | null
+  couleur_accent_par_defaut: string
   created_at: string
   domaines: Domaine[]
   utilisateurs: UtilisateurRattache[]

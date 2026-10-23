@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Vitrine;
 
 use App\Http\Resources\LogoResource;
+use App\Support\Couleur\CouleurAccent;
 use App\Support\Horaires\EtatHoraires;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,14 +18,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * telephone_whatsapp n'a pas encore été renseigné (compatibilité avec les
  * établissements créés avant l'Étape 6A ter, qui n'avaient que ce champ).
  *
- * "couleur_accent" retombe sur le vert de marque de HK Studio quand
+ * "couleur_accent" retombe sur CouleurAccent::PAR_DEFAUT quand
  * l'établissement n'en a pas choisi — jamais null ici, pour que le
  * frontend n'ait aucun cas particulier à gérer.
  */
 class EtablissementVitrineResource extends JsonResource
 {
-    private const COULEUR_PAR_DEFAUT = '#146c43';
-
     public function toArray(Request $request): array
     {
         return [
@@ -42,7 +41,7 @@ class EtablissementVitrineResource extends JsonResource
             'lien_instagram' => $this->lien_instagram,
             'lien_tiktok' => $this->lien_tiktok,
             'lien_site_web' => $this->lien_site_web,
-            'couleur_accent' => $this->couleur_accent ?? self::COULEUR_PAR_DEFAUT,
+            'couleur_accent' => $this->couleur_accent ?? CouleurAccent::PAR_DEFAUT,
             // Étape 6C-1 : jamais les identifiants. Vrai seulement si
             // CinetPay est DISPONIBLE (configuré et intégration active),
             // pas simplement configuré.

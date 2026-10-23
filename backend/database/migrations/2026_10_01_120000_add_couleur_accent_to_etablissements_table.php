@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Couleur d'accent propre à la vitrine de chaque établissement (voir Étape
  * 6A bis — identité visuelle) : nulle par défaut, auquel cas la vitrine
- * retombe sur le vert de marque de HK Studio (voir EtablissementVitrineResource).
+ * retombe sur CouleurAccent::PAR_DEFAUT (voir EtablissementVitrineResource).
  */
 return new class extends Migration
 {

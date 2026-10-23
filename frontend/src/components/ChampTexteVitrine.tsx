@@ -1,7 +1,7 @@
 /**
  * Équivalent de ChampTexte (back-office) pour la vitrine : mêmes briques
  * (label + champ + erreur sous le champ), mais sans jamais utiliser la
- * couleur de marque de HK Studio (primaire) — la vitrine n'utilise que des
+ * couleur primaire du thème (--color-primaire) — la vitrine n'utilise que des
  * couleurs neutres, la couleur d'accent de l'établissement étant réservée au
  * logo, à l'onglet actif et au bouton principal (voir DispositionVitrine).
  * Ajoute "type" et "maxLength", dont ChampTexte n'a pas besoin côté

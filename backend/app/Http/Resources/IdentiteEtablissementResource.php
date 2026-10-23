@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Couleur\CouleurAccent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,6 +22,9 @@ class IdentiteEtablissementResource extends JsonResource
             'nom' => $this->nom,
             'description' => $this->description,
             'couleur_accent' => $this->couleur_accent,
+            // Affichée quand couleur_accent est null : le frontend ne
+            // recopie jamais cette valeur (voir CouleurAccent).
+            'couleur_accent_par_defaut' => CouleurAccent::PAR_DEFAUT,
             'logo' => $this->logoMedia ? new LogoResource($this->logoMedia) : null,
             'telephone_whatsapp' => $this->telephone_whatsapp,
             'telephone_fixe' => $this->telephone_fixe,

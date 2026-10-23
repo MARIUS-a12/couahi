@@ -145,9 +145,9 @@ export function PageFicheEtablissement() {
               <span
                 aria-hidden="true"
                 className="h-5 w-5 shrink-0 rounded border border-bordure"
-                style={{ backgroundColor: etablissement.couleur_accent ?? '#146c43' }}
+                style={{ backgroundColor: etablissement.couleur_accent ?? etablissement.couleur_accent_par_defaut }}
               />
-              {(etablissement.couleur_accent ?? '#146c43').toUpperCase()}
+              {(etablissement.couleur_accent ?? etablissement.couleur_accent_par_defaut).toUpperCase()}
             </dd>
           </div>
           <Info libelle="Créé le" valeur={new Date(etablissement.created_at).toLocaleDateString('fr-FR')} />

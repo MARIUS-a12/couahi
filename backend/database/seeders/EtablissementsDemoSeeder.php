@@ -10,6 +10,7 @@ use App\Models\Etablissement;
 use App\Models\Produit;
 use App\Models\VarianteProduit;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
+use App\Support\Couleur\CouleurAccent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
@@ -53,7 +54,8 @@ class EtablissementsDemoSeeder extends Seeder
             'nom' => 'Chez Awa',
             'slug' => 'chez-awa',
             'description' => "L'épicerie de quartier d'Awa : produits frais livrés tous les matins, prix honnêtes, service en moins de 10 minutes.",
-            'couleur_accent' => '#146c43',
+            // Awa a gardé la couleur proposée par défaut.
+            'couleur_accent' => CouleurAccent::PAR_DEFAUT,
             'telephone_whatsapp' => '+2250701020304',
             'telephone_fixe' => '+2252720304050',
             'email_contact' => 'contact@chez-awa.example.test',

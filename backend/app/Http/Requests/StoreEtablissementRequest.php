@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\Domaine;
 use App\Models\Etablissement;
+use App\Support\Couleur\CouleurAccent;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -58,7 +59,7 @@ class StoreEtablissementRequest extends FormRequest
             'sous_domaine.not_in' => 'Ce mot est réservé et ne peut pas être utilisé comme sous-domaine.',
             'sous_domaine.unique' => 'Ce sous-domaine est déjà utilisé.',
             'email_administrateur.unique' => 'Cet email est déjà utilisé par un autre compte de la plateforme.',
-            'couleur_accent.regex' => 'La couleur doit être un code hexadécimal à 6 chiffres (ex. #146C43).',
+            'couleur_accent.regex' => 'La couleur doit être un code hexadécimal à 6 chiffres (ex. '.strtoupper(CouleurAccent::PAR_DEFAUT).').',
         ];
     }
 }

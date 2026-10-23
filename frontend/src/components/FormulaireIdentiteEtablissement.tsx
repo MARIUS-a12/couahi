@@ -67,7 +67,7 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
 
   const [nom, setNom] = useState('')
   const [description, setDescription] = useState('')
-  const [couleurAccent, setCouleurAccent] = useState('#146c43')
+  const [couleurAccent, setCouleurAccent] = useState('')
   const [telephoneWhatsapp, setTelephoneWhatsapp] = useState('')
   const [telephoneFixe, setTelephoneFixe] = useState('')
   const [emailContact, setEmailContact] = useState('')
@@ -121,7 +121,7 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
     setIdentite(donnees)
     setNom(donnees.nom)
     setDescription(donnees.description ?? '')
-    setCouleurAccent(donnees.couleur_accent ?? '#146c43')
+    setCouleurAccent(donnees.couleur_accent ?? donnees.couleur_accent_par_defaut)
     setTelephoneWhatsapp(donnees.telephone_whatsapp ?? '')
     setTelephoneFixe(donnees.telephone_fixe ?? '')
     setEmailContact(donnees.email_contact ?? '')
@@ -309,7 +309,7 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
         <div className="flex items-center gap-2">
           <input
             type="color"
-            value={couleurAccent.match(/^#[0-9a-fA-F]{6}$/) ? couleurAccent : '#146c43'}
+            value={couleurAccent.match(/^#[0-9a-fA-F]{6}$/) ? couleurAccent : (identite?.couleur_accent_par_defaut ?? '#000000')}
             onChange={(e) => {
               setCouleurAccent(e.target.value)
               setCouleurSuggeree(null)
@@ -324,7 +324,7 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
               setCouleurAccent(e.target.value)
               setCouleurSuggeree(null)
             }}
-            placeholder="#146C43"
+            placeholder={identite?.couleur_accent_par_defaut.toUpperCase()}
             className="h-11 w-32 rounded border border-bordure bg-surface px-3 text-corps uppercase tabular-nums text-texte transition-colors focus:border-primaire focus:outline focus:outline-2 focus:outline-primaire focus:outline-offset-1"
           />
           {ratio !== null && (

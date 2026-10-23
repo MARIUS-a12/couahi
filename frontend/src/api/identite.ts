@@ -35,6 +35,8 @@ export type IdentiteEtablissement = {
   nom: string
   description: string | null
   couleur_accent: string | null
+  /** Valeur affichée tant que couleur_accent est null — fournie par l'API, jamais recopiée ici. */
+  couleur_accent_par_defaut: string
   logo: Logo | null
   telephone_whatsapp: string | null
   telephone_fixe: string | null

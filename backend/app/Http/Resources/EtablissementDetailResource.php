@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Couleur\CouleurAccent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,9 @@ class EtablissementDetailResource extends JsonResource
             'email' => $this->email,
             'telephone' => $this->telephone,
             'couleur_accent' => $this->couleur_accent,
+            // Affichée quand couleur_accent est null : le frontend ne
+            // recopie jamais cette valeur (voir CouleurAccent).
+            'couleur_accent_par_defaut' => CouleurAccent::PAR_DEFAUT,
             'created_at' => $this->created_at,
             // Étape 7 : conditionne, côté interface, la présence du bouton
             // "Supprimer définitivement" — la vérification qui compte

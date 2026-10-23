@@ -22,7 +22,7 @@ use Intervention\Image\Typography\FontFactory;
 class ImagesDemo
 {
     /** Teintes franches et distinctes, pour que deux produits voisins ne se confondent pas. */
-    private const PALETTE = ['#9A3412', '#1D4ED8', '#146C43', '#7C3AED', '#B45309', '#BE123C', '#0F766E', '#4338CA'];
+    private const PALETTE = ['#9A3412', '#1D4ED8', '#166534', '#7C3AED', '#B45309', '#BE123C', '#0F766E', '#4338CA'];
 
     private const POLICE = 'resources/fonts/Poppins-Bold.ttf';
 
