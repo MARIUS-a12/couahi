@@ -28,7 +28,7 @@ class StoreEtablissementRequest extends FormRequest
     {
         return [
             'nom' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:boutique,restaurant'],
+            'type' => ['required', Rule::in(Etablissement::TYPES)],
             'sous_domaine' => [
                 'required',
                 'string',

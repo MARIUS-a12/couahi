@@ -15,6 +15,13 @@ class Etablissement extends Model
 {
     use HasFactory;
 
+    /**
+     * Les seuls types connus. La base les garantit aussi (CHECK
+     * etablissements_type_valide) : cette liste et la contrainte doivent
+     * changer ensemble.
+     */
+    public const TYPES = ['boutique', 'restaurant'];
+
     protected $table = 'etablissements';
 
     /**
