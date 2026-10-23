@@ -434,3 +434,23 @@ a des enfants ne peut, de ce fait, plus devenir elle-même enfant.
 Alternative écartée : une profondeur libre. Écartée parce que deux niveaux
 suffisent à une boutique, et qu'une arborescence profonde se navigue mal
 sur un téléphone, où se trouvent la plupart des clients.
+
+## 2026-10-25 — Un seul service compose les variantes, et une commande le vérifie
+
+« Chaque variante porte une valeur pour chaque option de son produit » ne
+s'exprime pas en contrainte SQL. Cette garantie repose donc sur deux
+choses. D'abord, un seul code compose une variante (options, valeurs,
+liens, signature, nom d'affichage) : GererVariantes. Aucun contrôleur,
+aucune commande artisan, aucun seeder n'écrit ces lignes directement, et
+un test parcourt le code pour le vérifier. Ensuite, la commande
+catalogue:verifier-variantes, en lecture seule, signale toute variante à
+qui il manque une valeur, ou dont la signature ou le nom ne suit plus ses
+valeurs. Elle se lance en production sans ouvrir la base.
+Le nom d'affichage d'une variante (« 39 / Noir ») suit ses valeurs : ce
+service le recalcule quand une valeur est renommée ou une option ajoutée.
+Le libellé recopié sur une ligne de commande, lui, est gelé pour
+toujours : c'est un document comptable. Une commande qui a vendu un
+« 39 / Noir » le dit encore après que « Noir » a été renommé « Noir mat ».
+Hors champ, assumé : les migrations, instantanés historiques figés, et
+les factories de test, qui doivent pouvoir fabriquer des états invalides
+pour prouver qu'ils sont refusés.

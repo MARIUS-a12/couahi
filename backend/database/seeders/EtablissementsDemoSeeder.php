@@ -7,10 +7,8 @@ use App\Enums\StatutProduit;
 use App\Models\Categorie;
 use App\Models\Domaine;
 use App\Models\Etablissement;
-use App\Models\OptionProduit;
 use App\Models\Produit;
-use App\Models\ValeurOption;
-use App\Models\VarianteProduit;
+use App\Services\Catalogue\GererVariantes;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
 use App\Support\Couleur\CouleurAccent;
 use Illuminate\Database\Seeder;
@@ -289,13 +287,7 @@ class EtablissementsDemoSeeder extends Seeder
             'prix' => 1000,
             'quantite_stock' => 0,
         ]);
-        foreach ([['1 kg', 1000, 40], ['Sac de 5 kg', 4500, 12], ['Sac de 25 kg', 21000, 3]] as [$nom, $prix, $stock]) {
-            VarianteProduit::factory()->pourProduit($avecVariantes)->dansOption('Conditionnement')->create([
-                'nom' => $nom,
-                'prix' => $prix,
-                'quantite_stock' => $stock,
-            ]);
-        }
+        $this->creerVariantesSimples($avecVariantes, 'Conditionnement', [['1 kg', 1000, 40], ['Sac de 5 kg', 4500, 12], ['Sac de 25 kg', 21000, 3]]);
         $this->ajouterPhotos($avecVariantes, 1);
 
         Produit::factory()->for($chezAwa)->publie()->epuise()->create([
@@ -357,9 +349,7 @@ class EtablissementsDemoSeeder extends Seeder
             'description' => 'Poulet bicyclette mariné et braisé, servi avec attiéké.',
             'prix' => 1500,
         ]);
-        foreach ([['Quart', 1500], ['Demi', 3000]] as [$nom, $prix]) {
-            VarianteProduit::factory()->pourProduit($poulet)->dansOption('Portion')->create(['nom' => $nom, 'prix' => $prix]);
-        }
+        $this->creerVariantesSimples($poulet, 'Portion', [['Quart', 1500, 46], ['Demi', 3000, 9]]);
         $this->ajouterPhotos($poulet, 1);
 
         // Nom long et accentué, et aucune photo : les deux cas limites
@@ -443,13 +433,7 @@ class EtablissementsDemoSeeder extends Seeder
             'prix' => 6000,
             'quantite_stock' => 0,
         ]);
-        foreach ([['2 yards', 6000, 8], ['6 yards', 14000, 5], ['12 yards', 26000, 1]] as [$nom, $prix, $stock]) {
-            VarianteProduit::factory()->pourProduit($avecVariantes)->dansOption('Longueur')->create([
-                'nom' => $nom,
-                'prix' => $prix,
-                'quantite_stock' => $stock,
-            ]);
-        }
+        $this->creerVariantesSimples($avecVariantes, 'Longueur', [['2 yards', 6000, 8], ['6 yards', 14000, 5], ['12 yards', 26000, 1]]);
         $this->ajouterPhotos($avecVariantes, 1);
 
         $this->peuplerSandales($waxAdjame);
@@ -500,14 +484,15 @@ class EtablissementsDemoSeeder extends Seeder
         $this->ajouterPhotos($produit, 2);
         [$photoNoir, $photoMarron] = $produit->medias()->pourTousEtablissements()->orderByPivot('ordre')->get()->all();
 
-        $pointure = $this->creerOption($produit, 'Pointure', 1);
-        $coloris = $this->creerOption($produit, 'Coloris', 2);
+        $variantes = app(GererVariantes::class);
+        $pointure = $variantes->ajouterOption($produit, 'Pointure');
+        $coloris = $variantes->ajouterOption($produit, 'Coloris');
         $pointures = [];
-        foreach (['39', '40', '41', '42', '43', '44', '45'] as $index => $libelle) {
-            $pointures[$libelle] = $this->creerValeur($pointure, $libelle, $index + 1);
+        foreach (['39', '40', '41', '42', '43', '44', '45'] as $libelle) {
+            $pointures[$libelle] = $variantes->ajouterValeur($pointure, $libelle);
         }
-        $noir = $this->creerValeur($coloris, 'Noir', 1);
-        $marron = $this->creerValeur($coloris, 'Marron', 2);
+        $noir = $variantes->ajouterValeur($coloris, 'Noir');
+        $marron = $variantes->ajouterValeur($coloris, 'Marron');
 
         $stocks = [
             'Noir' => ['39' => 2, '40' => 4, '41' => 5, '42' => 0, '43' => 6, '44' => 3, '45' => 1],
@@ -516,8 +501,7 @@ class EtablissementsDemoSeeder extends Seeder
         foreach ($stocks as $nomColoris => $parPointure) {
             [$valeurColoris, $photo] = $nomColoris === 'Noir' ? [$noir, $photoNoir] : [$marron, $photoMarron];
             foreach ($parPointure as $libellePointure => $stock) {
-                VarianteProduit::factory()->pourProduit($produit)->avecValeurs($pointures[$libellePointure], $valeurColoris)->create([
-                    'nom' => "{$libellePointure} / {$nomColoris}",
+                $variantes->creerVariante($produit, [$pointures[$libellePointure], $valeurColoris], [
                     'prix' => $libellePointure === '45' ? 19500 : null,
                     'quantite_stock' => $stock,
                     'media_id' => $photo->id,
@@ -526,19 +510,20 @@ class EtablissementsDemoSeeder extends Seeder
         }
     }
 
-    private function creerOption(Produit $produit, string $nom, int $ordre): OptionProduit
+    /**
+     * Une seule option, une valeur par variante, dans l'ordre donné — par le
+     * même service que le back-office (GererVariantes), jamais en écrivant
+     * les lignes à la main.
+     *
+     * @param  array<int, array{0: string, 1: int, 2: int}>  $variantes  libellé, prix, stock
+     */
+    private function creerVariantesSimples(Produit $produit, string $nomOption, array $variantes): void
     {
-        $option = (new OptionProduit(['produit_id' => $produit->id, 'nom' => $nom, 'ordre' => $ordre]))->pourEtablissement($produit->etablissement_id);
-        $option->save();
+        $service = app(GererVariantes::class);
+        $option = $service->ajouterOption($produit, $nomOption);
 
-        return $option;
-    }
-
-    private function creerValeur(OptionProduit $option, string $libelle, int $ordre): ValeurOption
-    {
-        $valeur = (new ValeurOption(['option_id' => $option->id, 'libelle' => $libelle, 'ordre' => $ordre]))->pourEtablissement($option->etablissement_id);
-        $valeur->save();
-
-        return $valeur;
+        foreach ($variantes as [$libelle, $prix, $stock]) {
+            $service->creerVariante($produit, [$service->ajouterValeur($option, $libelle)], ['prix' => $prix, 'quantite_stock' => $stock]);
+        }
     }
 }

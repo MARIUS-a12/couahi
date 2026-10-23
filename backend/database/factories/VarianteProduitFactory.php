@@ -13,8 +13,13 @@ use Illuminate\Database\Eloquent\Factories\Factory;
  * Une variante est une combinaison de valeurs (voir la migration
  * creer_options_valeurs_et_combinaisons) : la factory n'en crée jamais une
  * sans valeur. Par défaut, la variante reçoit une valeur à son nom dans une
- * option « Variante » du produit ; dansOption() choisit le nom de cette
- * option, avecValeurs() fixe une combinaison de plusieurs options.
+ * option « Variante » du produit ; avecValeurs() fixe une combinaison de
+ * plusieurs options.
+ *
+ * Outil de test seulement : le code applicatif et les seeders passent par
+ * GererVariantes (voir EcrituresVariantesCentraliseesTest). La factory, elle,
+ * doit aussi savoir fabriquer des états que le service refuserait, pour
+ * prouver que la base les refuse aussi.
  *
  * @extends Factory<VarianteProduit>
  */
@@ -67,18 +72,6 @@ class VarianteProduitFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'produit_id' => $produit->id,
             'etablissement_id' => $produit->etablissement_id,
-        ]);
-    }
-
-    /**
-     * Une seule option, nommée comme un commerçant la nommerait
-     * (« Conditionnement », « Portion ») ; la valeur porte le nom de la
-     * variante, à la suite des valeurs déjà créées dans cette option.
-     */
-    public function dansOption(string $nomOption): static
-    {
-        return $this->state([
-            'signature' => fn (array $attributs) => self::valeurAuNomDeLaVariante($attributs, $nomOption),
         ]);
     }
 

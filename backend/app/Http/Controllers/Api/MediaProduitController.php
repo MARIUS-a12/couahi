@@ -9,6 +9,7 @@ use App\Http\Requests\StoreMediaProduitRequest;
 use App\Http\Resources\MediaResource;
 use App\Models\Media;
 use App\Models\Produit;
+use App\Services\Catalogue\GererVariantes;
 use App\Services\Medias\GenerateurVariantesImage;
 use App\Support\Vitrine\CacheVitrine;
 use Illuminate\Http\JsonResponse;
@@ -107,7 +108,7 @@ class MediaProduitController extends Controller
         abort_unless($produit->medias()->whereKey($media->id)->exists(), 404);
 
         DB::transaction(function () use ($produit, $media) {
-            $produit->variantes()->where('media_id', $media->id)->update(['media_id' => null]);
+            app(GererVariantes::class)->retirerImage($produit, $media);
             $produit->medias()->detach($media->id);
 
             if (! $media->produits()->exists()) {
