@@ -95,6 +95,34 @@ class MediasProduitApiTest extends TestCase
     }
 
     /**
+     * Une photo prise au téléphone n'est jamais carrée. test_1 envoie une
+     * image carrée : recadrée ou non, la vignette y aurait la même forme —
+     * une vignette qui cesserait d'être carrée passait inaperçue. Ici, 2:1 :
+     * la vignette est recadrée au carré, les deux autres formats gardent les
+     * proportions de l'original.
+     */
+    public function test_1b_photo_non_carree_vignette_recadree_autres_formats_proportionnes(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
+        $produit = $this->produitDe('chez-awa');
+
+        $reponse = $this->depuis('chez-awa.localhost')->post(
+            "http://chez-awa.localhost:8000/api/produits/{$produit->id}/medias",
+            ['photo' => UploadedFile::fake()->image('paysage.jpg', 2000, 1000)],
+        )->assertStatus(201);
+
+        $variantes = Media::pourTousEtablissements()->findOrFail($reponse->json('data.id'))->metadonnees_json['variantes'];
+
+        $this->assertSame($variantes['vignette']['largeur'], $variantes['vignette']['hauteur'], 'vignette carrée');
+        foreach (['moyenne', 'grande'] as $format) {
+            $this->assertEqualsWithDelta(2.0, $variantes[$format]['largeur'] / $variantes[$format]['hauteur'], 0.1, "{$format} garde le 2:1");
+            Storage::disk('public')->assertExists([$variantes[$format]['webp'], $variantes[$format]['jpg']]);
+        }
+    }
+
+    /**
      * Un média de maquis-du-port ne peut pas être rattaché à un produit de
      * chez-awa : ni par le réordonnancement (l'id étranger n'appartient
      * jamais à l'ensemble des photos du produit d'awa, donc la validation le
