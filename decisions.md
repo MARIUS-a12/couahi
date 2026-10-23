@@ -372,3 +372,12 @@ tous les produits. Écartée parce que ce serait un changement de mode en
 masse, avec les mêmes risques sur les commandes en cours que le
 changement d'un seul produit, multipliés par le catalogue. Une fois le
 premier produit créé, le mode se change produit par produit.
+
+## 2026-10-23 — Pas de table d'options sur les lignes de commande avant les suppléments
+
+Les lignes de commande n'auront de table fille d'options (suppléments,
+garnitures) qu'avec les suppléments eux-mêmes. Alternative écartée : la
+créer dès maintenant, vide, par précaution. Écartée parce qu'elle
+n'achète rien : le jour des suppléments, il faudra de toute façon sommer
+les options dans le calcul du total, et une table vide ne l'évite pas.
+Elle dériverait en attendant, sans code ni test pour la tenir à jour.
