@@ -105,6 +105,13 @@ class VitrineProduitController extends Controller
                 ->findOrFail($request->integer('variante_id'));
         }
 
+        // Le bouton est désactivé à l'écran, mais seul le serveur protège :
+        // pas de référence pour un article qu'on ne peut pas commander
+        // (épuisé, ou produit à variantes sans variante choisie).
+        abort_if($variante === null && $produit->variantes()->where('statut', StatutVariante::Actif)->exists(), 422, 'Choisissez une variante.');
+        $variante?->setRelation('produit', $produit);
+        abort_unless(($variante ?? $produit)->estDisponibleEnQuantite(), 422, "Cet article n'est pas disponible actuellement.");
+
         $etablissementCourant = app(ContexteEtablissement::class)->obtenir();
         $numero = $etablissementCourant?->telephone_whatsapp ?? $etablissementCourant?->telephone;
 
