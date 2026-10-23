@@ -10,7 +10,13 @@ import axios from 'axios'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { reactiverEtablissement, supprimerEtablissement, suspendreEtablissement } from '../api/etablissements'
+import {
+  modifierTypeEtablissement,
+  reactiverEtablissement,
+  supprimerEtablissement,
+  suspendreEtablissement,
+} from '../api/etablissements'
+import type { TypeEtablissement } from '../api/etablissements'
 import { BandeauMotDePasseGenere } from '../components/BandeauMotDePasseGenere'
 import { BandeauSucces } from '../components/BandeauSucces'
 import { Bouton } from '../components/Bouton'
@@ -52,6 +58,36 @@ export function PageFicheEtablissement() {
     mutationFn: () => suspendreEtablissement(etablissementId),
     onSuccess: appliquerMiseAJour,
   })
+
+  const [erreurType, setErreurType] = useState<string | null>(null)
+
+  const changementType = useMutation({
+    mutationFn: (type: TypeEtablissement) => modifierTypeEtablissement(etablissementId, type),
+    onSuccess: (miseAJour) => {
+      setErreurType(null)
+      appliquerMiseAJour(miseAJour)
+    },
+    onError: (erreur) => {
+      const messageApi = axios.isAxiosError(erreur) ? erreur.response?.data?.errors?.type?.[0] : null
+      setErreurType(
+        typeof messageApi === 'string'
+          ? messageApi
+          : 'Impossible de contacter le serveur. Vérifiez votre connexion et réessayez.',
+      )
+    },
+  })
+
+  function demanderChangementType(type: TypeEtablissement) {
+    const confirme = window.confirm(
+      `Passer cet établissement en ${type === 'restaurant' ? 'restaurant' : 'boutique'} ? Ses futurs produits ` +
+        `seront créés en ${type === 'restaurant' ? 'disponibilité manuelle' : 'suivi par quantité'}. ` +
+        'Ce choix ne sera plus modifiable dès le premier produit.',
+    )
+
+    if (confirme) {
+      changementType.mutate(type)
+    }
+  }
 
   const reactivation = useMutation({
     mutationFn: () => reactiverEtablissement(etablissementId),
@@ -135,7 +171,27 @@ export function PageFicheEtablissement() {
           Informations
         </h2>
         <dl className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
-          <Info libelle="Type" valeur={etablissement.type === 'restaurant' ? 'Restaurant' : 'Boutique'} />
+          <div>
+            <dt className="text-petit text-texte-secondaire">Type</dt>
+            <dd className="text-corps text-texte">
+              {etablissement.type === 'restaurant' ? 'Restaurant' : 'Boutique'}
+              {etablissement.nombre_produits === 0 ? (
+                <button
+                  type="button"
+                  onClick={() => demanderChangementType(etablissement.type === 'restaurant' ? 'boutique' : 'restaurant')}
+                  disabled={changementType.isPending}
+                  className="ml-2 cursor-pointer text-petit font-medium text-primaire underline underline-offset-2 disabled:opacity-60"
+                >
+                  {etablissement.type === 'restaurant' ? 'Passer en boutique' : 'Passer en restaurant'}
+                </button>
+              ) : (
+                <span className="mt-0.5 block text-petit text-texte-secondaire">
+                  Figé : l'établissement a déjà des produits.
+                </span>
+              )}
+            </dd>
+            {erreurType && <p className="mt-1 text-petit text-danger">{erreurType}</p>}
+          </div>
           <Info libelle="Statut" valeur={estActif ? 'Actif' : 'Inactif'} />
           <Info libelle="Email" valeur={etablissement.email ?? '—'} />
           <Info libelle="Téléphone" valeur={etablissement.telephone ?? '—'} />

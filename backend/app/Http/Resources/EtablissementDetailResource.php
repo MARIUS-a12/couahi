@@ -37,6 +37,9 @@ class EtablissementDetailResource extends JsonResource
             // dans EtablissementController::store() juste après création) —
             // le filtrage tenant s'applique donc normalement.
             'nombre_commandes' => $this->commandes()->count(),
+            // Lot A : le type n'est modifiable que tant que c'est 0 (voir
+            // EtablissementController::modifierType, qui le revérifie).
+            'nombre_produits' => $this->produits()->count(),
             'domaines' => $this->domaines->map(fn ($domaine) => [
                 'id' => $domaine->id,
                 'hote' => $domaine->hote,

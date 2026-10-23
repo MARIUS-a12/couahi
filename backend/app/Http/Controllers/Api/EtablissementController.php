@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\StatutEtablissement;
 use App\Exceptions\EtablissementAvecCommandesException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ModifierTypeEtablissementRequest;
 use App\Http\Requests\StoreEtablissementRequest;
 use App\Http\Requests\SupprimerEtablissementRequest;
 use App\Http\Resources\EtablissementDetailResource;
@@ -17,8 +18,10 @@ use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Réservé au super-admin (voir EtablissementPolicy). Volontairement hors du
@@ -90,6 +93,44 @@ class EtablissementController extends Controller
     public function show(Etablissement $etablissement): EtablissementDetailResource
     {
         Gate::authorize('view', $etablissement);
+
+        $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']);
+
+        return new EtablissementDetailResource($etablissement);
+    }
+
+    /**
+     * Le type ne décide que du mode de stock par défaut des produits créés
+     * ensuite (voir Produit::booted) : tant qu'il n'y a aucun produit, le
+     * corriger ne change rien d'existant. Dès le premier produit, il est
+     * figé — le mode se change alors produit par produit (ChangerModeStock).
+     * Les produits archivés comptent : ils portent le mode de l'ancien type
+     * et peuvent être republiés.
+     *
+     * La ligne de l'établissement est verrouillée pendant la vérification.
+     * Un produit créé à la même seconde lit le type sans ce verrou et peut
+     * naître avec l'ancien mode : fenêtre assumée, son mode se corrige sur
+     * sa fiche.
+     */
+    public function modifierType(ModifierTypeEtablissementRequest $request, Etablissement $etablissement): EtablissementDetailResource
+    {
+        Gate::authorize('update', $etablissement);
+
+        DB::transaction(function () use ($request, $etablissement) {
+            Etablissement::query()->whereKey($etablissement->id)->lockForUpdate()->firstOrFail();
+
+            $nombreProduits = $etablissement->produits()->count();
+
+            if ($nombreProduits > 0) {
+                throw ValidationException::withMessages([
+                    'type' => $nombreProduits === 1
+                        ? 'Le type ne peut plus être changé : cet établissement a déjà 1 produit. Le mode de stock se change désormais produit par produit.'
+                        : "Le type ne peut plus être changé : cet établissement a déjà {$nombreProduits} produits. Le mode de stock se change désormais produit par produit.",
+                ]);
+            }
+
+            $etablissement->update(['type' => $request->validated('type')]);
+        });
 
         $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']);
 

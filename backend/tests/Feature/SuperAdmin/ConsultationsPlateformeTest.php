@@ -37,6 +37,7 @@ class ConsultationsPlateformeTest extends TestCase
         'GET api/etablissements/{etablissement}',
         'POST api/etablissements/{etablissement}/suspendre',
         'POST api/etablissements/{etablissement}/reactiver',
+        'PATCH api/etablissements/{etablissement}/type',
         'DELETE api/etablissements/{etablissement}',
         'GET api/etablissements/{etablissement}/identite',
         'PATCH api/etablissements/{etablissement}/identite',

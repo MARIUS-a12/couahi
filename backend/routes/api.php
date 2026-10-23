@@ -107,6 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/etablissements/{etablissement}', [EtablissementController::class, 'show']);
         Route::post('/etablissements/{etablissement}/suspendre', [EtablissementController::class, 'suspendre']);
         Route::post('/etablissements/{etablissement}/reactiver', [EtablissementController::class, 'reactiver']);
+        Route::patch('/etablissements/{etablissement}/type', [EtablissementController::class, 'modifierType']);
         Route::delete('/etablissements/{etablissement}', [EtablissementController::class, 'destroy']);
 
         // Étape 6A ter — identité (chemin super-admin, n'importe quel

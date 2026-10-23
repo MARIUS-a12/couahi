@@ -55,6 +55,9 @@ export type EtablissementDetail = {
   // Étape 7 : conditionne la présence du bouton "Supprimer définitivement" —
   // la vérification qui compte reste côté serveur.
   nombre_commandes: number
+  // Lot A : le type n'est modifiable que tant que c'est 0 — revérifié par
+  // le serveur (EtablissementController::modifierType).
+  nombre_produits: number
 }
 
 export type NouvelEtablissementPayload = {
@@ -99,6 +102,12 @@ export async function creerEtablissement(payload: NouvelEtablissementPayload): P
 
 export async function suspendreEtablissement(id: number): Promise<EtablissementDetail> {
   const { data } = await client.post<{ data: EtablissementDetail }>(`/api/etablissements/${id}/suspendre`)
+
+  return data.data
+}
+
+export async function modifierTypeEtablissement(id: number, type: TypeEtablissement): Promise<EtablissementDetail> {
+  const { data } = await client.patch<{ data: EtablissementDetail }>(`/api/etablissements/${id}/type`, { type })
 
   return data.data
 }

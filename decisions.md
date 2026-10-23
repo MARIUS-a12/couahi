@@ -360,3 +360,15 @@ commande de restaurant passée sur la vitrine expire 15 minutes après sa
 création, comme une commande de boutique, souvent avant que le
 commerçant ne l'ait vue. Il est différé avec le lot restauration, pas
 oublié.
+
+## 2026-10-23 — Le type d'un établissement se corrige tant qu'il n'a aucun produit
+
+Le super-admin peut changer le type (boutique ou restaurant) d'un
+établissement tant que celui-ci n'a aucun produit, archivés compris. Le
+type ne décide que du mode de stock par défaut des produits créés
+ensuite : sans produit, le corriger ne change rien d'existant.
+Alternative écartée : le permettre à tout moment, en basculant le mode de
+tous les produits. Écartée parce que ce serait un changement de mode en
+masse, avec les mêmes risques sur les commandes en cours que le
+changement d'un seul produit, multipliés par le catalogue. Une fois le
+premier produit créé, le mode se change produit par produit.
