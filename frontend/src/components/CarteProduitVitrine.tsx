@@ -1,7 +1,8 @@
 /**
  * Une carte de la grille publique (voir PageAccueilVitrine) : photo,
- * nom (deux lignes au plus), prix, pastille "Épuisé" si le produit n'est pas disponible. Mène à
- * la fiche produit. Sans photo, un repli neutre (icône) plutôt qu'une image
+ * nom (deux lignes au plus), prix (« À partir de » si ses variantes n'ont
+ * pas toutes le même, voir prixAnnonce), pastille "Épuisé" si le produit
+ * n'est pas disponible. Mène à la fiche produit. Sans photo, un repli neutre (icône) plutôt qu'une image
  * cassée. Légère élévation au survol sur écran large (hover: de Tailwind ne
  * s'applique déjà qu'aux appareils qui supportent réellement le survol —
  * rien ne se déclenche au doigt sur mobile), léger enfoncement à la
@@ -12,9 +13,11 @@ import { Link } from 'react-router-dom'
 import type { ProduitVitrine } from '../api/vitrine'
 import { ImageAvecFondu } from './ImageAvecFondu'
 import { formaterMontant } from '../lib/formatage'
+import { prixAnnonce } from '../lib/prixVitrine'
 
 export function CarteProduitVitrine({ produit }: { produit: ProduitVitrine }) {
   const { photo } = produit
+  const prix = prixAnnonce(produit.prix, produit.variantes)
 
   return (
     <Link
@@ -55,7 +58,12 @@ export function CarteProduitVitrine({ produit }: { produit: ProduitVitrine }) {
             nom court garde la place du second rang, sinon les prix d'une
             même rangée de la grille ne s'alignent plus. */}
         <p className="line-clamp-2 min-h-[2lh] break-words text-corps text-texte-secondaire">{produit.nom}</p>
-        <p className="tabular-nums text-titre-section font-bold text-texte">{formaterMontant(produit.prix)}</p>
+        {/* « À partir de » sur sa propre petite ligne, réservée sur TOUTES
+            les cartes : à côté du montant, elle ne tiendrait pas dans une
+            carte de 390 px, et une carte plus haute que ses voisines
+            désalignerait les prix de la rangée. */}
+        <p className="min-h-[1lh] text-petit text-texte-secondaire">{prix.aPartirDe ? 'À partir de' : ''}</p>
+        <p className="tabular-nums text-titre-section font-bold text-texte">{formaterMontant(prix.montant)}</p>
       </div>
     </Link>
   )

@@ -17,9 +17,15 @@
  * dans localStorage (voir lib/panier.ts) et confirme l'ajout sans quitter
  * la page — jamais de navigation, jamais de rechargement.
  *
- * Si le produit a des variantes, les boutons restent désactivés tant
- * qu'aucune n'est choisie — impossible de commander "le produit" sans
- * préciser laquelle.
+ * Si le produit a des variantes et qu'aucune n'est choisie, les boutons
+ * restent ACTIFS mais gardés : un clic ne commande rien, il appelle
+ * onVarianteManquante (la fiche fait défiler jusqu'au sélecteur et
+ * l'entoure). Un bouton désactivé ne répondait à rien, ne recevait pas le
+ * focus et n'était pas annoncé : le client ne pouvait pas comprendre
+ * pourquoi. Le message d'explication est AU-DESSUS des boutons (sous eux,
+ * il tombait sous la ligne de flottaison à 390 px) et leur est lié par
+ * aria-describedby. Un produit ou une variante épuisés, eux, gardent des
+ * boutons désactivés : aucun choix du client ne peut les débloquer.
  */
 import { useEffect, useState } from 'react'
 import { Check, CreditCard, MessageCircle, ShoppingCart } from 'lucide-react'
@@ -38,6 +44,7 @@ export function BoutonsAchatVitrine({
   variantes,
   varianteChoisie,
   modePaiement,
+  onVarianteManquante,
 }: {
   produitId: number
   prix: number
@@ -45,6 +52,7 @@ export function BoutonsAchatVitrine({
   variantes: VarianteVitrine[]
   varianteChoisie: VarianteVitrine | null
   modePaiement: ModePaiementVitrine | null
+  onVarianteManquante: () => void
 }) {
   const { ajouter, lignes } = usePanier()
   const navigate = useNavigate()
@@ -53,9 +61,22 @@ export function BoutonsAchatVitrine({
   const aBesoinDuneVariante = variantes.length > 0
   const varianteIndisponible = varianteChoisie !== null && !varianteChoisie.disponible
 
-  const peutAcheter = aBesoinDuneVariante
-    ? varianteChoisie !== null && varianteChoisie.disponible
-    : disponible
+  const varianteManquante = aBesoinDuneVariante && varianteChoisie === null
+  // Désactivé seulement quand rien ne peut débloquer l'achat (épuisé) ;
+  // une variante manquante, elle, se règle d'un geste : bouton gardé.
+  const bloque = varianteManquante ? false : aBesoinDuneVariante ? !varianteChoisie?.disponible : !disponible
+  const idMessage = `message-achat-${produitId}`
+
+  /** Garde commune aux trois boutons : sans variante, on guide au lieu d'agir. */
+  function garde(action: () => void) {
+    return () => {
+      if (varianteManquante) {
+        onVarianteManquante()
+        return
+      }
+      action()
+    }
+  }
 
   const messageBlocage = aBesoinDuneVariante && varianteChoisie === null
     ? 'Choisissez une variante ci-dessus pour continuer.'
@@ -103,6 +124,14 @@ export function BoutonsAchatVitrine({
 
   return (
     <div>
+      {/* Au-dessus des boutons, jamais en dessous ; aria-live : le message
+          est annoncé quand il change (variante choisie, épuisée...). */}
+      {messageBlocage && (
+        <p id={idMessage} aria-live="polite" className="mb-2 text-petit font-medium text-texte">
+          {messageBlocage}
+        </p>
+      )}
+
       <div className="flex flex-col gap-3 md:flex-row">
         {/* Principal : l'action la plus engageante, la plus visible des
             trois — pleine, dense, une vraie ombre qui s'aplatit à la
@@ -111,8 +140,9 @@ export function BoutonsAchatVitrine({
         {modePaiement === 'cinetpay' && (
           <button
             type="button"
-            disabled={!peutAcheter}
-            onClick={allerPayer}
+            disabled={bloque}
+            aria-describedby={messageBlocage ? idMessage : undefined}
+            onClick={garde(allerPayer)}
             className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
             <CreditCard aria-hidden="true" size={20} strokeWidth={1.5} />
@@ -123,8 +153,9 @@ export function BoutonsAchatVitrine({
         {modePaiement === 'mobile_money' && (
           <button
             type="button"
-            disabled={!peutAcheter}
-            onClick={allerPayer}
+            disabled={bloque}
+            aria-describedby={messageBlocage ? idMessage : undefined}
+            onClick={garde(allerPayer)}
             className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md bg-accent text-corps font-semibold text-accent-texte shadow-bouton transition-[opacity,transform,box-shadow] duration-rapide ease-apparition hover:opacity-90 active:translate-y-px active:scale-[0.97] active:opacity-90 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:active:shadow-bouton disabled:active:translate-y-0"
           >
             <IconeMobileMoney size={20} strokeWidth={1.5} />
@@ -136,8 +167,9 @@ export function BoutonsAchatVitrine({
             direct mais toujours une vraie action d'achat. */}
         <button
           type="button"
-          disabled={!peutAcheter || lienWhatsapp.isPending}
-          onClick={() => lienWhatsapp.mutate()}
+          disabled={bloque || lienWhatsapp.isPending}
+          aria-describedby={messageBlocage ? idMessage : undefined}
+          onClick={garde(() => lienWhatsapp.mutate())}
           className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border-2 border-texte text-corps font-medium text-texte transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           <EtatBouton chargement={lienWhatsapp.isPending}>
@@ -149,8 +181,9 @@ export function BoutonsAchatVitrine({
         {/* Tertiaire : la moins engageante, un simple ajout en attente. */}
         <button
           type="button"
-          disabled={!peutAcheter}
-          onClick={ajouterAuPanier}
+          disabled={bloque}
+          aria-describedby={messageBlocage ? idMessage : undefined}
+          onClick={garde(ajouterAuPanier)}
           className="flex min-h-12 py-2 text-center leading-snug flex-1 cursor-pointer items-center justify-center gap-2 rounded-md text-corps font-medium text-texte-secondaire transition-[background-color,transform] duration-rapide ease-apparition hover:bg-surface-alt active:scale-[0.97] active:bg-surface-alt focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {ajoute ? (
@@ -166,10 +199,6 @@ export function BoutonsAchatVitrine({
           )}
         </button>
       </div>
-
-      {messageBlocage && (
-        <p className="animate-entree-carte mt-2 text-petit text-texte-secondaire">{messageBlocage}</p>
-      )}
 
       {lienWhatsapp.isError && (
         <p className="animate-entree-carte mt-2 text-petit text-danger">

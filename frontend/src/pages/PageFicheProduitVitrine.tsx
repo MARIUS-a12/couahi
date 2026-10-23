@@ -7,7 +7,7 @@
  * établissement — affiche l'état "introuvable", jamais un détail sur la
  * raison réelle (voir VitrineProduitController côté API).
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ImageOff } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { VarianteVitrine } from '../api/vitrine'
@@ -18,6 +18,7 @@ import { ImageAvecFondu } from '../components/ImageAvecFondu'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { useProduitVitrine } from '../hooks/useProduitVitrine'
 import { formaterMontant } from '../lib/formatage'
+import { prixAnnonce } from '../lib/prixVitrine'
 
 export function PageFicheProduitVitrine() {
   const { id } = useParams()
@@ -27,6 +28,24 @@ export function PageFicheProduitVitrine() {
   const { data: produit, isPending, isError, error, refetch } = useProduitVitrine(produitId)
   const [indexPhoto, setIndexPhoto] = useState(0)
   const [varianteChoisie, setVarianteChoisie] = useState<VarianteVitrine | null>(null)
+  // Un bouton d'achat cliqué sans variante : le sélecteur est entouré
+  // jusqu'à ce qu'une variante soit choisie (voir BoutonsAchatVitrine).
+  const [signalerVariante, setSignalerVariante] = useState(false)
+  const selecteurRef = useRef<HTMLDivElement>(null)
+
+  function guiderVersLesVariantes() {
+    setSignalerVariante(true)
+    const selecteur = selecteurRef.current
+    selecteur?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // Le focus suit, sans second défilement : au clavier ou au lecteur
+    // d'écran, on arrive sur la première variante à choisir.
+    selecteur?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
+  }
+
+  function choisirVariante(variante: VarianteVitrine) {
+    setVarianteChoisie(variante)
+    setSignalerVariante(false)
+  }
 
   if (isPending) {
     return (
@@ -48,7 +67,11 @@ export function PageFicheProduitVitrine() {
   }
 
   const photoActive = produit.photos[indexPhoto] ?? produit.photos[0] ?? null
-  const prixAffiche = varianteChoisie?.prix ?? produit.prix
+  // Avant tout choix : le prix annoncé (« À partir de » si les variantes
+  // diffèrent, voir prixAnnonce) ; dès qu'une variante est choisie, le sien.
+  const annonce = prixAnnonce(produit.prix, produit.variantes)
+  const prixAffiche = varianteChoisie?.prix ?? annonce.montant
+  const aPartirDe = varianteChoisie === null && annonce.aPartirDe
   const disponibleAffiche = varianteChoisie ? varianteChoisie.disponible : produit.disponible
 
   return (
@@ -116,8 +139,9 @@ export function PageFicheProduitVitrine() {
             <h1 className="text-titre-page font-bold text-texte">{produit.nom}</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span className="text-titre-page font-bold tabular-nums text-texte">
+              {aPartirDe && <span className="text-corps font-medium text-texte-secondaire">À partir de </span>}
               {formaterMontant(prixAffiche)}
             </span>
             {!disponibleAffiche && (
@@ -132,8 +156,17 @@ export function PageFicheProduitVitrine() {
           )}
 
           {produit.variantes.length > 0 && (
-            <div>
-              <span className="mb-1.5 block text-petit font-medium text-texte">Choisissez une variante</span>
+            <div
+              ref={selecteurRef}
+              role="group"
+              aria-labelledby="titre-variantes"
+              className={`-mx-2 -mt-2 scroll-mt-24 rounded-lg p-2 transition-[outline-color] duration-rapide ${
+                signalerVariante && varianteChoisie === null ? 'outline outline-2 outline-offset-0 outline-danger' : 'outline-none'
+              }`}
+            >
+              <span id="titre-variantes" className="mb-1.5 block text-petit font-medium text-texte">
+                Choisissez une variante <span className="font-normal text-texte-secondaire">(obligatoire)</span>
+              </span>
               <div className="flex flex-wrap gap-2">
                 {produit.variantes.map((variante) => {
                   const estChoisie = varianteChoisie?.id === variante.id
@@ -142,7 +175,7 @@ export function PageFicheProduitVitrine() {
                     <button
                       key={variante.id}
                       type="button"
-                      onClick={() => setVarianteChoisie(variante)}
+                      onClick={() => choisirVariante(variante)}
                       aria-pressed={estChoisie}
                       className={`flex min-h-11 py-2 text-center leading-snug cursor-pointer items-center gap-1.5 rounded-md border px-3 text-corps font-medium transition-[background-color,transform] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 ${
                         estChoisie
@@ -168,6 +201,7 @@ export function PageFicheProduitVitrine() {
             variantes={produit.variantes}
             varianteChoisie={varianteChoisie}
             modePaiement={etablissement?.mode_paiement ?? null}
+            onVarianteManquante={guiderVersLesVariantes}
           />
         </div>
       </div>
