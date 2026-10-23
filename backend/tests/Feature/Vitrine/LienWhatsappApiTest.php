@@ -58,6 +58,11 @@ class LienWhatsappApiTest extends TestCase
         $this->extraireCode($url);
     }
 
+    /**
+     * Deux appels SANS cookie partagé, donc deux visiteurs distincts : le
+     * même visiteur qui reclique reçoit, lui, la même référence (voir
+     * LienWhatsappDeduplicationTest).
+     */
     public function test_6_deux_appels_creent_deux_references_distinctes_toutes_deux_resolvables(): void
     {
         $this->seed();

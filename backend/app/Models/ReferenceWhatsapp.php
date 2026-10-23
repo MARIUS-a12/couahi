@@ -24,6 +24,7 @@ class ReferenceWhatsapp extends Model
         'code',
         'produit_id',
         'variante_id',
+        'cle_visiteur',
         'expire_le',
     ];
 

@@ -98,16 +98,21 @@ abstract class ConcurrenceTestCase extends PostgresTestCase
      * les fait réellement se chevaucher, contrairement à un run()/wait() par
      * processus qui les exécuterait en série malgré les apparences.
      *
+     * $environnement complète celui des enfants — ex. CACHE_STORE=database
+     * pour un verrou de cache, que le store "array" des tests ne partagerait
+     * jamais entre deux processus.
+     *
      * @param  list<list<string>>  $commandes  chaque élément : arguments artisan (sans "php artisan")
+     * @param  array<string,string>  $environnement
      * @return list<array{exitCode:int,output:string,errorOutput:string}>
      */
-    protected function executerEnParallele(array $commandes, int $timeout = 30): array
+    protected function executerEnParallele(array $commandes, int $timeout = 30, array $environnement = []): array
     {
-        $processus = array_map(function (array $arguments) use ($timeout): Process {
+        $processus = array_map(function (array $arguments) use ($timeout, $environnement): Process {
             $process = new Process(
                 [PHP_BINARY, base_path('artisan'), ...$arguments],
                 base_path(),
-                ['DB_CONNECTION' => 'pgsql_testing'],
+                ['DB_CONNECTION' => 'pgsql_testing', ...$environnement],
                 null,
                 $timeout,
             );

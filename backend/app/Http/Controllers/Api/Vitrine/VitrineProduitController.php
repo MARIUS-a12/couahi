@@ -111,7 +111,24 @@ class VitrineProduitController extends Controller
         abort_if(blank($numero), 422, "Cet établissement n'a pas de numéro WhatsApp configuré.");
 
         return response()->json([
-            'url' => $this->generateurLien->generer($produit, $variante, $numero),
+            'url' => $this->generateurLien->generer($produit, $variante, $numero, $this->cleVisiteur($request)),
         ]);
+    }
+
+    /**
+     * La session d'abord : la vitrine en ouvre une (statefulApi, cookie par
+     * sous-domaine), vérifié dans un vrai navigateur — deux clics portent le
+     * même identifiant de session côté serveur. L'IP seulement à défaut :
+     * derrière un opérateur mobile, elle confond des centaines d'abonnés.
+     * Empreinte sha256, jamais la valeur : l'identifiant de session brut
+     * permettrait de se faire passer pour ce visiteur.
+     */
+    private function cleVisiteur(Request $request): string
+    {
+        $source = $request->hasSession() && $request->session()->getId() !== ''
+            ? 'session:'.$request->session()->getId()
+            : 'ip:'.$request->ip();
+
+        return hash('sha256', $source);
     }
 }

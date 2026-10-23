@@ -279,3 +279,18 @@ pour l'IA WhatsApp : elle n'accepte jamais un montant, une quantité ou un
 article énoncés dans la conversation sans les avoir vérifiés en base. Un
 prix proposé par le client n'est qu'une demande de remise, soumise au
 commerçant, jamais appliquée par l'IA.
+
+## 2026-10-23 — La génération de lien WhatsApp est idempotente par session
+
+Un même visiteur qui redemande un lien pour le même article dans les 10
+minutes reçoit la même référence, sans nouvelle ligne. Le visiteur est
+identifié par sa session (l'IP seulement à défaut), et seule l'empreinte
+de son identifiant est enregistrée. Alternative écartée : une limite
+stricte par IP (20 par heure). Écartée parce que derrière une IP
+d'opérateur mobile se trouvent des centaines d'abonnés sans lien : la
+limite bloquerait des clients légitimes sans empêcher un script de remplir
+la table, qui alimente l'écran de travail du commerçant. Un plafond large
+(60 par heure par IP et par établissement) reste en secours. Le cookie de
+session reste propre à chaque sous-domaine : un cookie partagé entre
+boutiques authentifierait l'administrateur de l'une sur le back-office
+d'une autre, et la déduplication n'a besoin que de la boutique visitée.
