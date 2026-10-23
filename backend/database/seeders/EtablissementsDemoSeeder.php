@@ -7,7 +7,9 @@ use App\Enums\StatutProduit;
 use App\Models\Categorie;
 use App\Models\Domaine;
 use App\Models\Etablissement;
+use App\Models\OptionProduit;
 use App\Models\Produit;
+use App\Models\ValeurOption;
 use App\Models\VarianteProduit;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
 use App\Support\Couleur\CouleurAccent;
@@ -288,7 +290,7 @@ class EtablissementsDemoSeeder extends Seeder
             'quantite_stock' => 0,
         ]);
         foreach ([['1 kg', 1000, 40], ['Sac de 5 kg', 4500, 12], ['Sac de 25 kg', 21000, 3]] as [$nom, $prix, $stock]) {
-            VarianteProduit::factory()->pourProduit($avecVariantes)->create([
+            VarianteProduit::factory()->pourProduit($avecVariantes)->dansOption('Conditionnement')->create([
                 'nom' => $nom,
                 'prix' => $prix,
                 'quantite_stock' => $stock,
@@ -356,7 +358,7 @@ class EtablissementsDemoSeeder extends Seeder
             'prix' => 1500,
         ]);
         foreach ([['Quart', 1500], ['Demi', 3000]] as [$nom, $prix]) {
-            VarianteProduit::factory()->pourProduit($poulet)->create(['nom' => $nom, 'prix' => $prix]);
+            VarianteProduit::factory()->pourProduit($poulet)->dansOption('Portion')->create(['nom' => $nom, 'prix' => $prix]);
         }
         $this->ajouterPhotos($poulet, 1);
 
@@ -442,13 +444,15 @@ class EtablissementsDemoSeeder extends Seeder
             'quantite_stock' => 0,
         ]);
         foreach ([['2 yards', 6000, 8], ['6 yards', 14000, 5], ['12 yards', 26000, 1]] as [$nom, $prix, $stock]) {
-            VarianteProduit::factory()->pourProduit($avecVariantes)->create([
+            VarianteProduit::factory()->pourProduit($avecVariantes)->dansOption('Longueur')->create([
                 'nom' => $nom,
                 'prix' => $prix,
                 'quantite_stock' => $stock,
             ]);
         }
         $this->ajouterPhotos($avecVariantes, 1);
+
+        $this->peuplerSandales($waxAdjame);
 
         Produit::factory()->for($waxAdjame)->publie()->epuise()->create([
             'categorie_id' => $bazin->id,
@@ -466,5 +470,75 @@ class EtablissementsDemoSeeder extends Seeder
             'statut' => StatutProduit::Archive,
         ]);
         $this->ajouterPhotos($archive, 1);
+    }
+
+    /**
+     * Le cas que les variantes à nom libre ne savaient pas représenter :
+     * deux dimensions (Pointure × Coloris), une sous-catégorie, et une photo
+     * par coloris. Pas de produit cartésien : le noir existe du 39 au 45,
+     * le marron seulement du 40 au 44 — 12 variantes, pas 14. Le 45 coûte
+     * plus cher (prix propre), le 42 noir est épuisé.
+     */
+    private function peuplerSandales(Etablissement $waxAdjame): void
+    {
+        $chaussures = Categorie::factory()->for($waxAdjame)->create(['nom' => 'Chaussures', 'slug' => 'chaussures', 'ordre' => 3]);
+        $sandales = Categorie::factory()->for($waxAdjame)->create([
+            'nom' => 'Sandales',
+            'slug' => 'sandales',
+            'ordre' => 1,
+            'parent_id' => $chaussures->id,
+        ]);
+
+        $produit = Produit::factory()->for($waxAdjame)->publie()->create([
+            'categorie_id' => $sandales->id,
+            'nom' => 'Sandales en cuir tressé',
+            'slug' => 'sandales-en-cuir-tresse',
+            'description' => 'Cuir de vache tressé à la main à Abidjan, semelle cousue. Taille normalement.',
+            'prix' => 18000,
+            'quantite_stock' => 0,
+        ]);
+        $this->ajouterPhotos($produit, 2);
+        [$photoNoir, $photoMarron] = $produit->medias()->pourTousEtablissements()->orderByPivot('ordre')->get()->all();
+
+        $pointure = $this->creerOption($produit, 'Pointure', 1);
+        $coloris = $this->creerOption($produit, 'Coloris', 2);
+        $pointures = [];
+        foreach (['39', '40', '41', '42', '43', '44', '45'] as $index => $libelle) {
+            $pointures[$libelle] = $this->creerValeur($pointure, $libelle, $index + 1);
+        }
+        $noir = $this->creerValeur($coloris, 'Noir', 1);
+        $marron = $this->creerValeur($coloris, 'Marron', 2);
+
+        $stocks = [
+            'Noir' => ['39' => 2, '40' => 4, '41' => 5, '42' => 0, '43' => 6, '44' => 3, '45' => 1],
+            'Marron' => ['40' => 2, '41' => 3, '42' => 4, '43' => 2, '44' => 1],
+        ];
+        foreach ($stocks as $nomColoris => $parPointure) {
+            [$valeurColoris, $photo] = $nomColoris === 'Noir' ? [$noir, $photoNoir] : [$marron, $photoMarron];
+            foreach ($parPointure as $libellePointure => $stock) {
+                VarianteProduit::factory()->pourProduit($produit)->avecValeurs($pointures[$libellePointure], $valeurColoris)->create([
+                    'nom' => "{$libellePointure} / {$nomColoris}",
+                    'prix' => $libellePointure === '45' ? 19500 : null,
+                    'quantite_stock' => $stock,
+                    'media_id' => $photo->id,
+                ]);
+            }
+        }
+    }
+
+    private function creerOption(Produit $produit, string $nom, int $ordre): OptionProduit
+    {
+        $option = (new OptionProduit(['produit_id' => $produit->id, 'nom' => $nom, 'ordre' => $ordre]))->pourEtablissement($produit->etablissement_id);
+        $option->save();
+
+        return $option;
+    }
+
+    private function creerValeur(OptionProduit $option, string $libelle, int $ordre): ValeurOption
+    {
+        $valeur = (new ValeurOption(['option_id' => $option->id, 'libelle' => $libelle, 'ordre' => $ordre]))->pourEtablissement($option->etablissement_id);
+        $valeur->save();
+
+        return $valeur;
     }
 }

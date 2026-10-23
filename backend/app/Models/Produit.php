@@ -119,6 +119,16 @@ class Produit extends Model
         return $this->hasMany(VarianteProduit::class);
     }
 
+    /**
+     * Les dimensions du produit, dans l'ordre choisi par le commerçant.
+     * Un produit sans option n'a aucune variante et porte son propre stock :
+     * c'est le chemin du produit simple, inchangé.
+     */
+    public function options(): HasMany
+    {
+        return $this->hasMany(OptionProduit::class)->orderBy('ordre')->orderBy('id');
+    }
+
     public function medias(): BelongsToMany
     {
         return $this->belongsToMany(Media::class, 'media_produit')
@@ -134,7 +144,9 @@ class Produit extends Model
      * Seul point de lecture de la disponibilité : applique le mode de stock
      * (compte / interrupteur) et la règle produit/variante. Si le produit a
      * au moins une variante, ses propres colonnes de stock ne sont jamais
-     * consultées — seule compte la disponibilité de ses variantes.
+     * consultées — seule compte la disponibilité de ses variantes ACTIVES.
+     * Une variante inactive ne se vend pas : si toutes le sont, le produit
+     * est indisponible, jamais repli sur ses propres colonnes.
      *
      * Coût en requêtes : `$this->variantes` déclenche un lazy load (une
      * requête) si la relation n'est pas déjà chargée. Sur une liste, charge
@@ -156,7 +168,7 @@ class Produit extends Model
 
         if ($variantes->isNotEmpty()) {
             return $variantes->contains(
-                fn (VarianteProduit $variante) => $this->mode_stock->estDisponibleEnQuantite(
+                fn (VarianteProduit $variante) => $variante->estActive() && $this->mode_stock->estDisponibleEnQuantite(
                     $variante->quantite_stock,
                     $variante->quantite_reservee,
                     $variante->disponible,

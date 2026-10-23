@@ -95,7 +95,10 @@ class MediaProduitController extends Controller
     /**
      * Détache le média de CE produit. S'il n'est attaché à aucun autre
      * produit, efface aussi ses fichiers et sa ligne — un média encore
-     * utilisé ailleurs ne perd rien.
+     * utilisé ailleurs ne perd rien. Les variantes qui l'avaient pour image
+     * reviennent d'abord aux photos du produit : la base refuse de détacher
+     * une photo encore portée par une variante (clé composée vers
+     * media_produit).
      */
     public function destroy(Produit $produit, Media $media): JsonResponse
     {
@@ -104,6 +107,7 @@ class MediaProduitController extends Controller
         abort_unless($produit->medias()->whereKey($media->id)->exists(), 404);
 
         DB::transaction(function () use ($produit, $media) {
+            $produit->variantes()->where('media_id', $media->id)->update(['media_id' => null]);
             $produit->medias()->detach($media->id);
 
             if (! $media->produits()->exists()) {

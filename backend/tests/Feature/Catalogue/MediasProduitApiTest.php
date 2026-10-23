@@ -5,6 +5,7 @@ namespace Tests\Feature\Catalogue;
 use App\Models\Etablissement;
 use App\Models\Media;
 use App\Models\Produit;
+use App\Models\VarianteProduit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -287,5 +288,34 @@ class MediasProduitApiTest extends TestCase
         $this->depuis('maquis-du-port.localhost')
             ->deleteJson("http://maquis-du-port.localhost:8000/api/produits/{$produitMaquis->id}/medias/{$media->id}")
             ->assertStatus(403);
+    }
+
+    /**
+     * B1 — une photo peut être l'image de variantes (les sandales noires).
+     * La base refuse de la détacher tant qu'une variante la porte : la
+     * suppression les ramène d'abord aux photos du produit, sans toucher
+     * aux autres coloris.
+     */
+    public function test_8_supprimer_la_photo_dun_coloris_libere_ses_variantes(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $this->connecte('wax-adjame.localhost', 'fatou@wax-adjame.test');
+        $sandales = Produit::pourTousEtablissements()->where('slug', 'sandales-en-cuir-tresse')->firstOrFail();
+        $variantes = fn () => VarianteProduit::pourTousEtablissements()->where('produit_id', $sandales->id)->get();
+        $photoNoir = $variantes()->firstWhere('nom', '39 / Noir')->media_id;
+        $photoMarron = $variantes()->firstWhere('nom', '40 / Marron')->media_id;
+
+        $this->depuis('wax-adjame.localhost')
+            ->deleteJson("http://wax-adjame.localhost:8000/api/produits/{$sandales->id}/medias/{$photoNoir}")
+            ->assertStatus(204);
+
+        $this->assertSame(
+            ['Noir' => [null], 'Marron' => [$photoMarron]],
+            $variantes()->groupBy(fn (VarianteProduit $variante) => str($variante->nom)->after(' / ')->value())
+                ->map(fn ($groupe) => $groupe->pluck('media_id')->unique()->values()->all())
+                ->sortKeysDesc()->all(),
+        );
+        $this->assertNull(Media::pourTousEtablissements()->find($photoNoir));
     }
 }

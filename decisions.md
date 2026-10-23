@@ -381,3 +381,56 @@ créer dès maintenant, vide, par précaution. Écartée parce qu'elle
 n'achète rien : le jour des suppléments, il faudra de toute façon sommer
 les options dans le calcul du total, et une table vide ne l'évite pas.
 Elle dériverait en attendant, sans code ni test pour la tenir à jour.
+
+## 2026-10-25 — Une variante est une combinaison de valeurs, jamais un produit cartésien
+
+Un produit a des options (Taille, Couleur, Pointure, Contenance), chaque
+option des valeurs, et une variante est une combinaison d'une valeur par
+option, avec son propre stock, son prix facultatif et son image. Une
+variante n'existe que si le commerçant l'a créée : la sandale qui n'existe
+qu'en noir au 39 a 12 variantes, pas les 14 de toutes les combinaisons.
+Un produit sans option n'a aucune variante et porte son propre stock,
+comme avant.
+- Les libellés sont libres : aucune liste imposée. Le nom de l'option et
+  l'ordre d'affichage restent structurés. L'ordre est un entier choisi par
+  le commerçant, jamais un tri par libellé (« 39, 4, 40 », « L, M, S, XL »)
+  ni une conversion en nombre (« 40.5 », « 7½ », « XL »).
+- La signature d'une variante est la liste triée des identifiants de ses
+  valeurs, jamais leurs libellés : renommer « M » en « Moyen » ne change
+  ni la signature, ni l'unicité, ni les variantes. L'unicité ne porte que
+  sur les variantes actives, pour qu'une variante archivée ne bloque pas à
+  vie la recréation de sa combinaison.
+- Ajouter une option à un produit qui a déjà des variantes exige de dire
+  quelle valeur elles prennent (« vos M, L, XL sont de quelle couleur ? »),
+  dans une seule transaction. Elles gardent leur identifiant, leur stock,
+  leurs réservations et leurs commandes.
+- Une valeur portée par une variante ne s'efface pas : elle s'archive, et
+  ses variantes deviennent inactives, conservées avec leur stock. Une
+  option ne se retire que si ses variantes actives n'en utilisent qu'une
+  valeur ; sinon le refus nomme les variantes qui deviendraient
+  identiques. Une variante qui a servi n'est jamais supprimée : les lignes
+  de commande pointent vers elle et gardent le texte du jour de la vente.
+- Une variante inactive ne se vend jamais, même désignée par une requête
+  forgée : elle reste en base pour l'historique.
+- L'image d'une variante est une des photos de son produit, pas un fichier
+  à part : le commerçant dépose ses photos une fois, puis les rattache.
+- Le nom d'une variante reste une colonne, libellé d'affichage dérivé de
+  ses valeurs (« 39 / Noir »), recopié dans les lignes de commande.
+Alternatives écartées : des variantes à nom libre, qui se rempliraient de
+« M bleu », « Bleu - M », « m/bleu » et qu'il faudrait un jour reprendre
+produit par produit en analysant du texte ; les dimensions en JSON sur la
+variante (l'ancienne colonne attributs_json, jamais utilisée, supprimée),
+que la base ne sait ni contraindre ni indexer ; la génération de toutes
+les combinaisons, qui crée des variantes fantômes.
+
+## 2026-10-25 — Les catégories ont deux niveaux, garantis par la base
+
+Une catégorie peut avoir un parent (« Chaussures > Sandales »), qui est
+toujours une racine du même établissement : jamais de troisième niveau.
+La base le garantit et non le seul code. Un CHECK ne peut pas lire la
+ligne parente : l'enfant recopie donc ce qu'il exige de son parent (être
+une racine), et une clé étrangère composée le vérifie. Une catégorie qui
+a des enfants ne peut, de ce fait, plus devenir elle-même enfant.
+Alternative écartée : une profondeur libre. Écartée parce que deux niveaux
+suffisent à une boutique, et qu'une arborescence profonde se navigue mal
+sur un téléphone, où se trouvent la plupart des clients.

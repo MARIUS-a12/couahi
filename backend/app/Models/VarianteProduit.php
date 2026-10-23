@@ -7,6 +7,7 @@ use App\Models\Concerns\AppartientAEtablissement;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\DB;
 
 class VarianteProduit extends Model
@@ -34,7 +35,7 @@ class VarianteProduit extends Model
         'quantite_stock',
         'quantite_reservee',
         'disponible',
-        'attributs_json',
+        'media_id',
         'statut',
     ];
 
@@ -45,7 +46,6 @@ class VarianteProduit extends Model
             'quantite_stock' => 'integer',
             'quantite_reservee' => 'integer',
             'disponible' => 'boolean',
-            'attributs_json' => 'array',
             'statut' => StatutVariante::class,
         ];
     }
@@ -58,6 +58,54 @@ class VarianteProduit extends Model
     public function produit(): BelongsTo
     {
         return $this->belongsTo(Produit::class);
+    }
+
+    /**
+     * Les valeurs qui font de cette variante une combinaison (« 39 » et
+     * « Noir »), une par option de son produit. Le pivot porte option_id
+     * et produit_id : c'est sur eux que la base garantit une seule valeur
+     * par option et l'appartenance au même produit.
+     */
+    public function valeurs(): BelongsToMany
+    {
+        return $this->belongsToMany(ValeurOption::class, 'variante_valeur', 'variante_id', 'valeur_id')
+            ->withPivot(['option_id', 'produit_id']);
+    }
+
+    /**
+     * L'image de la variante, toujours une des photos de son produit (clé
+     * étrangère composée sur media_produit). Null : la variante montre les
+     * photos du produit.
+     */
+    public function media(): BelongsTo
+    {
+        return $this->belongsTo(Media::class);
+    }
+
+    /**
+     * La signature d'une combinaison : les identifiants de ses valeurs,
+     * triés, joints par un tiret (« 12-47 »). Jamais les libellés : un
+     * commerçant renomme « M » en « Moyen », et la signature, l'unicité et
+     * les variantes ne doivent pas bouger d'un octet. Seul point de calcul.
+     *
+     * @param  iterable<int>  $identifiantsValeurs
+     */
+    public static function signaturePour(iterable $identifiantsValeurs): string
+    {
+        $identifiants = array_map('intval', is_array($identifiantsValeurs) ? $identifiantsValeurs : iterator_to_array($identifiantsValeurs, false));
+        sort($identifiants);
+
+        return implode('-', $identifiants);
+    }
+
+    /**
+     * Seule une variante active se vend : une variante inactive (archivée
+     * avec sa valeur, par exemple) reste en base pour l'historique, mais
+     * aucun parcours d'achat ne doit l'accepter.
+     */
+    public function estActive(): bool
+    {
+        return $this->statut === StatutVariante::Actif;
     }
 
     /**

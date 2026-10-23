@@ -82,6 +82,9 @@ class ContraintesVariantesProduitTest extends PostgresTestCase
                 'etablissement_id' => $produit->etablissement_id,
                 'produit_id' => $produit->id,
                 'nom' => 'Variante test brute',
+                // Obligatoire depuis B1 (une variante est une combinaison) :
+                // une signature quelconque, pour n'isoler que le statut.
+                'signature' => '1',
                 'quantite_stock' => 0,
                 'quantite_reservee' => 0,
                 'disponible' => true,

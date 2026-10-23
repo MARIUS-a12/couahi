@@ -209,8 +209,10 @@ class CreerCommande
      * Un produit sans variante porte son propre stock (règle du catalogue) :
      * l'absence de variante n'est donc jamais un problème en soi. Une
      * variante explicitement choisie doit appartenir au produit indiqué ; à
-     * défaut, elle ne peut être déduite que si le produit n'en a qu'une —
-     * plusieurs variantes sans choix explicite est une sélection ambiguë.
+     * défaut, elle ne peut être déduite que si le produit n'en a qu'une
+     * active — plusieurs variantes sans choix explicite est une sélection
+     * ambiguë. Une variante inactive ne se vend jamais, même désignée
+     * explicitement par une requête forgée.
      */
     private function resoudreVariante(Produit $produit, LigneCommandeDemandee $demande): ?VarianteProduit
     {
@@ -223,12 +225,22 @@ class CreerCommande
                 );
             }
 
+            if (! $variante->estActive()) {
+                throw ArticleIndisponibleException::nonDisponible($produit, $this->lierProduit($variante, $produit));
+            }
+
             return $this->lierProduit($variante, $produit);
         }
 
-        return match ($produit->variantes->count()) {
-            0 => null,
-            1 => $this->lierProduit($produit->variantes->first(), $produit),
+        if ($produit->variantes->isEmpty()) {
+            return null;
+        }
+
+        $actives = $produit->variantes->filter(fn (VarianteProduit $variante) => $variante->estActive());
+
+        return match ($actives->count()) {
+            0 => throw ArticleIndisponibleException::nonDisponible($produit),
+            1 => $this->lierProduit($actives->first(), $produit),
             default => throw new SelectionVarianteInvalideException(
                 "Le produit \"{$produit->nom}\" a plusieurs variantes : précisez laquelle."
             ),

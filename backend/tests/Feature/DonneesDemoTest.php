@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Enums\ModeStock;
+use App\Models\Categorie;
 use App\Models\Etablissement;
+use App\Models\OptionProduit;
 use App\Models\Produit;
+use App\Models\VarianteProduit;
 use Faker\Provider\Lorem;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -95,5 +98,44 @@ class DonneesDemoTest extends TestCase
             'email' => 'fatou@wax-adjame.test',
             'mot_de_passe' => 'motdepasse',
         ])->assertStatus(200);
+    }
+
+    /**
+     * B1 — la démo montre chaque forme du modèle des variantes : une
+     * option nommée comme un commerçant la nommerait, deux dimensions sans
+     * produit cartésien, une image par variante, une sous-catégorie. Et
+     * sur TOUTE la démo, l'invariant que la base ne sait pas garantir :
+     * chaque variante porte exactement une valeur par option de son
+     * produit, et sa signature est faite de ces valeurs.
+     */
+    public function test_les_variantes_de_la_demo_sont_des_combinaisons_completes(): void
+    {
+        $this->seed();
+
+        $options = fn (string $slug) => OptionProduit::pourTousEtablissements()
+            ->where('produit_id', Produit::pourTousEtablissements()->where('slug', $slug)->value('id'))
+            ->orderBy('ordre')->pluck('nom')->all();
+        $this->assertSame(['Conditionnement'], $options('riz-parfume-long-grain'));
+        $this->assertSame(['Longueur'], $options('wax-imprime-bouche-de-sika'));
+        $this->assertSame(['Portion'], $options('poulet-braise'));
+        $this->assertSame(['Pointure', 'Coloris'], $options('sandales-en-cuir-tresse'));
+
+        $sandales = Produit::pourTousEtablissements()->where('slug', 'sandales-en-cuir-tresse')
+            ->with(['variantes' => fn ($requete) => $requete->pourTousEtablissements(), 'medias' => fn ($requete) => $requete->pourTousEtablissements()])
+            ->sole();
+        $this->assertCount(12, $sandales->variantes, '7 pointures en noir, 5 en marron : jamais les 14 du produit cartésien');
+        $this->assertTrue($sandales->variantes->every(fn (VarianteProduit $variante) => $sandales->medias->contains('id', $variante->media_id)), 'chaque variante a pour image une photo de son produit');
+        $this->assertCount(2, $sandales->variantes->pluck('media_id')->unique(), 'une photo par coloris');
+
+        $sousCategorie = Categorie::pourTousEtablissements()->whereKey($sandales->categorie_id)->sole();
+        $this->assertSame('Chaussures', Categorie::pourTousEtablissements()->whereKey($sousCategorie->parent_id)->value('nom'));
+
+        $variantes = VarianteProduit::pourTousEtablissements()->with(['valeurs' => fn ($requete) => $requete->pourTousEtablissements()])->get();
+        $this->assertGreaterThanOrEqual(20, $variantes->count());
+        foreach ($variantes as $variante) {
+            $optionsDuProduit = OptionProduit::pourTousEtablissements()->where('produit_id', $variante->produit_id)->pluck('id')->sort()->values()->all();
+            $this->assertSame($optionsDuProduit, $variante->valeurs->pluck('pivot.option_id')->sort()->values()->all(), "{$variante->nom} : une valeur par option");
+            $this->assertSame(VarianteProduit::signaturePour($variante->valeurs->pluck('id')), $variante->signature);
+        }
     }
 }

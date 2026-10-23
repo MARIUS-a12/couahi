@@ -50,7 +50,9 @@ class VitrinePanierController extends Controller
         if ($varianteId !== null) {
             $variante = $produit->variantes->firstWhere('id', $varianteId);
 
-            if ($variante === null) {
+            // Une variante inactive ne se vend plus : retirée du panier comme
+            // une variante disparue.
+            if ($variante === null || ! $variante->estActive()) {
                 return [$this->ligneRetiree($ligneBrute, $produit->nom), 0];
             }
         }
