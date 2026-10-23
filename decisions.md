@@ -294,3 +294,18 @@ la table, qui alimente l'écran de travail du commerçant. Un plafond large
 session reste propre à chaque sous-domaine : un cookie partagé entre
 boutiques authentifierait l'administrateur de l'une sur le back-office
 d'une autre, et la déduplication n'a besoin que de la boutique visitée.
+
+## 2026-10-23 — Le cookie de session est propre à chaque sous-domaine (SESSION_DOMAIN=null)
+
+Le cookie de session n'est posé que pour l'hôte exact de la requête :
+chaque boutique (chez-awa.*, maquis-du-port.*) a le sien, et l'espace du
+super-admin aussi. Alternative écartée : un domaine parent (.localhost en
+développement, .couahi.ci en production), qui partagerait un même cookie
+entre tous les sous-domaines. Écartée parce qu'un cookie partagé
+authentifierait l'administrateur d'une boutique sur le back-office d'une
+autre : une session ouverte sur chez-awa serait présentée telle quelle à
+maquis-du-port. Ce n'est pas un bug à corriger, en production pas plus
+qu'en développement : un problème de cookie entre sous-domaines se règle
+autrement, jamais en élargissant SESSION_DOMAIN. Les fonctions qui ont
+besoin d'identifier un visiteur (la déduplication des liens WhatsApp) le
+font à l'intérieur d'une seule boutique, où ce cookie suffit.
