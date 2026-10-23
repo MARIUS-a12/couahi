@@ -126,7 +126,7 @@ export function BarreLateraleSuperAdmin({
             <ShieldCheck aria-hidden="true" size={22} strokeWidth={1.75} className="text-white" />
           </span>
           <div className="min-w-0">
-            <p className="truncate font-titre text-corps font-semibold text-white">Plateforme</p>
+            <p className="truncate font-titre text-corps font-semibold text-white">Couahi</p>
             <p className="truncate text-petit text-white/60">Espace Administration</p>
           </div>
         </div>

@@ -21,7 +21,7 @@ import { TransitionPage } from './TransitionPage'
 
 export function CoquilleSuperAdmin({ moi, children }: { moi: Moi; children: ReactNode }) {
   const [menuLateralOuvert, setMenuLateralOuvert] = useState(false)
-  useTitreDocument('Super-admin · Plateforme')
+  useTitreDocument('Super-admin · Couahi')
 
   useEffect(() => {
     chargerPolicesBackOffice()
