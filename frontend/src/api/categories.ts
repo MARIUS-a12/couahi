@@ -12,6 +12,9 @@ export type Categorie = {
   description: string | null
   ordre: number
   statut: 'actif' | 'inactif'
+  // Deux niveaux au plus : le parent est toujours une catégorie principale
+  // (garanti par la base, voir la migration ajouter_parent_aux_categories).
+  parent_id: number | null
   // Absent tant que le contrôleur ne l'a pas chargé (voir whenCounted côté
   // API) — en pratique toujours présent ici, /api/categories le charge
   // systématiquement.
@@ -26,10 +29,23 @@ export async function recupererCategories(): Promise<Categorie[]> {
   return data.data
 }
 
-export async function creerCategorie(nom: string): Promise<Categorie> {
-  const { data } = await client.post<{ data: Categorie }>('/api/categories', { nom })
+export async function creerCategorie(nom: string, parentId: number | null = null): Promise<Categorie> {
+  const { data } = await client.post<{ data: Categorie }>('/api/categories', { nom, parent_id: parentId })
 
   return data.data
+}
+
+export async function changerParentCategorie(id: number, parentId: number | null): Promise<Categorie> {
+  const { data } = await client.put<{ data: Categorie }>(`/api/categories/${id}`, { parent_id: parentId })
+
+  return data.data
+}
+
+/** « Chaussures › Sandales » pour une sous-catégorie, le nom seul sinon. */
+export function cheminCategorie(categorie: Pick<Categorie, 'nom' | 'parent_id'>, toutes: Categorie[]): string {
+  const parent = categorie.parent_id === null ? undefined : toutes.find((autre) => autre.id === categorie.parent_id)
+
+  return parent ? `${parent.nom} › ${categorie.nom}` : categorie.nom
 }
 
 /**

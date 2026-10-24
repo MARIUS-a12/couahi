@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\ParametresController;
 use App\Http\Controllers\Api\ProduitController;
 use App\Http\Controllers\Api\SessionController;
 use App\Http\Controllers\Api\StatistiquesController;
+use App\Http\Controllers\Api\VariantesProduitController;
 use App\Http\Controllers\Api\Vitrine\VitrineCategorieController;
 use App\Http\Controllers\Api\Vitrine\VitrineCommandeController;
 use App\Http\Controllers\Api\Vitrine\VitrineEtablissementController;
@@ -149,6 +150,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/produits/{produit}/medias/ordre', [MediaProduitController::class, 'reordonner']);
         Route::post('/produits/{produit}/medias', [MediaProduitController::class, 'store']);
         Route::delete('/produits/{produit}/medias/{media}', [MediaProduitController::class, 'destroy']);
+
+        // B2 — options, valeurs et combinaisons d'un produit (voir
+        // VariantesProduitController, qui délègue tout à GererVariantes).
+        Route::get('/catalogue/suggestions-variantes', [VariantesProduitController::class, 'suggestions']);
+        Route::get('/produits/{produit}/variantes', [VariantesProduitController::class, 'show']);
+        Route::post('/produits/{produit}/variantes', [VariantesProduitController::class, 'creerVariantes']);
+        Route::put('/produits/{produit}/variantes/photo', [VariantesProduitController::class, 'attribuerImage']);
+        Route::patch('/produits/{produit}/variantes/{variante}', [VariantesProduitController::class, 'modifierVariante']);
+        Route::delete('/produits/{produit}/variantes/{variante}', [VariantesProduitController::class, 'retirerVariante']);
+        Route::post('/produits/{produit}/options', [VariantesProduitController::class, 'ajouterOption']);
+        Route::put('/produits/{produit}/options/ordre', [VariantesProduitController::class, 'reordonnerOptions']);
+        Route::patch('/produits/{produit}/options/{option}', [VariantesProduitController::class, 'renommerOption']);
+        Route::delete('/produits/{produit}/options/{option}', [VariantesProduitController::class, 'retirerOption']);
+        Route::post('/produits/{produit}/options/{option}/valeurs', [VariantesProduitController::class, 'ajouterValeur']);
+        Route::put('/produits/{produit}/options/{option}/valeurs/ordre', [VariantesProduitController::class, 'reordonnerValeurs']);
+        Route::patch('/produits/{produit}/valeurs/{valeur}', [VariantesProduitController::class, 'renommerValeur']);
+        Route::delete('/produits/{produit}/valeurs/{valeur}', [VariantesProduitController::class, 'archiverValeur']);
+        Route::post('/produits/{produit}/valeurs/{valeur}/restaurer', [VariantesProduitController::class, 'restaurerValeur']);
 
         Route::get('/categories', [CategorieController::class, 'index']);
         Route::post('/categories', [CategorieController::class, 'store']);

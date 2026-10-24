@@ -17,6 +17,7 @@ const OPTIONS_MODE: { valeur: ModeStock; libelle: string }[] = [
  * message s'affiche sous le choix (erreurModeStock).
  */
 export function BlocStock({
+  stockParVariantes = false,
   modeStock,
   onModeStockChange,
   erreurModeStock,
@@ -28,6 +29,8 @@ export function BlocStock({
   onDisponibleChange,
   erreurDisponible,
 }: {
+  /** Le produit a des options : son propre stock n'est plus lu. */
+  stockParVariantes?: boolean
   modeStock: ModeStock
   onModeStockChange: (valeur: ModeStock) => void
   erreurModeStock?: string
@@ -55,7 +58,11 @@ export function BlocStock({
         </div>
       )}
 
-      {modeStock === 'compte' ? (
+      {stockParVariantes ? (
+        <p className="rounded border border-bordure bg-surface-alt p-3 text-petit text-texte">
+          Ce produit a des variantes : son stock se règle variante par variante, dans la section Variantes.
+        </p>
+      ) : modeStock === 'compte' ? (
         <ChampQuantite
           id="quantite_stock"
           label="Quantité en stock"

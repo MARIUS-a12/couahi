@@ -484,3 +484,23 @@ Volontairement différé : à 230 s, la suite est loin du seuil, et ce
 changement touche la façon dont 250 tests préparent leurs données. Il
 mérite son propre lot, mesuré avant et après, pas une retouche en
 passant.
+
+## 2026-10-25 — L'écran des variantes enregistre au fil de l'eau, la grille par lot
+
+Sur l'écran des variantes, chaque champ s'enregistre seul (stock, prix,
+libellé), comme les photos, sans passer par le bouton du produit. La
+grille des combinaisons, elle, est un brouillon qu'on applique d'un coup,
+avec un stock de départ commun. Cocher 12 cases ne crée pas 12 variantes
+une à une avec 12 attentes réseau. Un brouillon non appliqué et un envoi
+en cours empêchent de quitter la page, et un bandeau dit « Enregistrement… »
+puis « Tout est enregistré. ». Sans ce bandeau, un champ affichait ce que
+la commerçante avait tapé alors que l'envoi n'avait pas abouti : partie
+trop tôt, elle retrouvait 0 sans comprendre. Les essais à la main l'ont
+montré. La photo d'un groupe (les 7 sandales noires) part en une seule
+requête. Le glisser-déposer suit les événements pointer, qui marchent au
+doigt, et non le glisser-déposer HTML5, inopérant sur la plupart des
+téléphones ; les flèches du clavier en sont l'équivalent.
+Alternative écartée : tout enregistrer avec le bouton du produit.
+Écartée parce qu'une variante doit exister côté serveur pour recevoir
+une photo ou une réservation, et qu'un formulaire de 12 lignes perdu d'un
+coup sur un téléphone qui se met en veille coûte plus cher qu'un champ.

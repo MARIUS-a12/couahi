@@ -18,6 +18,7 @@ class CategorieResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'ordre' => $this->ordre,
+            'parent_id' => $this->parent_id,
             'statut' => $this->statut,
             // Seulement présent quand le contrôleur a chargé le compte
             // (withCount) : whenCounted renvoie sinon un champ absent plutôt

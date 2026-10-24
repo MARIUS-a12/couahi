@@ -5,13 +5,18 @@
  * Accessible depuis la liste de produits et depuis le champ Catégorie du
  * formulaire produit. Création et actions absentes pour qui n'a pas
  * gerer_catalogue — un opérateur ne fait que consulter.
+ *
+ * Deux niveaux (« Chaussures › Sandales ») : la liste s'affiche en arbre,
+ * une catégorie se crée directement dans une catégorie principale, et une
+ * catégorie sans sous-catégorie peut être déplacée dans une autre. Le
+ * serveur refuse un troisième niveau avec un message lisible.
  */
 import { Archive, ArchiveRestore, FolderTree } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Categorie } from '../api/categories'
-import { archiverCategorie, creerCategorie, reactiverCategorie } from '../api/categories'
+import { archiverCategorie, changerParentCategorie, creerCategorie, reactiverCategorie } from '../api/categories'
 import { BandeauSucces } from '../components/BandeauSucces'
 import { EnteteDePage } from '../components/EnteteDePage'
 import { EtatBouton } from '../components/EtatBouton'
@@ -28,6 +33,8 @@ export function PageCategories() {
   const queryClient = useQueryClient()
 
   const [nomNouvelleCategorie, setNomNouvelleCategorie] = useState('')
+  const [parentNouvelleCategorie, setParentNouvelleCategorie] = useState<number | null>(null)
+  const [erreurDeplacement, setErreurDeplacement] = useState<{ id: number; message: string } | null>(null)
   const [erreurCreation, setErreurCreation] = useState<string | null>(null)
   const [messageSucces, setMessageSucces] = useState<string | null>(null)
 
@@ -36,9 +43,12 @@ export function PageCategories() {
   }
 
   const creation = useMutation({
-    mutationFn: () => creerCategorie(nomNouvelleCategorie.trim()),
+    mutationFn: () => creerCategorie(nomNouvelleCategorie.trim(), parentNouvelleCategorie),
     onSuccess: () => {
       setNomNouvelleCategorie('')
+      // La suivante redevient principale par défaut : sans ça, chaque
+      // création se rangerait sans le dire dans la dernière choisie.
+      setParentNouvelleCategorie(null)
       setErreurCreation(null)
       invaliderApresAction()
     },
@@ -50,7 +60,24 @@ export function PageCategories() {
     },
   })
 
+  const deplacement = useMutation({
+    mutationFn: ({ id, parentId }: { id: number; parentId: number | null }) => changerParentCategorie(id, parentId),
+    onSuccess: () => {
+      setErreurDeplacement(null)
+      invaliderApresAction()
+    },
+    onError: (erreur, { id }) => {
+      const champs = extraireErreursChamps(erreur)
+      setErreurDeplacement({ id, message: champs.parent_id ?? 'Impossible de déplacer la catégorie. Réessayez.' })
+    },
+  })
+
   const archivage = useMutation({ mutationFn: (id: number) => archiverCategorie(id) })
+  const principales = (categories ?? []).filter((categorie) => categorie.parent_id === null && categorie.statut === 'actif')
+  // Chaque catégorie principale, suivie de ses sous-catégories : l'arbre à plat.
+  const enArbre = (categories ?? [])
+    .filter((categorie) => categorie.parent_id === null)
+    .flatMap((racine) => [racine, ...(categories ?? []).filter((enfant) => enfant.parent_id === racine.id)])
   const reactivation = useMutation({ mutationFn: (id: number) => reactiverCategorie(id) })
 
   function soumettreCreation(evenement: FormEvent<HTMLFormElement>) {
@@ -98,8 +125,8 @@ export function PageCategories() {
       {messageSucces && <BandeauSucces message={messageSucces} onFermer={() => setMessageSucces(null)} />}
 
       {peutGererCatalogue && (
-        <form onSubmit={soumettreCreation} className="flex gap-3">
-          <div className="flex-1">
+        <form onSubmit={soumettreCreation} className="flex flex-wrap gap-3">
+          <div className="min-w-48 flex-1">
             <input
               type="text"
               placeholder="Nom de la nouvelle catégorie"
@@ -114,6 +141,21 @@ export function PageCategories() {
             />
             {erreurCreation && <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurCreation}</p>}
           </div>
+          {principales.length > 0 && (
+            <select
+              aria-label="Ranger la nouvelle catégorie dans"
+              value={parentNouvelleCategorie ?? ''}
+              onChange={(evenement) => setParentNouvelleCategorie(evenement.target.value === '' ? null : Number(evenement.target.value))}
+              className="h-11 rounded border border-bordure bg-surface px-2 text-corps text-texte"
+            >
+              <option value="">Catégorie principale</option>
+              {principales.map((categorie) => (
+                <option key={categorie.id} value={categorie.id}>
+                  Dans « {categorie.nom} »
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="submit"
             disabled={creation.isPending || !nomNouvelleCategorie.trim()}
@@ -134,12 +176,15 @@ export function PageCategories() {
 
       {!isPending && !isError && categories && categories.length > 0 && (
         <ul className="divide-y divide-bordure border border-bordure">
-          {categories.map((categorie) => {
+          {enArbre.map((categorie) => {
             const estArchivee = categorie.statut === 'inactif'
+            const estEnfant = categorie.parent_id !== null
+            const aDesEnfants = categories.some((autre) => autre.parent_id === categorie.id)
 
             return (
-              <li key={categorie.id} className="flex items-center justify-between gap-3 p-4">
+              <li key={categorie.id} className={`flex flex-wrap items-center justify-between gap-3 p-4 ${estEnfant ? 'pl-10' : ''}`}>
                 <div>
+                  {estEnfant && <span aria-hidden="true" className="mr-1 text-texte-secondaire">└</span>}
                   <span
                     className={`text-corps font-medium ${estArchivee ? 'text-texte-secondaire' : 'text-texte'}`}
                   >
@@ -150,7 +195,9 @@ export function PageCategories() {
                     {categorie.produits_count ?? 0} produit
                     {(categorie.produits_count ?? 0) === 1 ? '' : 's'}
                   </div>
+                  {erreurDeplacement?.id === categorie.id && <p className="mt-1 text-petit text-danger">{erreurDeplacement.message}</p>}
                 </div>
+
 
                 {peutGererCatalogue &&
                   (estArchivee ? (
@@ -176,6 +223,28 @@ export function PageCategories() {
                       <Archive aria-hidden="true" size={20} strokeWidth={1.5} />
                     </button>
                   ))}
+                {peutGererCatalogue && !estArchivee && !aDesEnfants && principales.some((principale) => principale.id !== categorie.id) && (
+                  <div className="w-full">
+                  <select
+                    aria-label={`Ranger ${categorie.nom} dans`}
+                    value={categorie.parent_id ?? ''}
+                    disabled={deplacement.isPending}
+                    onChange={(evenement) =>
+                      deplacement.mutate({ id: categorie.id, parentId: evenement.target.value === '' ? null : Number(evenement.target.value) })
+                    }
+                    className="h-11 w-full rounded border border-bordure bg-surface px-2 text-petit text-texte"
+                  >
+                    <option value="">Catégorie principale</option>
+                    {principales
+                      .filter((principale) => principale.id !== categorie.id)
+                      .map((principale) => (
+                        <option key={principale.id} value={principale.id}>
+                          Dans « {principale.nom} »
+                        </option>
+                      ))}
+                  </select>
+                  </div>
+                )}
               </li>
             )
           })}

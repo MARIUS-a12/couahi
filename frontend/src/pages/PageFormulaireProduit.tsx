@@ -15,11 +15,12 @@
  */
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { Categorie } from '../api/categories'
 import type { ModeStock, Produit, ProduitPayload } from '../api/produits'
 import { archiverProduit, creerProduit, modifierProduit } from '../api/produits'
+import { recupererVariantes } from '../api/variantes'
 import { BlocStock } from '../components/BlocStock'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampPrix } from '../components/ChampPrix'
@@ -30,6 +31,7 @@ import { ComboboxCategorie } from '../components/ComboboxCategorie'
 import { EtatChargement } from '../components/EtatChargement'
 import { EtatErreur } from '../components/EtatErreur'
 import { GroupeSegmente } from '../components/GroupeSegmente'
+import { SectionVariantes } from '../components/SectionVariantes'
 import { ZoneEnvoiPhotos } from '../components/ZoneEnvoiPhotos'
 import { useCategories } from '../hooks/useCategories'
 import { useMoi } from '../hooks/useMoi'
@@ -147,6 +149,14 @@ function FormulaireProduit({
   const [description, setDescription] = useState(produitExistant?.description ?? '')
   const [reference, setReference] = useState(produitExistant?.reference ?? '')
   const [modeStock, setModeStock] = useState<ModeStock>(modeStockInitial)
+  // Même requête (même cache) que SectionVariantes : dès qu'une option
+  // existe, le stock se tient sur les variantes, plus sur le produit.
+  const variantes = useQuery({
+    queryKey: ['variantes', produitId],
+    queryFn: () => recupererVariantes(produitId as number),
+    enabled: estModification,
+  })
+  const stockParVariantes = (variantes.data?.options.length ?? 0) > 0
   const [quantiteStock, setQuantiteStock] = useState(produitExistant?.quantite_stock ?? 0)
   const [disponible, setDisponible] = useState(produitExistant?.disponible ?? true)
   const [statut, setStatut] = useState<'brouillon' | 'publie'>(
@@ -155,7 +165,10 @@ function FormulaireProduit({
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
   const [erreurGenerique, setErreurGenerique] = useState<string | null>(null)
 
-  const { permettreProchaineNavigation } = useProtectionPerteTravail(estModifie)
+  // Les variantes s'enregistrent seules, champ par champ : tant qu'un envoi
+  // est en cours, quitter la page le perdrait.
+  const [variantesEnCours, setVariantesEnCours] = useState(0)
+  const { permettreProchaineNavigation } = useProtectionPerteTravail(estModifie || variantesEnCours > 0)
 
   function marquerModifie() {
     setEstModifie(true)
@@ -332,12 +345,17 @@ function FormulaireProduit({
         ) : (
           !estModification && (
             <p className="text-petit text-texte-secondaire">
-              Enregistrez d'abord le produit pour pouvoir y ajouter des photos.
+              Enregistrez d'abord le produit pour pouvoir y ajouter des photos et des variantes (tailles, couleurs…).
             </p>
           )
         )}
 
+        {estModification && peutGererCatalogue && (
+          <SectionVariantes produitId={produitId as number} photos={produitExistant?.medias ?? []} onEcrituresEnCours={setVariantesEnCours} />
+        )}
+
         <BlocStock
+          stockParVariantes={stockParVariantes}
           modeStock={modeStock}
           onModeStockChange={(valeur) => {
             setModeStock(valeur)

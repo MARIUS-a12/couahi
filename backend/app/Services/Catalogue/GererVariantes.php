@@ -2,9 +2,12 @@
 
 namespace App\Services\Catalogue;
 
+use App\Enums\StatutVariante;
+use App\Models\LigneCommande;
 use App\Models\Media;
 use App\Models\OptionProduit;
 use App\Models\Produit;
+use App\Models\ReservationStock;
 use App\Models\ValeurOption;
 use App\Models\VarianteProduit;
 use Illuminate\Support\Collection;
@@ -49,6 +52,8 @@ class GererVariantes
                 ]);
             }
 
+            $this->exigerNomOptionLibre($produit->id, $nom);
+
             $option = (new OptionProduit([
                 'produit_id' => $produit->id,
                 'nom' => trim($nom),
@@ -75,6 +80,8 @@ class GererVariantes
      */
     public function ajouterValeur(OptionProduit $option, string $libelle): ValeurOption
     {
+        $this->exigerLibelleLibre($option->id, $libelle);
+
         $valeur = (new ValeurOption([
             'option_id' => $option->id,
             'libelle' => trim($libelle),
@@ -94,6 +101,7 @@ class GererVariantes
     public function renommerValeur(ValeurOption $valeur, string $libelle): ValeurOption
     {
         return DB::transaction(function () use ($valeur, $libelle) {
+            $this->exigerLibelleLibre($valeur->option_id, $libelle, $valeur->id);
             $valeur->update(['libelle' => trim($libelle)]);
 
             foreach ($this->variantesPortant($valeur) as $variante) {
@@ -140,6 +148,298 @@ class GererVariantes
 
             return $variante;
         });
+    }
+
+    /**
+     * Plusieurs combinaisons d'un coup (la grille cochée) : toutes ou
+     * aucune.
+     *
+     * @param  array<int, array{valeurs: array<int, ValeurOption>, attributs?: array<string, mixed>}>  $combinaisons
+     * @return Collection<int, VarianteProduit>
+     */
+    public function creerVariantes(Produit $produit, array $combinaisons): Collection
+    {
+        return DB::transaction(fn () => collect($combinaisons)->map(
+            fn (array $combinaison) => $this->creerVariante($produit, $combinaison['valeurs'], $combinaison['attributs'] ?? [])
+        ));
+    }
+
+    /**
+     * Stock, prix, image, disponibilité, statut : ce qu'on règle sur une
+     * variante sans toucher à ce qu'elle est. Réactiver une variante dont
+     * une valeur est archivée est refusé (restaurer la valeur d'abord), et
+     * réactiver une combinaison qu'une autre variante active occupe déjà
+     * aussi : la base le refuserait, le message dit pourquoi.
+     *
+     * @param  array{quantite_stock?: int, prix?: int|null, media_id?: int|null, disponible?: bool, statut?: string}  $attributs
+     */
+    public function modifierVariante(VarianteProduit $variante, array $attributs): VarianteProduit
+    {
+        if (array_key_exists('quantite_stock', $attributs) && $attributs['quantite_stock'] < $variante->quantite_reservee) {
+            throw ValidationException::withMessages([
+                'quantite_stock' => "{$variante->quantite_reservee} article(s) de « {$variante->nom} » sont réservés par des commandes en cours : le stock ne peut pas descendre en dessous.",
+            ]);
+        }
+
+        if (($attributs['statut'] ?? null) === StatutVariante::Actif->value && ! $variante->estActive()) {
+            if ($variante->valeurs()->pourTousEtablissements()->whereNotNull('archivee_le')->exists()) {
+                throw ValidationException::withMessages(['statut' => "« {$variante->nom} » porte une valeur archivée : restaurez-la avant de réactiver la variante."]);
+            }
+
+            $occupee = VarianteProduit::pourTousEtablissements()
+                ->where('produit_id', $variante->produit_id)
+                ->where('signature', $variante->signature)
+                ->where('statut', StatutVariante::Actif)
+                ->exists();
+
+            if ($occupee) {
+                throw ValidationException::withMessages(['statut' => "Une variante active « {$variante->nom} » existe déjà."]);
+            }
+        }
+
+        $variante->fill($attributs)->save();
+
+        return $variante;
+    }
+
+    /**
+     * Décocher une combinaison : une variante qui n'a jamais servi (aucune
+     * ligne de commande, aucune réservation) est effacée ; une variante qui
+     * a servi devient inactive — l'historique de vente pointe vers elle.
+     *
+     * @return 'supprimee'|'archivee'
+     */
+    public function retirerVariante(VarianteProduit $variante): string
+    {
+        if ($this->aServi($variante)) {
+            $variante->update(['statut' => StatutVariante::Inactif]);
+
+            return 'archivee';
+        }
+
+        $variante->delete();
+
+        return 'supprimee';
+    }
+
+    /**
+     * Une valeur portée par une variante s'archive : elle sort des choix
+     * et des suggestions, ses variantes deviennent inactives et gardent
+     * leur stock. Une valeur portée par aucune variante (une faute de
+     * frappe) s'efface pour de bon.
+     *
+     * @return 'supprimee'|'archivee'
+     */
+    public function archiverValeur(ValeurOption $valeur): string
+    {
+        return DB::transaction(function () use ($valeur) {
+            $variantes = $this->variantesPortant($valeur);
+
+            if ($variantes->isEmpty()) {
+                $valeur->delete();
+
+                return 'supprimee';
+            }
+
+            $valeur->update(['archivee_le' => now()]);
+
+            foreach ($variantes as $variante) {
+                $variante->update(['statut' => StatutVariante::Inactif]);
+            }
+
+            return 'archivee';
+        });
+    }
+
+    /**
+     * Ses variantes restent inactives : le commerçant les réactive une par
+     * une, en sachant ce qu'il remet en vente.
+     */
+    public function restaurerValeur(ValeurOption $valeur): ValeurOption
+    {
+        $valeur->update(['archivee_le' => null]);
+
+        return $valeur;
+    }
+
+    public function renommerOption(OptionProduit $option, string $nom): OptionProduit
+    {
+        $this->exigerNomOptionLibre($option->produit_id, $nom, $option->id);
+        $option->update(['nom' => trim($nom)]);
+
+        return $option;
+    }
+
+    /**
+     * L'ordre des options est celui du nom d'affichage (« 39 / Noir » ou
+     * « Noir / 39 ») : toutes les variantes du produit sont renommées.
+     *
+     * @param  array<int, int>  $identifiants
+     */
+    public function reordonnerOptions(Produit $produit, array $identifiants): void
+    {
+        DB::transaction(function () use ($produit, $identifiants) {
+            $options = OptionProduit::pourTousEtablissements()->where('produit_id', $produit->id)->get()->keyBy('id');
+            $this->exigerLaMemeListe($options->keys()->all(), $identifiants);
+
+            foreach (array_values($identifiants) as $index => $identifiant) {
+                $options[$identifiant]->update(['ordre' => $index + 1]);
+            }
+
+            foreach ($this->variantesDe($produit) as $variante) {
+                $this->recalculer($variante);
+            }
+        });
+    }
+
+    /**
+     * L'ordre des valeurs ne change aucun nom : seulement l'ordre
+     * d'affichage partout (vitrine, back-office, recherche).
+     *
+     * @param  array<int, int>  $identifiants
+     */
+    public function reordonnerValeurs(OptionProduit $option, array $identifiants): void
+    {
+        DB::transaction(function () use ($option, $identifiants) {
+            $valeurs = ValeurOption::pourTousEtablissements()->where('option_id', $option->id)->get()->keyBy('id');
+            $this->exigerLaMemeListe($valeurs->keys()->all(), $identifiants);
+
+            foreach (array_values($identifiants) as $index => $identifiant) {
+                $valeurs[$identifiant]->update(['ordre' => $index + 1]);
+            }
+        });
+    }
+
+    /**
+     * Retirer une dimension : accepté si les variantes actives n'en
+     * utilisent qu'une valeur (« Couleur ajoutée pour rien ») — elles la
+     * perdent, rien d'autre ne bouge. Refusé sinon, en nommant ce qui
+     * deviendrait identique : le commerçant archive d'abord les variantes
+     * qu'il ne vend plus. Jamais la dernière option d'un produit qui a des
+     * variantes : elles n'auraient plus rien qui les distingue.
+     */
+    public function retirerOption(OptionProduit $option): void
+    {
+        DB::transaction(function () use ($option) {
+            $produit = Produit::pourTousEtablissements()->findOrFail($option->produit_id);
+            $variantes = VarianteProduit::pourTousEtablissements()
+                ->where('produit_id', $produit->id)
+                ->with(['valeurs' => fn ($requete) => $requete->pourTousEtablissements()])
+                ->get();
+
+            if ($variantes->isNotEmpty()) {
+                $this->exigerQueLOptionPuisseEtreRetiree($option, $variantes);
+
+                foreach ($variantes as $variante) {
+                    $variante->valeurs()->wherePivot('option_id', $option->id)->detach();
+                    $this->recalculer($variante);
+                }
+            }
+
+            ValeurOption::pourTousEtablissements()->where('option_id', $option->id)->get()->each->delete();
+            $option->delete();
+        });
+    }
+
+    /**
+     * @param  Collection<int, VarianteProduit>  $variantes
+     */
+    private function exigerQueLOptionPuisseEtreRetiree(OptionProduit $option, Collection $variantes): void
+    {
+        if (OptionProduit::pourTousEtablissements()->where('produit_id', $option->produit_id)->count() === 1) {
+            throw ValidationException::withMessages([
+                'option' => "« {$option->nom} » est la seule option de ce produit : ses variantes n'auraient plus rien qui les distingue.",
+            ]);
+        }
+
+        $actives = $variantes->filter(fn (VarianteProduit $variante) => $variante->estActive());
+        $valeursUtilisees = $actives
+            ->map(fn (VarianteProduit $variante) => $variante->valeurs->firstWhere('pivot.option_id', $option->id)?->libelle)
+            ->filter(fn (?string $libelle) => $libelle !== null)->unique()->values();
+
+        if ($valeursUtilisees->count() <= 1) {
+            return;
+        }
+
+        $collisions = $actives
+            ->groupBy(fn (VarianteProduit $variante) => $variante->valeurs->where('pivot.option_id', '!=', $option->id)->pluck('id')->sort()->join('-'))
+            ->filter(fn (Collection $groupe) => $groupe->count() > 1)
+            ->map(fn (Collection $groupe) => $groupe->pluck('nom')->join(' et '))
+            ->values();
+
+        $message = "Vos variantes actives utilisent plusieurs valeurs de « {$option->nom} » ({$valeursUtilisees->join(', ')}).";
+        if ($collisions->isNotEmpty()) {
+            $message .= ' Sans elle, '.$collisions->join(' ; ').' deviendraient identiques.';
+        }
+
+        throw ValidationException::withMessages([
+            'option' => $message.' Archivez d\'abord les variantes que vous ne vendez plus.',
+        ]);
+    }
+
+    /**
+     * @param  array<int, int>  $attendus
+     * @param  array<int, int>  $recus
+     */
+    private function exigerLaMemeListe(array $attendus, array $recus): void
+    {
+        $recus = array_map('intval', $recus);
+        sort($attendus);
+        $tries = $recus;
+        sort($tries);
+
+        if ($attendus !== $tries || count(array_unique($recus)) !== count($recus)) {
+            throw ValidationException::withMessages(['ordre' => 'La liste envoyée ne correspond pas aux éléments existants : rechargez la page.']);
+        }
+    }
+
+    /**
+     * La base refuse aussi ces doublons (index sur lower()) ; ici, avec un
+     * message que le commerçant comprend.
+     */
+    private function exigerNomOptionLibre(int $produitId, string $nom, ?int $saufId = null): void
+    {
+        $existe = OptionProduit::pourTousEtablissements()->where('produit_id', $produitId)->get()
+            ->contains(fn (OptionProduit $option) => $option->id !== $saufId && mb_strtolower($option->nom) === mb_strtolower(trim($nom)));
+
+        if ($existe) {
+            throw ValidationException::withMessages(['nom' => 'Ce produit a déjà une option « '.trim($nom).' ».']);
+        }
+    }
+
+    private function exigerLibelleLibre(int $optionId, string $libelle, ?int $saufId = null): void
+    {
+        $existante = ValeurOption::pourTousEtablissements()->where('option_id', $optionId)->get()
+            ->first(fn (ValeurOption $valeur) => $valeur->id !== $saufId && mb_strtolower($valeur->libelle) === mb_strtolower(trim($libelle)));
+
+        if ($existante !== null) {
+            throw ValidationException::withMessages([
+                'libelle' => $existante->archivee_le === null
+                    ? "« {$existante->libelle} » existe déjà dans cette option."
+                    : "« {$existante->libelle} » existe déjà, archivée : restaurez-la plutôt que de la recréer.",
+            ]);
+        }
+    }
+
+    private function aServi(VarianteProduit $variante): bool
+    {
+        return LigneCommande::pourTousEtablissements()->where('variante_id', $variante->id)->exists()
+            || ReservationStock::pourTousEtablissements()->where('variante_id', $variante->id)->exists();
+    }
+
+    /**
+     * La même photo pour tout un groupe (les 7 sandales noires) en une
+     * écriture : une requête par variante coûtait 14 secondes sur le
+     * serveur de développement, bien plus sur un réseau mobile.
+     *
+     * @param  array<int, int>  $identifiantsVariantes
+     */
+    public function attribuerImage(Produit $produit, array $identifiantsVariantes, ?int $mediaId): void
+    {
+        VarianteProduit::pourTousEtablissements()
+            ->where('produit_id', $produit->id)
+            ->whereIn('id', $identifiantsVariantes)
+            ->update(['media_id' => $mediaId]);
     }
 
     /**

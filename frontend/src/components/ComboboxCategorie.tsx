@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Categorie } from '../api/categories'
-import { creerCategorie } from '../api/categories'
+import { cheminCategorie, creerCategorie } from '../api/categories'
 import { EtatBouton } from './EtatBouton'
 
 export type CategorieChoisie = { id: number; nom: string }
@@ -130,7 +130,7 @@ export function ComboboxCategorie({
                 onClick={() => choisir(categorie)}
                 className="block w-full cursor-pointer px-3 py-2 text-left text-corps text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97]"
               >
-                {categorie.nom}
+                {cheminCategorie(categorie, categories)}
               </button>
             </li>
           ))}
