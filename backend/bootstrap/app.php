@@ -5,6 +5,7 @@ use App\Http\Middleware\DefinirEtablissementCible;
 use App\Http\Middleware\JournaliserConsultationPlateforme;
 use App\Http\Middleware\ResoudreEtablissement;
 use App\Http\Middleware\VerifierAbonnementVitrine;
+use App\Support\RateLimiting\LimiteurEmailEtIp;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'definir.etablissement.cible' => DefinirEtablissementCible::class,
             'abonnement.vitrine' => VerifierAbonnementVitrine::class,
             'journaliser.consultation' => JournaliserConsultationPlateforme::class,
+            // /connexion et /activation : ne compte que les échecs, voir sa docblock.
+            'limiter.echecs' => LimiteurEmailEtIp::class,
         ]);
 
         // ResoudreEtablissement n'est pas dans la liste de priorité de

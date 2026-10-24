@@ -178,6 +178,12 @@ activation, etc.) se fait par email ET par IP, jamais par IP seule.
 Une IP seule pénalise des utilisateurs sans lien entre eux qui la
 partagent (opérateurs mobiles). Voir App\Support\RateLimiting\LimiteurEmailEtIp.
 
+Elle ne compte que les ÉCHECS, jamais une connexion réussie, qui remet
+au contraire le compteur de l'email à zéro. Ne pas y remettre le
+middleware "throttle" de Laravel : il compte chaque requête, et enfermait
+dehors une commerçante qui s'était connectée deux fois dans la journée
+puis trompée deux fois de mot de passe.
+
 Dérogation : une route publique ANONYME (aucun email, ex. la génération
 de lien WhatsApp de la vitrine) ne peut pas appliquer cette règle. Sa
 protection repose alors sur l'idempotence de ce qu'elle crée (même

@@ -33,8 +33,9 @@ use Illuminate\Support\Facades\Route;
 // Correctif limitation de débit : "throttle:5,1" (5/minute, par IP seule)
 // bloquait des abonnés mobiles ivoiriens sans lien entre eux, partageant la
 // même IP. Remplacé par le limiteur nommé "connexion" (voir
-// LimiteurEmailEtIp) : 5/heure par email, 30/heure par IP.
-Route::post('/connexion', [SessionController::class, 'store'])->middleware('throttle:connexion');
+// LimiteurEmailEtIp) : 5/heure par email, 30/heure par IP — et seuls les
+// ÉCHECS comptent : une connexion réussie remet le compteur de l'email à zéro.
+Route::post('/connexion', [SessionController::class, 'store'])->middleware('limiter.echecs:connexion');
 
 // Correctif activation par code (Étape 10) — publique, sans session : un
 // employé qui vient d'être créé n'en a aucune. "resoudre.etablissement"
@@ -44,7 +45,7 @@ Route::post('/connexion', [SessionController::class, 'store'])->middleware('thro
 // question de correspondance par email seul. Même limiteur combiné que
 // /connexion ci-dessus, voir LimiteurEmailEtIp.
 Route::middleware('resoudre.etablissement')->post('/activation', [ActivationController::class, 'activer'])
-    ->middleware('throttle:activation');
+    ->middleware('limiter.echecs:activation');
 
 // Vitrine publique : ni "auth:sanctum" ni "resoudre.etablissement" strict au
 // sens d'exiger une session — un visiteur anonyme doit pouvoir tout

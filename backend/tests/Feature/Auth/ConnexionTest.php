@@ -221,4 +221,82 @@ class ConnexionTest extends TestCase
         $corps = array_map(fn ($r) => $r->getContent(), $reponses);
         $this->assertCount(1, array_unique($corps), 'les 4 causes doivent produire exactement le même corps de réponse');
     }
+
+    private function tenter(string $email, string $motDePasse): \Illuminate\Testing\TestResponse
+    {
+        return $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/connexion', [
+            'email' => $email,
+            'mot_de_passe' => $motDePasse,
+        ]);
+    }
+
+    /**
+     * Le cas qui a révélé le bug : avec le middleware "throttle" de Laravel,
+     * chaque connexion RÉUSSIE consommait une des 5 tentatives de l'heure.
+     * Quatre connexions dans la journée (son téléphone, celui de l'employé…)
+     * puis deux fautes de frappe suffisaient à l'enfermer dehors une heure.
+     */
+    public function test_10_une_connexion_reussie_ne_consomme_pas_le_quota_de_tentatives(): void
+    {
+        $this->seed();
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->tenter('awa@chez-awa.test', 'motdepasse')->assertStatus(200);
+        }
+        for ($i = 0; $i < 5; $i++) {
+            $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(422);
+        }
+
+        $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(429);
+    }
+
+    public function test_11_une_connexion_reussie_remet_le_compteur_de_lemail_a_zero(): void
+    {
+        $this->seed();
+
+        for ($i = 0; $i < 4; $i++) {
+            $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(422);
+        }
+        $this->tenter('awa@chez-awa.test', 'motdepasse')->assertStatus(200);
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(422);
+        }
+        $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(429);
+    }
+
+    /**
+     * Le blocage tient même contre le BON mot de passe : sinon un
+     * attaquant continuerait à essayer, et saurait qu'il a trouvé au
+     * premier 200 au milieu des 429.
+     */
+    public function test_12_une_fois_bloque_meme_le_bon_mot_de_passe_est_refuse(): void
+    {
+        $this->seed();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->tenter('awa@chez-awa.test', 'faux')->assertStatus(422);
+        }
+
+        $this->tenter('awa@chez-awa.test', 'motdepasse')->assertStatus(429);
+        $this->assertGuest('web');
+    }
+
+    /**
+     * Une réussite rend à l'IP la seule unité qu'elle avait prise, jamais
+     * davantage : un compte valide ne doit pas effacer les échecs que
+     * d'autres ont accumulés depuis la même adresse (balayage en cours).
+     */
+    public function test_13_une_connexion_reussie_ne_remet_pas_a_zero_les_echecs_des_autres_sur_la_meme_ip(): void
+    {
+        $this->seed();
+
+        for ($i = 0; $i < 29; $i++) {
+            $this->tenter("balayage-{$i}@chez-awa.test", 'faux')->assertStatus(422);
+        }
+        $this->tenter('awa@chez-awa.test', 'motdepasse')->assertStatus(200);
+
+        $this->tenter('balayage-29@chez-awa.test', 'faux')->assertStatus(422);
+        $this->tenter('balayage-30@chez-awa.test', 'faux')->assertStatus(429);
+    }
 }
