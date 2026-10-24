@@ -469,3 +469,18 @@ sans erreur ; RefreshDatabaseInchangeTest casse dans ce cas.
 Alternative écartée : une base PostgreSQL migrée à part, par un script,
 avant la suite. Écartée parce qu'elle redonne exactement le défaut
 corrigé : une suite qui tourne sur un schéma qu'elle n'a pas construit.
+
+## 2026-10-25 — Le seed par test est une optimisation connue, différée
+
+Chaque test qui a besoin de la démo refait un seed complet : 250 appels
+dans la suite, à environ 516 ms chacun. Toute donnée de démo ajoutée est
+donc multipliée par 250. B1 l'a montré : les sandales, avec leurs
+options, valeurs et photos, ont fait passer un seed de 193 à 307 requêtes
+et la suite de 146 s à 210 s (mesuré dans une même série). C'est le vrai
+levier le jour où la suite approchera le seuil de 8 minutes : seeder une
+fois par processus, puis isoler chaque test dans une transaction, ou ne
+seeder que l'établissement dont le test a besoin.
+Volontairement différé : à 230 s, la suite est loin du seuil, et ce
+changement touche la façon dont 250 tests préparent leurs données. Il
+mérite son propre lot, mesuré avant et après, pas une retouche en
+passant.

@@ -221,6 +221,13 @@ plus être lancée, et c'est là que les régressions passent. On mesure avant
 de corriger (la lenteur venait des écritures de fichiers, pas de ce qu'on
 croyait), et on ne supprime jamais un test pour gagner du temps.
 
+Une durée ne se compare qu'à l'intérieur d'une même série de mesures :
+même machine, même jour, même emplacement, rien d'autre qui tourne. Le
+même commit a donné 87 s puis 153 s dans la même journée. Deux chiffres
+pris à des jours différents ne disent rien d'une dérive, ni dans un sens
+ni dans l'autre. Pour savoir si un changement ralentit la suite, on
+chronomètre l'avant et l'après l'un après l'autre, dans la même série.
+
 ## Montants en francs CFA
 Tout montant d'argent est un entier, en francs CFA : colonne entière en
 base, règle "integer" en validation, jamais un float ni un decimal. Le
