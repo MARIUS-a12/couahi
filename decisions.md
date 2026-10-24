@@ -504,3 +504,64 @@ Alternative écartée : tout enregistrer avec le bouton du produit.
 Écartée parce qu'une variante doit exister côté serveur pour recevoir
 une photo ou une réservation, et qu'un formulaire de 12 lignes perdu d'un
 coup sur un téléphone qui se met en veille coûte plus cher qu'un champ.
+
+## 2026-10-25 — La limite de connexion ne compte que les échecs
+
+/connexion et /activation passaient par le middleware « throttle » de
+Laravel, qui compte chaque requête, réussie ou non. Une commerçante qui
+se connectait le matin sur son téléphone, à midi sur celui de son employé,
+puis se trompait deux fois de mot de passe, était enfermée dehors une
+heure. Le limiteur (LimiteurEmailEtIp, désormais un middleware) compte
+les seuls échecs, 5 par heure et par email, 30 par IP. Une réussite remet
+le compteur de l'email à zéro, et ne rend à l'IP que l'unité qu'elle avait
+prise : un compte valide ne doit pas effacer les échecs que d'autres ont
+accumulés depuis la même adresse. Le compteur est incrémenté avant le
+traitement puis rendu en cas de réussite, pour qu'une rafale de requêtes
+parallèles ne passe pas la vérification avant d'être comptée. Une fois la
+limite atteinte, même le bon mot de passe est refusé jusqu'à la fin de la
+fenêtre.
+Alternative écartée : garder « throttle » et vider le compteur dans le
+contrôleur après une réussite. Écartée parce que la règle tiendrait alors
+en deux endroits, et que /activation l'aurait oubliée.
+
+## 2026-10-25 — La grille des combinaisons : vérifiée jusqu'à 5 × 6, pas au-delà de deux options
+
+Vérifiée à la main à 390 px, au doigt, avec un t-shirt en 5 tailles et
+6 coloris : les 6 colonnes tiennent sans défilement horizontal, en cases
+de 44 px, une fois les en-têtes resserrés (les mots ne se coupent qu'aux
+espaces). Au-delà, ou sur un écran de 360 px, la grille défile
+horizontalement, colonne des tailles fixée. Ce défilement a révélé un
+défaut : un balayage vers la droite, grille déjà calée à gauche,
+remontait au navigateur, qui le lisait comme « page précédente » et
+emportait le brouillon. overscroll-behavior-x n'y a rien fait, ni sur la
+grille ni sur la racine, quand le geste part de la grille. Le balayage
+qui bute sur un bord est donc annulé en JavaScript (useBalayageRetenu),
+et seulement celui-là : un balayage vertical fait toujours défiler la
+page.
+Un produit à trois options (taille, coloris, longueur…) n'est ni testé
+ni garanti : la grille met alors le produit des deux premières en
+lignes, et personne ne l'a regardé sur un téléphone. Aucun commerçant
+n'en a besoin aujourd'hui ; c'est à reprendre avant d'en vendre un.
+Question ouverte, non tranchée : un produit est limité à 5 photos. Un
+t-shirt en 6 coloris ne peut donc pas avoir une photo par coloris.
+
+## 2026-10-25 — Une suite de nombres s'ajoute d'un coup, en une requête
+
+« De 39 à 45 » crée 39, 40… 45 dans l'ordre de saisie. Seulement des
+nombres entiers, 50 au plus, et le lien n'est proposé qu'à une option
+vide ou déjà toute numérique : « Taille unique » ou « Bleu ciel » n'ont
+rien à voir avec une plage. Les valeurs partent en une seule requête,
+tout ou rien, comme « Tout ajouter » parmi les suggestions (qui envoyait
+jusque-là une requête par valeur et pouvait s'arrêter au milieu). Une
+valeur déjà présente est sautée ; une valeur archivée refuse l'ensemble,
+avec le message qui invite à la restaurer.
+
+## 2026-10-25 — Après sa création, un produit s'ouvre sur sa fiche, avec la suite à faire
+
+Créer un produit ramenait à la liste : pour ajouter photos et variantes,
+il fallait le retrouver et le rouvrir, sans que rien ne le dise. La
+création mène désormais sur la fiche du produit, avec une ligne qui
+donne la suite dans l'ordre imposé par l'écran : les photos, puis les
+variantes, puis la photo de chaque coloris (choisie parmi les photos).
+L'écran n'est pas réorganisé. La modification, elle, ramène toujours à
+la liste.

@@ -16,7 +16,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { Categorie } from '../api/categories'
 import type { ModeStock, Produit, ProduitPayload } from '../api/produits'
 import { archiverProduit, creerProduit, modifierProduit } from '../api/produits'
@@ -31,6 +31,7 @@ import { ComboboxCategorie } from '../components/ComboboxCategorie'
 import { EtatChargement } from '../components/EtatChargement'
 import { EtatErreur } from '../components/EtatErreur'
 import { GroupeSegmente } from '../components/GroupeSegmente'
+import { EtapesSuivantes } from '../components/EtapesSuivantes'
 import { SectionVariantes } from '../components/SectionVariantes'
 import { ZoneEnvoiPhotos } from '../components/ZoneEnvoiPhotos'
 import { useCategories } from '../hooks/useCategories'
@@ -137,7 +138,13 @@ function FormulaireProduit({
   const peutGererCatalogue = moi?.permissions.includes('gerer_catalogue') ?? false
 
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
+  // Posé par la création (voir enregistrement.onSuccess) : une seule fois,
+  // retiré de l'historique à la fermeture pour ne pas revenir au rechargement.
+  const [vientDEtreCree, setVientDEtreCree] = useState(
+    () => (location.state as { vientDEtreCree?: boolean } | null)?.vientDEtreCree === true,
+  )
 
   const [estModifie, setEstModifie] = useState(false)
   const [nom, setNom] = useState(produitExistant?.nom ?? '')
@@ -214,13 +221,14 @@ function FormulaireProduit({
       setEstModifie(false)
       invaliderListes()
       permettreProchaineNavigation()
-      navigate('/admin/produits', {
-        state: {
-          messageSucces: estModification
-            ? `« ${produit.nom} » a été modifié.`
-            : `« ${produit.nom} » a été créé.`,
-        },
-      })
+      // Une création mène sur la fiche du produit, pas sur la liste : la
+      // suite (photos, variantes) se fait ici, et repasser par la liste
+      // pour la rouvrir était un geste de trop, sans rien qui le dise.
+      if (estModification) {
+        navigate('/admin/produits', { state: { messageSucces: `« ${produit.nom} » a été modifié.` } })
+      } else {
+        navigate(`/admin/produits/${produit.id}/modifier`, { replace: true, state: { vientDEtreCree: true } })
+      }
     },
     onError: gererErreur,
   })
@@ -257,6 +265,16 @@ function FormulaireProduit({
       </div>
 
       <form onSubmit={soumettre} className="space-y-4">
+        {vientDEtreCree && produitExistant && (
+          <EtapesSuivantes
+            nom={produitExistant.nom}
+            publie={produitExistant.statut === 'publie'}
+            onFermer={() => {
+              setVientDEtreCree(false)
+              navigate(location.pathname, { replace: true, state: null })
+            }}
+          />
+        )}
         {erreurGenerique && (
           <p role="alert" className="animate-entree-haut border border-danger bg-surface p-3 text-corps text-danger">
             {erreurGenerique}

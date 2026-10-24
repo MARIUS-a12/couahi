@@ -79,7 +79,7 @@ export function ListeVariantes({
                 <h4 className="text-corps font-semibold text-texte">
                   {derniere?.nom} : {valeur.libelle}
                 </h4>
-                {photos.length > 0 && (
+                {photos.length > 0 ? (
                   <ChoixPhoto
                     legende={`Photo des variantes ${valeur.libelle}`}
                     photos={photos}
@@ -87,6 +87,10 @@ export function ListeVariantes({
                     desactive={enCours}
                     onChoisir={(mediaId) => photoDuGroupe(variantes, mediaId)}
                   />
+                ) : (
+                  <p className="mt-1 text-petit text-texte-secondaire">
+                    Pour montrer une photo par {derniere?.nom.toLowerCase()}, ajoutez d'abord les photos plus haut, dans « Photos ».
+                  </p>
                 )}
               </div>
             )}

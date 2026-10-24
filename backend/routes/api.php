@@ -165,6 +165,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/produits/{produit}/options/{option}', [VariantesProduitController::class, 'renommerOption']);
         Route::delete('/produits/{produit}/options/{option}', [VariantesProduitController::class, 'retirerOption']);
         Route::post('/produits/{produit}/options/{option}/valeurs', [VariantesProduitController::class, 'ajouterValeur']);
+        Route::post('/produits/{produit}/options/{option}/valeurs/lot', [VariantesProduitController::class, 'ajouterValeurs']);
         Route::put('/produits/{produit}/options/{option}/valeurs/ordre', [VariantesProduitController::class, 'reordonnerValeurs']);
         Route::patch('/produits/{produit}/valeurs/{valeur}', [VariantesProduitController::class, 'renommerValeur']);
         Route::delete('/produits/{produit}/valeurs/{valeur}', [VariantesProduitController::class, 'archiverValeur']);

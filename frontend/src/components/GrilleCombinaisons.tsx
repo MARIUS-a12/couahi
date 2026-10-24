@@ -17,6 +17,7 @@ import { Check } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { creerVariantes, modifierVariante, retirerVariante } from '../api/variantes'
 import type { StructureVariantes, ValeurOption, Variante } from '../api/variantes'
+import { useBalayageRetenu } from '../hooks/useBalayageRetenu'
 import type { useVariantes } from '../hooks/useVariantes'
 import { Bouton } from './Bouton'
 import { sansEntree } from '../lib/clavier'
@@ -44,6 +45,7 @@ export function GrilleCombinaisons({
   onBrouillon?: (nombre: number) => void
 }) {
   const [brouillon, setBrouillon] = useState<Map<string, boolean>>(new Map())
+  const refDefilement = useBalayageRetenu<HTMLDivElement>()
   const [stockDepart, setStockDepart] = useState('0')
   const actives = structure.options.map((option) => option.valeurs.filter((valeur) => !valeur.archivee))
 
@@ -141,7 +143,9 @@ export function GrilleCombinaisons({
         </p>
       </div>
 
-      <div className="max-w-full overflow-x-auto">
+      {/* Un balayage qui bute sur un bord ne remonte pas au navigateur
+          (« page précédente ») : voir useBalayageRetenu. */}
+      <div ref={refDefilement} className="max-w-full overflow-x-auto overscroll-x-contain">
         <table className="border-separate border-spacing-1">
           {colonnes.length > 0 && (
             <thead>
@@ -153,7 +157,7 @@ export function GrilleCombinaisons({
                       type="button"
                       onClick={() => basculer(lignes.map((ligne) => [...ligne, colonne]))}
                       aria-label={`Cocher ou décocher toute la colonne ${colonne.libelle}`}
-                      className="h-11 min-w-11 cursor-pointer rounded px-2 text-petit font-semibold text-texte hover:bg-surface-alt"
+                      className="min-h-11 min-w-11 max-w-[4.5rem] cursor-pointer rounded px-0.5 text-petit leading-tight font-semibold text-texte hover:bg-surface-alt"
                     >
                       {colonne.libelle}
                     </button>
@@ -174,7 +178,7 @@ export function GrilleCombinaisons({
                       type="button"
                       onClick={() => basculer(cellules)}
                       aria-label={colonnes.length > 0 ? `Cocher ou décocher toute la ligne ${nomLigne}` : undefined}
-                      className="h-11 min-w-14 cursor-pointer rounded px-2 text-left text-corps font-medium text-texte hover:bg-surface-alt"
+                      className="h-11 min-w-11 cursor-pointer rounded px-1.5 text-left text-corps font-medium text-texte hover:bg-surface-alt"
                     >
                       {nomLigne}
                     </button>

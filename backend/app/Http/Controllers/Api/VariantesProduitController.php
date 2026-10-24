@@ -119,6 +119,27 @@ class VariantesProduitController extends Controller
         return $this->structure($produit, 201);
     }
 
+    /**
+     * Plusieurs valeurs en une requête (plage numérique, « Tout ajouter ») :
+     * voir GererVariantes::ajouterValeurs(). 50 au plus — une plage de 1 à
+     * 100 000 tapée par erreur ne doit pas créer 100 000 lignes.
+     */
+    public function ajouterValeurs(Request $request, Produit $produit, OptionProduit $option): JsonResponse
+    {
+        Gate::authorize('update', $produit);
+        $this->exigerAppartenance($produit, $option->produit_id);
+        $donnees = $request->validate([
+            'libelles' => ['required', 'array', 'min:1', 'max:50'],
+            'libelles.*' => ['required', 'string', 'max:60'],
+        ], [
+            'libelles.max' => 'Pas plus de 50 valeurs à la fois.',
+        ]);
+
+        $this->variantes->ajouterValeurs($option, $donnees['libelles']);
+
+        return $this->structure($produit, 201);
+    }
+
     public function reordonnerValeurs(Request $request, Produit $produit, OptionProduit $option): JsonResponse
     {
         Gate::authorize('update', $produit);

@@ -93,6 +93,41 @@ class GererVariantes
     }
 
     /**
+     * Plusieurs valeurs d'un coup, dans l'ordre donné : la plage 39 à 45
+     * de l'écran, ou « Tout ajouter » parmi les suggestions de la boutique.
+     * Tout ou rien — jamais 39, 40, 41 créées puis un refus sur 42.
+     *
+     * Une valeur déjà ACTIVE dans l'option est simplement sautée (taper
+     * 39 à 45 quand 42 existe ajoute les six autres) ; une valeur ARCHIVÉE
+     * refuse l'ensemble, avec le message qui invite à la restaurer :
+     * la recréer en silence en ferait une deuxième « 42 ».
+     *
+     * @param  array<int, string>  $libelles
+     * @return array<int, ValeurOption> les valeurs créées
+     */
+    public function ajouterValeurs(OptionProduit $option, array $libelles): array
+    {
+        return DB::transaction(function () use ($option, $libelles) {
+            $actives = ValeurOption::pourTousEtablissements()->where('option_id', $option->id)->whereNull('archivee_le')
+                ->pluck('libelle')->map(fn (string $libelle) => mb_strtolower($libelle))->all();
+            $vues = [];
+            $creees = [];
+
+            foreach ($libelles as $libelle) {
+                $cle = mb_strtolower(trim($libelle));
+
+                if ($cle === '' || in_array($cle, $actives, true) || in_array($cle, $vues, true)) {
+                    continue;
+                }
+                $vues[] = $cle;
+                $creees[] = $this->ajouterValeur($option, $libelle);
+            }
+
+            return $creees;
+        });
+    }
+
+    /**
      * Renommer « Noir » en « Noir mat » change le nom d'affichage des
      * variantes qui la portent. La signature (identifiants) ne bouge pas,
      * et les lignes de commande gardent « 39 / Noir » : ce qui a été vendu

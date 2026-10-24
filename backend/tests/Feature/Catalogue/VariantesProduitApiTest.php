@@ -289,4 +289,33 @@ class VariantesProduitApiTest extends TestCase
         $this->putJson(self::HOTE."/api/produits/{$sandales->id}/variantes/photo", ['variante_ids' => [$ailleurs], 'media_id' => null])->assertStatus(404);
         $this->assertNotNull(VarianteProduit::pourTousEtablissements()->find($ailleurs), 'intacte');
     }
+
+    /**
+     * La plage « de 39 à 45 » de l'écran arrive ici en une seule requête :
+     * dans l'ordre, sans doublon, une valeur déjà là sautée — et une valeur
+     * archivée refuse TOUT, sans rien écrire.
+     */
+    public function test_plusieurs_valeurs_en_une_requete_tout_ou_rien(): void
+    {
+        $this->seed();
+        $this->connecte('fatou@wax-adjame.test');
+        $id = $this->nouveauProduit();
+        $this->postJson(self::HOTE."/api/produits/{$id}/options", ['nom' => 'Pointure'])->assertStatus(201);
+        $pointure = $this->option($this->structure($id), 'Pointure')['id'];
+        $this->postJson(self::HOTE."/api/produits/{$id}/options/{$pointure}/valeurs", ['libelle' => '42'])->assertStatus(201);
+
+        $lot = fn (array $libelles) => $this->postJson(self::HOTE."/api/produits/{$id}/options/{$pointure}/valeurs/lot", ['libelles' => $libelles]);
+
+        $lot(['39', '40', '41', '42', '43', '44', '45', '43'])->assertStatus(201);
+        $this->assertSame(['42', '39', '40', '41', '43', '44', '45'], collect($this->option($this->structure($id), 'Pointure')['valeurs'])->pluck('libelle')->all());
+
+        $quarante = $this->valeurId($this->structure($id), 'Pointure', '40');
+        $this->postJson(self::HOTE."/api/produits/{$id}/variantes", ['combinaisons' => [['valeur_ids' => [$quarante]]]])->assertStatus(201);
+        $this->deleteJson(self::HOTE."/api/produits/{$id}/valeurs/{$quarante}")->assertJsonPath('resultat', 'archivee');
+
+        $lot(['46', '40', '47'])->assertStatus(422)->assertJsonPath('errors.libelle.0', '« 40 » existe déjà, archivée : restaurez-la plutôt que de la recréer.');
+        $this->assertNotContains('46', collect($this->option($this->structure($id), 'Pointure')['valeurs'])->pluck('libelle')->all(), 'rien n\'est écrit');
+
+        $lot(array_map('strval', range(100, 150)))->assertStatus(422)->assertJsonPath('errors.libelles.0', 'Pas plus de 50 valeurs à la fois.');
+    }
 }

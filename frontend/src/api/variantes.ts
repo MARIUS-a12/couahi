@@ -98,6 +98,11 @@ export async function ajouterValeur(produitId: number, optionId: number, libelle
   return (await client.post<Reponse>(`${base(produitId)}/options/${optionId}/valeurs`, { libelle })).data
 }
 
+/** Plusieurs valeurs en une requête, tout ou rien (plage numérique, « Tout ajouter »). */
+export async function ajouterValeurs(produitId: number, optionId: number, libelles: string[]): Promise<Reponse> {
+  return (await client.post<Reponse>(`${base(produitId)}/options/${optionId}/valeurs/lot`, { libelles })).data
+}
+
 export async function reordonnerValeurs(produitId: number, optionId: number, ordre: number[]): Promise<Reponse> {
   return (await client.put<Reponse>(`${base(produitId)}/options/${optionId}/valeurs/ordre`, { ordre })).data
 }

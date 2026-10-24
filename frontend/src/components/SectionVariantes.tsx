@@ -18,6 +18,7 @@ import type { Media } from '../api/medias'
 import {
   ajouterOption,
   ajouterValeur,
+  ajouterValeurs,
   archiverValeur,
   renommerOption,
   renommerValeur,
@@ -29,6 +30,7 @@ import {
 import type { OptionProduit, StructureVariantes, Suggestion, ValeurOption } from '../api/variantes'
 import { useVariantes } from '../hooks/useVariantes'
 import { sansEntree } from '../lib/clavier'
+import { optionNumerique, valeursDePlage } from '../lib/plage'
 import { Bouton } from './Bouton'
 import { EtatChargement } from './EtatChargement'
 import { GrilleCombinaisons } from './GrilleCombinaisons'
@@ -265,13 +267,26 @@ function CarteOption({
     (libelle) => !presentes.includes(libelle.toLowerCase()),
   )
 
+  const [plage, setPlage] = useState<{ de: string; a: string } | null>(null)
+  const calculPlage = plage === null ? null : valeursDePlage(plage.de, plage.a)
+  const plageProposee = optionNumerique(actives.map((valeur) => valeur.libelle))
+
   async function ajouter(libelles: string[]) {
-    for (const libelle of libelles) {
-      if (libelle.trim() === '' || !(await ecrire(() => ajouterValeur(produitId, option.id, libelle.trim()), { structurel: true }))) {
-        return
-      }
+    const propres = libelles.map((libelle) => libelle.trim()).filter((libelle) => libelle !== '')
+
+    if (propres.length === 0) {
+      return
     }
-    setNouvelleValeur('')
+    // Une seule requête pour plusieurs valeurs : tout ou rien, jamais la
+    // moitié d'une plage créée puis un refus au milieu.
+    const ok = await ecrire(
+      () => (propres.length === 1 ? ajouterValeur(produitId, option.id, propres[0]) : ajouterValeurs(produitId, option.id, propres)),
+      { structurel: true },
+    )
+    if (ok) {
+      setNouvelleValeur('')
+      setPlage(null)
+    }
   }
 
   async function archiver(valeur: ValeurOption) {
@@ -364,6 +379,70 @@ function CarteOption({
           Ajouter
         </Bouton>
       </div>
+
+      {plageProposee &&
+        (plage === null ? (
+          <button
+            type="button"
+            onClick={() => setPlage({ de: '', a: '' })}
+            className="min-h-11 cursor-pointer text-left text-petit font-medium text-primaire underline"
+          >
+            Ajouter une suite de nombres d'un coup (ex. de 39 à 45)
+          </button>
+        ) : (
+          <fieldset className="space-y-2 rounded border border-bordure bg-surface p-2">
+            <legend className="px-1 text-petit font-medium text-texte">Suite de nombres</legend>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-1 text-petit text-texte-secondaire">
+                De
+                <input
+                  aria-label={`Premier nombre de ${option.nom}`}
+                  inputMode="numeric"
+                  autoFocus
+                  value={plage.de}
+                  onChange={(evenement) => setPlage({ ...plage, de: evenement.target.value })}
+                  onKeyDown={(evenement) => sansEntree(evenement)}
+                  className="h-11 w-20 rounded border border-bordure bg-surface px-2 text-corps text-texte focus:border-primaire"
+                />
+              </label>
+              <label className="flex items-center gap-1 text-petit text-texte-secondaire">
+                à
+                <input
+                  aria-label={`Dernier nombre de ${option.nom}`}
+                  inputMode="numeric"
+                  value={plage.a}
+                  onChange={(evenement) => setPlage({ ...plage, a: evenement.target.value })}
+                  onKeyDown={(evenement) =>
+                    sansEntree(evenement, () => {
+                      if (calculPlage !== null && 'valeurs' in calculPlage) {
+                        void ajouter(calculPlage.valeurs)
+                      }
+                    })
+                  }
+                  className="h-11 w-20 rounded border border-bordure bg-surface px-2 text-corps text-texte focus:border-primaire"
+                />
+              </label>
+            </div>
+            {calculPlage !== null && 'erreur' in calculPlage && (plage.de !== '' && plage.a !== '') && (
+              <p className="text-petit text-danger">{calculPlage.erreur}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <Bouton
+                type="button"
+                variante="secondaire"
+                disabled={enCours || calculPlage === null || !('valeurs' in calculPlage)}
+                onClick={() => calculPlage !== null && 'valeurs' in calculPlage && ajouter(calculPlage.valeurs)}
+              >
+                {calculPlage !== null && 'valeurs' in calculPlage
+                  ? `Ajouter ${calculPlage.valeurs.length} valeur${calculPlage.valeurs.length > 1 ? 's' : ''} (${calculPlage.valeurs[0]} à ${calculPlage.valeurs[calculPlage.valeurs.length - 1]})`
+                  : 'Ajouter la suite'}
+              </Bouton>
+              <Bouton type="button" variante="tertiaire" onClick={() => setPlage(null)}>
+                Annuler
+              </Bouton>
+            </div>
+          </fieldset>
+        ))}
 
       {aProposer.length > 0 && (
         <div>
