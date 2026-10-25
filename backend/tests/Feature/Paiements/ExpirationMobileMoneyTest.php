@@ -161,17 +161,19 @@ class ExpirationMobileMoneyTest extends TestCase
                 $etablissement, $client, [new LigneCommandeDemandee($produit->id, null, 1)],
                 Canal::Web, SourceCommande::PanierWeb, "cle-{$index}", null, $mode,
             );
-            // Délai d'une commande web inchangé : 15 minutes.
-            $this->assertEqualsWithDelta(15 * 60, now()->diffInSeconds($commande->expire_le), 2, "délai pour {$mode?->value}");
+            // Une commande web de boutique : 24 heures, comme le Mobile
+            // Money (un commerçant seul ne la voyait pas en 15 minutes).
+            $this->assertEqualsWithDelta(24 * 3600, now()->diffInSeconds($commande->expire_le), 2, "délai pour {$mode?->value}");
             $commandes[] = $commande;
         }
         $this->assertSame(3, $produit->fresh()->quantite_reservee);
 
-        // Pas encore échu : rien ne bouge.
+        // Seize minutes plus tard, l'ancien délai : rien ne bouge.
+        Date::setTestNow(now()->addMinutes(16));
         $this->executerLeJob();
         $this->assertSame(3, $produit->fresh()->quantite_reservee);
 
-        Date::setTestNow(now()->addMinutes(16));
+        Date::setTestNow(now()->addHours(24));
         $this->executerLeJob();
         Date::setTestNow();
 
@@ -179,6 +181,27 @@ class ExpirationMobileMoneyTest extends TestCase
             $this->assertSame(StatutCommande::Expiree, Commande::pourTousEtablissements()->findOrFail($commande->id)->statut);
         }
         $this->assertSame(0, $produit->fresh()->quantite_reservee);
+    }
+
+    /**
+     * Le restaurant garde 15 minutes : son délai propre est reporté au lot
+     * restauration (voir decisions.md), il ne suit pas la boutique.
+     */
+    public function test_3b_une_commande_web_de_restaurant_garde_15_minutes(): void
+    {
+        $this->seed();
+        $maquis = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
+        app(ContexteEtablissement::class)->definir($maquis);
+        $plat = Produit::factory()->for($maquis)->publie()->create(['quantite_stock' => 10, 'quantite_reservee' => 0]);
+
+        Date::setTestNow(now());
+        $commande = app(CreerCommande::class)->executer(
+            $maquis, $maquis->clients()->create(['nom' => 'Client Maquis']), [new LigneCommandeDemandee($plat->id, null, 1)],
+            Canal::Web, SourceCommande::PanierWeb, 'cle-maquis',
+        );
+
+        $this->assertEqualsWithDelta(15 * 60, now()->diffInSeconds($commande->expire_le), 2);
+        Date::setTestNow();
     }
 
     public function test_4_une_commande_payee_puis_annulee_affiche_lavertissement_de_remboursement(): void

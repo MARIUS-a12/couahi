@@ -32,7 +32,7 @@ Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 - Une photo prise au téléphone (12 mégapixels, plusieurs Mo) est réduite sur le téléphone avant l'envoi, autour de 150 à 400 Ko, pour épargner la data mobile ; le logo aussi. Une photo trop grande pour le serveur (au-delà de 16 mégapixels, depuis un ordinateur) est refusée avec un message qui dit quoi faire.
 - Variantes : dimensions et valeurs dans un ordre réglable, grille des combinaisons au doigt, plage de pointures en un geste (de 39 à 45), prix et stock propres à chaque variante, photo par coloris.
 - Stock compté à l'unité, ou simple interrupteur « Disponible » ; le mode se change tant qu'aucune commande en cours n'en dépend.
-- Une commande réserve son stock. Une commande non payée expire au bout de 15 minutes, ou de 24 heures en Mobile Money, et son stock est alors rendu.
+- Une commande réserve son stock. Une commande de la vitrine non traitée expire au bout de 24 heures (15 minutes pour un restaurant), et son stock est alors rendu.
 - Catégories sur deux niveaux (Chaussures › Sandales).
 - Commandes : liste filtrée par statut et détail. On les fait passer de confirmée à prête puis livrée, ou on les annule (le stock revient).
 - Paiements : paiement partiel enregistré tel quel, remboursement constaté à la main.

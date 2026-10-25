@@ -98,9 +98,14 @@ class CreerCommande
         // de voir l'argent arriver avant que la commande n'expire et que
         // son stock ne soit relâché. 24 heures couvrent une soirée et une
         // nuit sans bloquer le stock indéfiniment.
+        // Une commande web de boutique aussi : un commerçant seul, occupé
+        // avec un client au comptoir, ne la voyait pas dans les 15 minutes.
+        // Le restaurant garde 15 minutes en attendant son propre délai
+        // (voir decisions.md, lot restauration).
         $expireLe = match (true) {
             $modePaiement === ModePaiement::MobileMoney => now()->addHours(24),
-            $canal === Canal::Web => now()->addMinutes(15),
+            $canal === Canal::Web && $etablissement->estRestaurant() => now()->addMinutes(15),
+            $canal === Canal::Web => now()->addHours(24),
             default => now()->addHours(2),
         };
 

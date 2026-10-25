@@ -360,6 +360,8 @@ commande de restaurant passée sur la vitrine expire 15 minutes après sa
 création, comme une commande de boutique, souvent avant que le
 commerçant ne l'ait vue. Il est différé avec le lot restauration, pas
 oublié.
+Résolu pour la boutique le 25 octobre (voir plus bas) ; le restaurant
+garde ses 15 minutes jusqu'au lot restauration.
 
 ## 2026-10-23 — Le type d'un établissement se corrige tant qu'il n'a aucun produit
 
@@ -688,3 +690,14 @@ refusé, pour qu'« Autre » ne serve pas à éviter des frais connus.
 Alternative écartée : n'accepter que les communes de la liste. Écartée
 parce que perdre un client de Bingerville coûte plus qu'un total sans
 frais de livraison.
+
+## 2026-10-25 — Une commande de la vitrine d'une boutique expire au bout de 24 heures
+
+Au lieu de 15 minutes, comme le Mobile Money. Un commerçant seul dans sa
+boutique, occupé avec un client, ne voyait pas la commande à temps : elle
+expirait, son stock était relâché, et le client attendait pour rien.
+Alternative écartée : un délai court avec une alerte au commerçant.
+Écartée parce qu'aucune alerte n'existe aujourd'hui, et qu'une commande
+perdue coûte plus que du stock réservé une journée. Le restaurant reste à
+15 minutes : un plat ne se réserve pas un jour, son délai propre viendra
+avec le lot restauration.
