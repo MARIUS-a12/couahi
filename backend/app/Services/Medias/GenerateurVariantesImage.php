@@ -75,7 +75,7 @@ class GenerateurVariantesImage
     /**
      * Retire du disque tous les fichiers produits par generer() ci-dessus —
      * utilisé quand la transaction qui devait les référencer en base échoue
-     * (limite de 5 photos atteinte par un envoi concurrent).
+     * (limite de photos atteinte par un envoi concurrent).
      */
     public function supprimer(string $disque, array $variantes): void
     {

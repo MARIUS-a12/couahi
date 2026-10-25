@@ -8,7 +8,10 @@ use App\Models\Commande;
 use App\Models\Etablissement;
 use App\Models\Produit;
 use App\Models\ReferenceWhatsapp;
+use App\Models\ValeurOption;
 use App\Models\VarianteProduit;
+use App\Services\Catalogue\GererVariantes;
+use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -19,6 +22,12 @@ use Tests\TestCase;
  * quatre routes publiques qui acceptent un produit ou une variante —
  * commande, vérification du panier, lien WhatsApp, fiche produit — et
  * chacune doit refuser, sans rien créer ni réserver.
+ *
+ * B3 : le sélecteur de la fiche choisit une combinaison de valeurs, mais
+ * n'envoie que l'identifiant de la variante qu'elle désigne. Les cas
+ * « combinaison » ci-dessous forgent cet identifiant sur les sandales de
+ * wax-adjame (Pointure × Coloris) : variante d'un autre produit, valeur
+ * archivée, ou aucune variante pour un produit qui en exige une.
  */
 class RequetesForgeesTest extends TestCase
 {
@@ -54,6 +63,19 @@ class RequetesForgeesTest extends TestCase
             'produit d’un autre établissement' => ['chez-awa', $this->produit('garba')->id, null],
             'variante d’un autre établissement' => ['chez-awa', $this->produit('riz-parfume-long-grain')->id, $this->variante('poulet-braise', 'Demi')->id],
             'combinaison inexistante' => ['chez-awa', $this->produit('riz-parfume-long-grain')->id, 999999],
+            'combinaison d’un autre produit' => ['wax-adjame', $this->produit('sandales-en-cuir-tresse')->id, $this->variante('wax-imprime-bouche-de-sika', '2 yards')->id],
+            'combinaison dont une valeur est archivée' => (function () {
+                $variante = $this->variante('sandales-en-cuir-tresse', '40 / Marron');
+                $etablissement = Etablissement::where('slug', 'wax-adjame')->firstOrFail();
+                app(ContexteEtablissement::class)->definir($etablissement);
+                app(GererVariantes::class)->archiverValeur(
+                    ValeurOption::pourTousEtablissements()->whereIn('id', $variante->valeurs()->pluck('valeurs_option.id'))->where('libelle', 'Marron')->firstOrFail()
+                );
+                app(ContexteEtablissement::class)->definir(null);
+
+                return ['wax-adjame', $variante->produit_id, $variante->id];
+            })(),
+            'combinaison incomplète (aucune variante choisie)' => ['wax-adjame', $this->produit('sandales-en-cuir-tresse')->id, null],
         };
     }
 
@@ -67,10 +89,22 @@ class RequetesForgeesTest extends TestCase
             'produit d’un autre établissement',
             'variante d’un autre établissement',
             'combinaison inexistante',
+            'combinaison d’un autre produit',
+            'combinaison dont une valeur est archivée',
         ])->mapWithKeys(fn (string $cas) => [$cas => [$cas]])->all();
     }
 
-    #[DataProvider('cas')]
+    /**
+     * Les cas de cas(), plus un qui n'a de sens qu'à l'achat : la fiche
+     * d'un produit à variantes se consulte sans choix, mais rien ne
+     * s'achète sans une combinaison complète.
+     */
+    public static function casAchat(): array
+    {
+        return self::cas() + ['combinaison incomplète (aucune variante choisie)' => ['combinaison incomplète (aucune variante choisie)']];
+    }
+
+    #[DataProvider('casAchat')]
     public function test_la_commande_est_refusee(string $cas): void
     {
         $this->seed();
@@ -91,7 +125,7 @@ class RequetesForgeesTest extends TestCase
         $this->assertSame($reservees, $this->totalReserve(), 'aucun stock réservé');
     }
 
-    #[DataProvider('cas')]
+    #[DataProvider('casAchat')]
     public function test_le_panier_ne_le_compte_pas(string $cas): void
     {
         $this->seed();
@@ -105,7 +139,7 @@ class RequetesForgeesTest extends TestCase
         $this->assertSame(0, $reponse->json('sous_total'));
     }
 
-    #[DataProvider('cas')]
+    #[DataProvider('casAchat')]
     public function test_aucun_lien_whatsapp_nest_genere(string $cas): void
     {
         $this->seed();

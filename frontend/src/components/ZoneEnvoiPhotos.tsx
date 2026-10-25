@@ -4,7 +4,7 @@
  * — voir PageFormulaireProduit). Clic ou glisser-déposer pour envoyer,
  * aperçu immédiat avec barre de progression, glisser une vignette pour
  * réordonner (la première devient la principale), suppression avec
- * confirmation. Maximum 5 photos.
+ * confirmation. Maximum 15 photos, comme le serveur (config medias.max_par_produit).
  *
  * Toute mise à jour (envoi, suppression, réordonnancement) écrit directement
  * dans le cache react-query de la requête produit plutôt que de garder son
@@ -20,7 +20,7 @@ import { envoyerMediaProduit, reordonnerMediasProduit, supprimerMediaProduit } f
 import type { Produit } from '../api/produits'
 import { confirmerSuppressionPhoto } from '../lib/confirmations'
 
-const MAX_PHOTOS = 5
+const MAX_PHOTOS = 15
 const POIDS_MAX_OCTETS = 8 * 1024 * 1024
 
 type EnvoiEnCours = {

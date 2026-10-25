@@ -15,6 +15,24 @@ export type VarianteVitrine = {
   disponible: boolean
 }
 
+/**
+ * Une variante de la fiche : sa combinaison (identifiants de valeurs, une
+ * par option) et sa photo, qui doit être l'une des photos du produit. La
+ * grille n'en a pas besoin et ne les reçoit pas (voir
+ * ExposeVariantesPubliques côté API).
+ */
+export type VarianteVitrineDetail = VarianteVitrine & {
+  valeurs: number[]
+  photo_id: number | null
+}
+
+/** Une dimension (Pointure, Coloris…), valeurs dans l'ordre du commerçant. */
+export type OptionVitrine = {
+  id: number
+  nom: string
+  valeurs: { id: number; libelle: string }[]
+}
+
 export type FormatPhoto = {
   webp: string | null
   jpg: string | null
@@ -58,7 +76,8 @@ export type ProduitVitrineDetail = {
   categorie: CategorieReferencee | null
   disponible: boolean
   photos: PhotoVitrine[]
-  variantes: VarianteVitrine[]
+  options: OptionVitrine[]
+  variantes: VarianteVitrineDetail[]
 }
 
 export type CategorieVitrine = {

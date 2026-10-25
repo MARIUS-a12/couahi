@@ -55,6 +55,18 @@ class VitrinePanierController extends Controller
             if ($variante === null || ! $variante->estActive()) {
                 return [$this->ligneRetiree($ligneBrute, $produit->nom), 0];
             }
+        } elseif ($produit->aDesVariantes()) {
+            // Même règle que CreerCommande::resoudreVariante() : sans choix,
+            // seule une variante active unique se déduit. Sinon la ligne
+            // n'est pas une combinaison complète, et la compter au prix du
+            // produit annoncerait un total que la commande refusera.
+            $actives = $produit->variantes->filter(fn ($candidate) => $candidate->estActive());
+
+            if ($actives->count() !== 1) {
+                return [$this->ligneRetiree($ligneBrute, $produit->nom), 0];
+            }
+
+            $variante = $actives->first();
         }
 
         $prixActuel = $variante?->prixEffectif() ?? $produit->prix;

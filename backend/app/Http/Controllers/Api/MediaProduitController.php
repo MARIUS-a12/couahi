@@ -27,7 +27,7 @@ class MediaProduitController extends Controller
 
     /**
      * Le comptage rapide avant traitement rejette d'emblée le cas courant
-     * (déjà 5 photos). Le second comptage, refait DANS la transaction avec
+     * (maximum déjà atteint). Le second comptage, refait DANS la transaction avec
      * verrou sur la ligne produit, ne rattrape que la course rare entre deux
      * envois concurrents — voir LimiteMediasAtteinteException.
      */

@@ -41,6 +41,7 @@ vi.mock('./api/vitrine', () => ({
     categorie: null,
     disponible: true,
     photos: [],
+    options: [],
     variantes: [],
   }),
   recupererCategoriesVitrine: vi.fn().mockResolvedValue([]),

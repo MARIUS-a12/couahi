@@ -257,7 +257,24 @@ proposé par le client est une demande de remise à soumettre au
 commerçant, jamais un prix à appliquer. Tout test de résolution part d'un
 message falsifié, pas d'un message intact.
 
+## Cache de la vitrine
+Les réponses publiques de la vitrine sont mises en cache 60 secondes.
+Toute modification de la forme d'une de ces réponses (un champ ajouté,
+retiré ou renommé) incrémente le numéro de format de CacheVitrine dans le
+même commit. Sinon, juste après la mise en ligne, la nouvelle interface
+reçoit l'ancienne forme pendant une minute : en B3, une fiche sans le
+nouveau champ faisait tomber la page.
+
 ## Documentation
+Aucun lot n'est terminé tant qu'ETAT.md, à la racine, n'est pas à jour.
+Il répond à « qu'est-ce que l'application sait faire aujourd'hui » en
+trois sections : ce qui fonctionne, ce qui existe à moitié (avec ce qui
+manque), ce qui n'existe pas encore (prochain lot en tête). En français
+simple, sans détail technique ni numéro de commit, et rempli d'après ce
+que le code fait réellement, vérifié, jamais d'après ce qu'on suppose :
+sans lui, chaque session repartait à l'aveugle, et une fonctionnalité
+existante a déjà été crue absente.
+
 Voir decisions.md à la racine pour le pourquoi des choix d'architecture
 non évidents. Ce fichier (AGENTS.md) ne contient que des règles de
 méthode, jamais une description du code (routes, permissions, tables) :

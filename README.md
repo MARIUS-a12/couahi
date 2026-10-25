@@ -17,6 +17,7 @@ que dans l'espace super-admin, sur le site de la plateforme et dans les
 |---|---|
 | `backend/` | API et règles métier : Laravel 13, PHP 8.4, PostgreSQL |
 | `frontend/` | Vitrine publique, back-office et espace super-admin : React 19, Vite, TypeScript, TanStack Query, Tailwind 4 |
+| `ETAT.md` | Ce que l'application sait faire aujourd'hui, ce qui existe à moitié, et la suite prévue |
 | `decisions.md` | Journal des choix d'architecture non évidents : le pourquoi, et l'alternative écartée |
 | `backend/AGENTS.md` | Règles de travail sur ce projet (méthode, pas description du code) |
 

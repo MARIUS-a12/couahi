@@ -18,6 +18,14 @@ class CacheVitrine
 {
     private const PREFIXE_VERSION = 'vitrine:version:';
 
+    /**
+     * La forme des réponses mises en cache. À incrémenter dès qu'une
+     * resource de la vitrine gagne ou perd un champ : sans ça, pendant 60 s
+     * après une mise en ligne, la nouvelle interface recevrait l'ancienne
+     * forme (B3 : une fiche sans « options » faisait tomber la page).
+     */
+    private const FORMAT = 2;
+
     public static function invalider(int $etablissementId): void
     {
         Cache::forever(self::PREFIXE_VERSION.$etablissementId, self::version($etablissementId) + 1);
@@ -25,7 +33,7 @@ class CacheVitrine
 
     public static function cle(int $etablissementId, string $suffixe): string
     {
-        return sprintf('vitrine:%d:v%d:%s', $etablissementId, self::version($etablissementId), $suffixe);
+        return sprintf('vitrine:f%d:%d:v%d:%s', self::FORMAT, $etablissementId, self::version($etablissementId), $suffixe);
     }
 
     private static function version(int $etablissementId): int

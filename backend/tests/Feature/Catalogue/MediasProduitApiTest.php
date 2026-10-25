@@ -234,30 +234,36 @@ class MediasProduitApiTest extends TestCase
         $this->assertNull(Media::pourTousEtablissements()->find($mediaId));
     }
 
-    public function test_6_sixieme_envoi_refuse(): void
+    /**
+     * 15 et non plus 5 : un t-shirt en 6 coloris doit pouvoir montrer une
+     * photo par coloris, et en garder pour les vues de détail.
+     */
+    public function test_6_envoi_au_dela_du_maximum_refuse(): void
     {
         Storage::fake('public');
         $this->seed();
         $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
         $produit = $this->produitDe('chez-awa');
+        $max = (int) config('medias.max_par_produit');
+        $this->assertSame(15, $max);
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= $max; $i++) {
             $this->depuis('chez-awa.localhost')->post(
                 "http://chez-awa.localhost:8000/api/produits/{$produit->id}/medias",
                 ['photo' => UploadedFile::fake()->image("photo-{$i}.jpg", 100, 100)],
             )->assertStatus(201);
         }
 
-        $sixieme = $this->depuis('chez-awa.localhost')->post(
+        $deTrop = $this->depuis('chez-awa.localhost')->post(
             "http://chez-awa.localhost:8000/api/produits/{$produit->id}/medias",
-            ['photo' => UploadedFile::fake()->image('photo-6.jpg', 100, 100)],
+            ['photo' => UploadedFile::fake()->image('photo-de-trop.jpg', 100, 100)],
         );
-        $sixieme->assertStatus(422);
+        $deTrop->assertStatus(422);
 
         $lecture = $this->depuis('chez-awa.localhost')
             ->getJson("http://chez-awa.localhost:8000/api/produits/{$produit->id}");
         $lecture->assertStatus(200);
-        $this->assertCount(5, $lecture->json('data.medias'));
+        $this->assertCount($max, $lecture->json('data.medias'));
     }
 
     /**

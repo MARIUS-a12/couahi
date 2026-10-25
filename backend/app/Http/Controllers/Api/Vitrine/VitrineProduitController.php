@@ -77,7 +77,7 @@ class VitrineProduitController extends Controller
         $donnees = Cache::remember($cle, 60, function () use ($id) {
             $produit = Produit::query()
                 ->where('statut', StatutProduit::Publie)
-                ->with(['medias' => fn ($requete) => $requete->orderByPivot('ordre'), 'categorie', 'variantes'])
+                ->with(['medias' => fn ($requete) => $requete->orderByPivot('ordre'), 'categorie', 'variantes.valeurs', 'options.valeurs'])
                 ->find($id);
 
             abort_if($produit === null, 404);

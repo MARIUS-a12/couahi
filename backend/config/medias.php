@@ -15,7 +15,7 @@ return [
     */
     'disque' => env('MEDIAS_DISQUE', 'public'),
 
-    'max_par_produit' => 5,
+    'max_par_produit' => 15,
 
     'poids_max_octets' => 8 * 1024 * 1024,
 

@@ -1,24 +1,29 @@
 /**
  * Écran public "/produit/:id" — fiche complète d'un produit publié, vue
  * par n'importe quel visiteur non connecté. Galerie de photos (trois
- * formats), description entière, sélection de variante s'il y en a, et les
- * trois actions d'achat (voir BoutonsAchatVitrine). Un identifiant qui ne
+ * formats), description entière, un sélecteur par dimension s'il y a des
+ * variantes (voir SelecteurVariantes), et les trois actions d'achat (voir
+ * BoutonsAchatVitrine). Un produit sans option n'a ni sélecteur ni garde :
+ * exactement la fiche d'avant les variantes. Un identifiant qui ne
  * correspond à aucun produit publié — brouillon, archivé, ou d'un autre
  * établissement — affiche l'état "introuvable", jamais un détail sur la
  * raison réelle (voir VitrineProduitController côté API).
  */
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ImageOff } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import type { VarianteVitrine } from '../api/vitrine'
+import type { ProduitVitrineDetail } from '../api/vitrine'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { BoutonsAchatVitrine } from '../components/BoutonsAchatVitrine'
 import { EtatErreur } from '../components/EtatErreur'
 import { ImageAvecFondu } from '../components/ImageAvecFondu'
+import { SelecteurVariantes } from '../components/SelecteurVariantes'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { useProduitVitrine } from '../hooks/useProduitVitrine'
 import { formaterMontant } from '../lib/formatage'
 import { prixAnnonce } from '../lib/prixVitrine'
+import type { SelectionVariante } from '../lib/selectionVariantes'
+import { basculerValeur, photoDeSelection, varianteDeSelection, variantesCompatibles } from '../lib/selectionVariantes'
 
 export function PageFicheProduitVitrine() {
   const { id } = useParams()
@@ -27,24 +32,53 @@ export function PageFicheProduitVitrine() {
   const { data: etablissement } = useEtablissementVitrine()
   const { data: produit, isPending, isError, error, refetch } = useProduitVitrine(produitId)
   const [indexPhoto, setIndexPhoto] = useState(0)
-  const [varianteChoisie, setVarianteChoisie] = useState<VarianteVitrine | null>(null)
+  const [selection, setSelection] = useState<SelectionVariante>({})
   // Un bouton d'achat cliqué sans variante : le sélecteur est entouré
   // jusqu'à ce qu'une variante soit choisie (voir BoutonsAchatVitrine).
   const [signalerVariante, setSignalerVariante] = useState(false)
   const selecteurRef = useRef<HTMLDivElement>(null)
+  const vignettesRef = useRef<HTMLDivElement>(null)
+
+  // La vignette active reste visible dans la bande : choisir un coloris
+  // dont la photo est la 6e la sélectionnait hors de l'écran (vérifié à
+  // 390 px). Défilement de la bande seule, jamais scrollIntoView, qui
+  // remonterait aussi la page jusqu'à elle alors qu'on est au sélecteur.
+  useEffect(() => {
+    const bande = vignettesRef.current
+    const vignette = bande?.children[indexPhoto] as HTMLElement | undefined
+    if (!bande || !vignette) {
+      return
+    }
+    bande.scrollLeft = vignette.offsetLeft - (bande.clientWidth - vignette.clientWidth) / 2
+  }, [indexPhoto])
 
   function guiderVersLesVariantes() {
     setSignalerVariante(true)
     const selecteur = selecteurRef.current
     selecteur?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     // Le focus suit, sans second défilement : au clavier ou au lecteur
-    // d'écran, on arrive sur la première variante à choisir.
-    selecteur?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true })
+    // d'écran, on arrive sur la première valeur choisissable de la
+    // première ligne encore vide.
+    selecteur
+      ?.querySelector<HTMLButtonElement>('[data-incomplete] button:not(:disabled)')
+      ?.focus({ preventScroll: true })
   }
 
-  function choisirVariante(variante: VarianteVitrine) {
-    setVarianteChoisie(variante)
+  /**
+   * La photo suit le choix dès qu'il désigne une seule photo (le coloris
+   * seul suffit), dans le gestionnaire et non dans un effet : un clic sur
+   * une vignette ensuite reste maître de la photo affichée.
+   */
+  function basculer(produitCourant: ProduitVitrineDetail, optionId: number, valeurId: number) {
+    const suivante = basculerValeur(selection, optionId, valeurId)
+    setSelection(suivante)
     setSignalerVariante(false)
+
+    const photoId = photoDeSelection(produitCourant.variantes, suivante)
+    const index = produitCourant.photos.findIndex((photo) => photo.id === photoId)
+    if (index >= 0) {
+      setIndexPhoto(index)
+    }
   }
 
   if (isPending) {
@@ -67,11 +101,13 @@ export function PageFicheProduitVitrine() {
   }
 
   const photoActive = produit.photos[indexPhoto] ?? produit.photos[0] ?? null
-  // Avant tout choix : le prix annoncé (« À partir de » si les variantes
-  // diffèrent, voir prixAnnonce) ; dès qu'une variante est choisie, le sien.
-  const annonce = prixAnnonce(produit.prix, produit.variantes)
-  const prixAffiche = varianteChoisie?.prix ?? annonce.montant
-  const aPartirDe = varianteChoisie === null && annonce.aPartirDe
+  const varianteChoisie = varianteDeSelection(produit.variantes, produit.options.length, selection)
+  // Le prix annoncé parmi les variantes encore possibles (« À partir de »
+  // si leurs prix diffèrent, voir prixAnnonce). Le choix complet n'en
+  // laisse qu'une : la mention tombe d'elle-même, et le prix est le sien.
+  const annonce = prixAnnonce(produit.prix, variantesCompatibles(produit.variantes, selection))
+  const prixAffiche = annonce.montant
+  const aPartirDe = annonce.aPartirDe
   const disponibleAffiche = varianteChoisie ? varianteChoisie.disponible : produit.disponible
 
   return (
@@ -105,7 +141,7 @@ export function PageFicheProduitVitrine() {
           </div>
 
           {produit.photos.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto">
+            <div ref={vignettesRef} className="relative flex gap-2 overflow-x-auto scroll-smooth">
               {produit.photos.map((photo, index) => (
                 <button
                   key={photo.id}
@@ -158,39 +194,17 @@ export function PageFicheProduitVitrine() {
           {produit.variantes.length > 0 && (
             <div
               ref={selecteurRef}
-              role="group"
-              aria-labelledby="titre-variantes"
               className={`-mx-2 -mt-2 scroll-mt-24 rounded-lg p-2 transition-[outline-color] duration-rapide ${
                 signalerVariante && varianteChoisie === null ? 'outline outline-2 outline-offset-0 outline-danger' : 'outline-none'
               }`}
             >
-              <span id="titre-variantes" className="mb-1.5 block text-petit font-medium text-texte">
-                Choisissez une variante <span className="font-normal text-texte-secondaire">(obligatoire)</span>
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {produit.variantes.map((variante) => {
-                  const estChoisie = varianteChoisie?.id === variante.id
-
-                  return (
-                    <button
-                      key={variante.id}
-                      type="button"
-                      onClick={() => choisirVariante(variante)}
-                      aria-pressed={estChoisie}
-                      className={`flex min-h-11 py-2 text-center leading-snug cursor-pointer items-center gap-1.5 rounded-md border px-3 text-corps font-medium transition-[background-color,transform] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-texte focus-visible:outline-offset-1 ${
-                        estChoisie
-                          ? 'border-texte bg-texte text-surface'
-                          : 'border-bordure text-texte hover:bg-surface-alt'
-                      } ${variante.disponible ? '' : 'opacity-50'}`}
-                    >
-                      {variante.nom}
-                      {!variante.disponible && (
-                        <span className="text-petit font-normal">(épuisé)</span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+              <SelecteurVariantes
+                options={produit.options}
+                variantes={produit.variantes}
+                photos={produit.photos}
+                selection={selection}
+                onBasculer={(optionId, valeurId) => basculer(produit, optionId, valeurId)}
+              />
             </div>
           )}
 
@@ -200,6 +214,7 @@ export function PageFicheProduitVitrine() {
             disponible={produit.disponible}
             variantes={produit.variantes}
             varianteChoisie={varianteChoisie}
+            optionsManquantes={produit.options.filter((option) => selection[option.id] === undefined).map((option) => option.nom)}
             modePaiement={etablissement?.mode_paiement ?? null}
             onVarianteManquante={guiderVersLesVariantes}
           />

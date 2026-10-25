@@ -542,8 +542,9 @@ Un produit à trois options (taille, coloris, longueur…) n'est ni testé
 ni garanti : la grille met alors le produit des deux premières en
 lignes, et personne ne l'a regardé sur un téléphone. Aucun commerçant
 n'en a besoin aujourd'hui ; c'est à reprendre avant d'en vendre un.
-Question ouverte, non tranchée : un produit est limité à 5 photos. Un
-t-shirt en 6 coloris ne peut donc pas avoir une photo par coloris.
+Question ouverte à cette date : un produit était limité à 5 photos, et un
+t-shirt en 6 coloris ne pouvait pas avoir une photo par coloris. Tranchée
+plus bas (15 photos).
 
 ## 2026-10-25 — Une suite de nombres s'ajoute d'un coup, en une requête
 
@@ -565,3 +566,58 @@ donne la suite dans l'ordre imposé par l'écran : les photos, puis les
 variantes, puis la photo de chaque coloris (choisie parmi les photos).
 L'écran n'est pas réorganisé. La modification, elle, ramène toujours à
 la liste.
+
+## 2026-10-25 — Un produit peut avoir 15 photos, pas 5
+
+Le prêt-à-porter est le premier métier visé : un t-shirt en 6 coloris doit
+pouvoir montrer une photo par coloris, et garder des vues de détail. Le
+coût a été mesuré avant de décider. Une photo est stockée en 6 fichiers
+(trois tailles, chacune en WebP et en JPEG ; l'original n'est pas gardé).
+Sur de vraies photographies passées dans le vrai générateur, cela fait de
+58 à 170 Ko par photo, soit 0,9 à 2,5 Mo pour un produit à 15 photos. Le
+plafond théorique (une image de bruit pur, qu'aucun appareil ne produit)
+est de 1,2 Mo par photo. Le client, lui, ne télécharge que la photo
+affichée et les vignettes, chargées à la demande. Le JPEG pèse environ deux
+tiers du total alors qu'il ne sert qu'aux navigateurs sans WebP : c'est là
+qu'on gagnerait de la place, si un jour il le faut.
+Alternative écartée : garder 5 photos, et laisser une seule photo servir
+plusieurs coloris. Écartée parce qu'elle contredit l'écran des variantes
+qu'on vient de construire, où chaque coloris choisit sa photo.
+
+## 2026-10-25 — Le sélecteur de la vitrine n'envoie que l'identifiant de la variante
+
+Le client choisit valeur par valeur (39, puis Noir), mais le panier, la
+commande et le lien WhatsApp ne reçoivent que l'identifiant de la
+variante désignée. Le serveur vérifie que cette variante appartient au
+produit, qu'elle est active, et qu'un produit à variantes n'est jamais
+acheté sans elle. La vérification du panier applique désormais la même
+règle que la commande : avant, une ligne sans variante comptait au prix du
+produit, pour un total que la commande refusait ensuite.
+Alternative écartée : envoyer les valeurs choisies et laisser le serveur
+retrouver la combinaison. Écartée parce qu'elle ouvre un second chemin
+d'achat à protéger, alors que l'identifiant de variante est déjà celui que
+toutes les routes savent refuser.
+
+## 2026-10-25 — Une combinaison impossible est grisée, jamais cachée ; la photo suit sans réglage
+
+Sur la fiche, le 39 reste visible quand le marron est choisi, grisé, avec
+une phrase qui le dit : le client doit savoir que la pointure existe, pas
+dans ce coloris. Une combinaison épuisée, elle, reste choisissable : on en
+voit le prix, et les boutons d'achat disent qu'elle est épuisée.
+Alternative écartée : masquer les valeurs impossibles. Écartée parce qu'un
+client qui ne voit plus son 39 conclut que la boutique ne l'a pas, et
+part.
+La photo principale change dès que toutes les variantes encore possibles
+ont la même photo : choisir « Noir » suffit, choisir « 41 », qui existe
+dans les deux coloris, ne change rien.
+Alternative écartée : faire désigner au commerçant l'option « couleur »
+du produit. Écartée parce que ce serait un réglage de plus pour lui, et
+que la photo déjà attribuée à chaque variante donne la même réponse sans
+qu'il ait rien à faire.
+À 390 px, la grande photo est un écran au-dessus du sélecteur : le client
+ne la voyait pas changer au moment où il touchait le coloris. Une
+vignette de la photo choisie s'affiche donc à côté de « Coloris : Gris
+chiné », seulement sur la ligne dont chaque valeur désigne une photo.
+Alternative écartée : remonter la page jusqu'à la photo à chaque choix.
+Écartée parce qu'elle arracherait le client au sélecteur alors qu'il lui
+reste la taille à choisir.

@@ -43,6 +43,7 @@ export function BoutonsAchatVitrine({
   disponible,
   variantes,
   varianteChoisie,
+  optionsManquantes = [],
   modePaiement,
   onVarianteManquante,
 }: {
@@ -51,6 +52,8 @@ export function BoutonsAchatVitrine({
   disponible: boolean
   variantes: VarianteVitrine[]
   varianteChoisie: VarianteVitrine | null
+  /** Les lignes du sélecteur encore vides (« Pointure »…), pour dire quoi choisir. */
+  optionsManquantes?: string[]
   modePaiement: ModePaiementVitrine | null
   onVarianteManquante: () => void
 }) {
@@ -79,7 +82,9 @@ export function BoutonsAchatVitrine({
   }
 
   const messageBlocage = aBesoinDuneVariante && varianteChoisie === null
-    ? 'Choisissez une variante ci-dessus pour continuer.'
+    ? optionsManquantes.length > 0
+      ? `Choisissez d’abord ci-dessus : ${listerEnFrancais(optionsManquantes.map((nom) => nom.toLowerCase()))}.`
+      : 'Choisissez une variante ci-dessus pour continuer.'
     : varianteIndisponible
       ? 'Cette variante est épuisée.'
       : !aBesoinDuneVariante && !disponible
@@ -207,4 +212,9 @@ export function BoutonsAchatVitrine({
       )}
     </div>
   )
+}
+
+/** « pointure », « pointure et coloris », « taille, coloris et longueur ». */
+function listerEnFrancais(mots: string[]): string {
+  return mots.length <= 1 ? mots.join('') : `${mots.slice(0, -1).join(', ')} et ${mots[mots.length - 1]}`
 }
