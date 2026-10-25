@@ -46,6 +46,7 @@ import { PageIntrouvableVitrine } from './pages/PageIntrouvableVitrine'
 import { PageListeCommandes } from './pages/PageListeCommandes'
 import { PageListeEtablissements } from './pages/PageListeEtablissements'
 import { PageListeProduits } from './pages/PageListeProduits'
+import { PageLivraison } from './pages/PageLivraison'
 import { PagePaiement } from './pages/PagePaiement'
 import { PagePaiementSuperAdmin } from './pages/PagePaiementSuperAdmin'
 import { PagePanier } from './pages/PagePanier'
@@ -106,6 +107,7 @@ export const routes = [
       // voir RouteProtegee, qui laisse passer ce chemin précis pour lui.
       { path: '/admin/compte', element: <PageCompte /> },
       { path: '/admin/paiement', element: <PagePaiement /> },
+      { path: '/admin/livraison', element: <PageLivraison /> },
       // Étape 12 — reste accessible même boutique suspendue : c'est par
       // ici que le commerçant régularise.
       { path: '/admin/abonnement', element: <PageAbonnement /> },

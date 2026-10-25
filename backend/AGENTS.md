@@ -209,6 +209,12 @@ De même, chaque configuration qu'un commerçant peut choisir a au moins un
 maquis-du-port), Mobile Money seul avec du stock compté (wax-adjame).
 DonneesDemoTest le vérifie.
 
+Une factory crée ce que le service de création crée : un établissement
+naît avec sa ligne de réglages du site (CreerEtablissement). Sans elle,
+les établissements de démo et de test ne ressemblaient à aucun
+établissement réel, et l'écran Livraison répondait 404 sur la démo
+seulement.
+
 ## Mémoire et images
 Tout traitement d'une image envoyée se prouve sous la limite de mémoire
 de production (128 Mo), dans un processus PHP neuf : un vrai serveur

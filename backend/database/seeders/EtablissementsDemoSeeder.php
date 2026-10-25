@@ -10,6 +10,7 @@ use App\Models\Etablissement;
 use App\Models\Produit;
 use App\Services\Catalogue\GererVariantes;
 use App\Services\Etablissements\MettreAJourLogoEtablissement;
+use App\Services\Livraison\GererZonesLivraison;
 use App\Support\Couleur\CouleurAccent;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
@@ -122,6 +123,8 @@ class EtablissementsDemoSeeder extends Seeder
             'hote' => 'wax-adjame.localhost',
             'est_principal' => true,
         ]);
+
+        $this->facturerLaLivraison($waxAdjame);
 
         $this->poserLogo($chezAwa, 'logo-chez-awa.jpg');
         $this->poserLogo($maquisDuPort, 'logo-maquis-du-port.jpg');
@@ -454,6 +457,23 @@ class EtablissementsDemoSeeder extends Seeder
             'statut' => StatutProduit::Archive,
         ]);
         $this->ajouterPhotos($archive, 1);
+    }
+
+    /**
+     * Les deux choix de livraison d'un commerçant ont chacun leur boutique de
+     * démo : chez-awa et maquis-du-port ne facturent pas la livraison (le
+     * client tape sa commune), wax-adjame la facture selon la commune, avec
+     * une commune où elle est offerte. Par le même service que l'écran
+     * Livraison, jamais en écrivant les lignes à la main.
+     */
+    private function facturerLaLivraison(Etablissement $waxAdjame): void
+    {
+        $service = app(GererZonesLivraison::class);
+        $service->choisirFacturation($waxAdjame, true);
+
+        foreach (['Adjamé' => 0, 'Plateau' => 1000, 'Cocody' => 1500, 'Yopougon' => 1500, 'Abobo' => 2000] as $commune => $frais) {
+            $service->ajouter($waxAdjame, $commune, $frais);
+        }
     }
 
     /**

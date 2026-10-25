@@ -28,6 +28,7 @@ import { SectionPaiementCommande } from '../components/SectionPaiementCommande'
 import { useCommande } from '../hooks/useCommande'
 import { useMoi } from '../hooks/useMoi'
 import { formaterMontant } from '../lib/formatage'
+import { libelleLivraisonCommande } from '../lib/livraison'
 
 const STATUTS_TERMINAUX = ['annulee', 'expiree', 'livree']
 
@@ -224,7 +225,7 @@ export function PageDetailCommande() {
           </div>
           <div className="flex justify-between text-texte-secondaire">
             <dt>Livraison{commande.zone_livraison ? ` — ${commande.zone_livraison.nom}` : ''}</dt>
-            <dd className="tabular-nums">{formaterMontant(commande.frais_livraison)}</dd>
+            <dd className="tabular-nums">{libelleLivraisonCommande(commande.zone_livraison ?? null, commande.frais_livraison)}</dd>
           </div>
           <div className="flex justify-between text-titre-section font-semibold text-texte">
             <dt>Total</dt>

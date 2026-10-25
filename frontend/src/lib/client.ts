@@ -63,3 +63,25 @@ client.interceptors.request.use(async (config) => {
 
   return config
 })
+
+/**
+ * Un cookie XSRF-TOKEN présent mais périmé (la session a disparu côté
+ * serveur : mise en ligne, cache vidé, session expirée) fait refuser chaque
+ * écriture par un 419, connexion comprise. assurerCookieCsrf() ne le
+ * renouvelle pas, puisque le cookie existe. Le commerçant restait bloqué
+ * sur « Impossible de contacter le serveur » jusqu'à vider ses cookies
+ * (vu à 390 px sur le back-office). Un 419 redemande donc un jeton neuf et
+ * rejoue la requête, une seule fois : un second 419 est une vraie erreur.
+ */
+client.interceptors.response.use(undefined, async (erreur) => {
+  const config = erreur?.config as (typeof erreur.config & { jetonRenouvele?: boolean }) | undefined
+
+  if (!axios.isAxiosError(erreur) || erreur.response?.status !== 419 || !config || config.jetonRenouvele) {
+    throw erreur
+  }
+
+  config.jetonRenouvele = true
+  await client.get('/sanctum/csrf-cookie')
+
+  return client.request(config)
+})

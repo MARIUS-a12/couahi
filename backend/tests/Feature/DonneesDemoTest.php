@@ -37,6 +37,24 @@ class DonneesDemoTest extends TestCase
         $this->assertSame('mobile_money', $this->modePropose('wax-adjame.localhost'));
     }
 
+    /**
+     * Les deux choix de livraison ont chacun leur boutique : sans zone, la
+     * vitrine laisse taper la commune ; avec, elle propose une liste et ses
+     * frais, dont une commune où la livraison est offerte.
+     */
+    public function test_les_deux_choix_de_livraison_de_la_demo(): void
+    {
+        $this->seed();
+
+        $this->getJson('http://chez-awa.localhost:8000/api/vitrine/zones-livraison')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('http://maquis-du-port.localhost:8000/api/vitrine/zones-livraison')->assertOk()->assertJsonCount(0, 'data');
+
+        $zones = collect($this->getJson('http://wax-adjame.localhost:8000/api/vitrine/zones-livraison')->assertOk()->json('data'));
+        $this->assertGreaterThanOrEqual(3, $zones->count());
+        $this->assertTrue($zones->contains(fn (array $zone) => $zone['frais'] === 0), 'une commune où la livraison est offerte');
+        $this->assertTrue($zones->contains(fn (array $zone) => $zone['frais'] > 0), 'une commune où elle est facturée');
+    }
+
     public function test_wax_adjame_vend_en_stock_compte_et_couvre_les_cas_du_catalogue(): void
     {
         $this->seed();

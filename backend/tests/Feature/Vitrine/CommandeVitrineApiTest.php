@@ -8,6 +8,7 @@ use App\Models\Client;
 use App\Models\Commande;
 use App\Models\Etablissement;
 use App\Models\Produit;
+use App\Services\Livraison\GererZonesLivraison;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -238,6 +239,9 @@ class CommandeVitrineApiTest extends TestCase
         // de payloadLivraison() — c'est désormais la commune choisie, pas un
         // zone_livraison_id séparé, qui détermine la zone (voir le correctif
         // livraison : "on ne demande pas deux fois la même chose").
+        // Les zones ne se facturent que si le commerçant l'a choisi (voir
+        // Etablissement::zonesLivraisonProposees).
+        app(GererZonesLivraison::class)->choisirFacturation($chezAwa, true);
         $chezAwa->zonesLivraison()->create(['nom' => 'Cocody', 'frais' => 1500]);
 
         $reponse = $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/vitrine/commandes', [

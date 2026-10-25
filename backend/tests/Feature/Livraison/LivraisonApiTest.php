@@ -1,0 +1,225 @@
+<?php
+
+namespace Tests\Feature\Livraison;
+
+use App\Enums\Canal;
+use App\Enums\SourceCommande;
+use App\Enums\StatutZoneLivraison;
+use App\Models\Etablissement;
+use App\Models\Produit;
+use App\Models\ZoneLivraison;
+use App\Services\Commandes\CreerCommande;
+use App\Services\Commandes\LigneCommandeDemandee;
+use App\Support\Tenancy\ContexteEtablissement;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
+use Tests\TestCase;
+
+/**
+ * L'écran « Livraison » du commerçant : facturer selon la commune ou non,
+ * et ses zones. Puis ce que la vitrine en fait : une zone ne se facture
+ * que si le commerçant a choisi de facturer, même par requête forgée.
+ */
+class LivraisonApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private const HOTE = 'http://chez-awa.localhost:8000';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
+
+    private function connecte(string $hote = 'chez-awa.localhost', string $email = 'awa@chez-awa.test'): static
+    {
+        $this->withHeader('Referer', "http://{$hote}:8000")
+            ->postJson("http://{$hote}:8000/api/connexion", ['email' => $email, 'mot_de_passe' => 'motdepasse'])
+            ->assertStatus(200);
+
+        return $this;
+    }
+
+    private function chezAwa(): Etablissement
+    {
+        return Etablissement::where('slug', 'chez-awa')->firstOrFail();
+    }
+
+    private function ajouter(string $nom, int $frais): TestResponse
+    {
+        return $this->postJson(self::HOTE.'/api/parametres/livraison/zones', ['nom' => $nom, 'frais' => $frais]);
+    }
+
+    private function zone(string $nom): ZoneLivraison
+    {
+        return ZoneLivraison::pourTousEtablissements()->where('etablissement_id', $this->chezAwa()->id)->where('nom', $nom)->firstOrFail();
+    }
+
+    private ?Produit $produitEnStock = null;
+
+    private function commanderSurLaVitrine(string $commune): TestResponse
+    {
+        // Un produit bien approvisionné : plusieurs commandes par test, et
+        // la livraison seule doit pouvoir les faire échouer.
+        $produit = $this->produitEnStock ??= Produit::factory()->for($this->chezAwa())->publie()->create(['quantite_stock' => 50, 'quantite_reservee' => 0]);
+
+        return $this->postJson(self::HOTE.'/api/vitrine/commandes', [
+            'lignes' => [['produit_id' => $produit->id, 'quantite' => 1]],
+            'client' => ['nom' => 'Koffi', 'telephone' => '0701020304'],
+            'commune' => $commune,
+            'quartier' => 'Niangon',
+            'cle_idempotence' => 'livraison-'.md5($commune.microtime()),
+        ]);
+    }
+
+    public function test_le_commercant_cree_modifie_et_retire_ses_zones(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true])->assertOk()->assertJsonPath('data.par_commune', true);
+
+        $this->ajouter('Yopougon', 1500)->assertOk();
+        $reponse = $this->ajouter('Cocody', 0)->assertOk();
+        $this->assertSame([['Cocody', 0], ['Yopougon', 1500]], array_map(fn ($z) => [$z['nom'], $z['frais']], $reponse->json('data.zones')));
+
+        $this->putJson(self::HOTE."/api/parametres/livraison/zones/{$this->zone('Yopougon')->id}", ['nom' => 'Yopougon', 'frais' => 2000])
+            ->assertOk()->assertJsonPath('data.zones.1.frais', 2000);
+
+        $this->deleteJson(self::HOTE."/api/parametres/livraison/zones/{$this->zone('Cocody')->id}")->assertOk()->assertJsonCount(1, 'data.zones');
+        $this->assertSame(0, ZoneLivraison::pourTousEtablissements()->where('etablissement_id', $this->chezAwa()->id)->where('nom', 'Cocody')->count(), 'jamais utilisée : effacée');
+    }
+
+    public function test_une_zone_deja_facturee_est_archivee_jamais_effacee(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Yopougon', 1500);
+        $this->commanderSurLaVitrine('Yopougon')->assertCreated();
+
+        $this->deleteJson(self::HOTE."/api/parametres/livraison/zones/{$this->zone('Yopougon')->id}")->assertOk()->assertJsonCount(0, 'data.zones');
+
+        $this->assertSame(StatutZoneLivraison::Inactif, $this->zone('Yopougon')->statut);
+        $commande = $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->firstOrFail();
+        $this->assertSame($this->zone('Yopougon')->id, $commande->zone_livraison_id);
+        $this->assertSame(1500, $commande->frais_livraison);
+    }
+
+    public function test_modifier_les_frais_ne_change_aucune_commande_passee(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Yopougon', 1500);
+        $this->commanderSurLaVitrine('Yopougon')->assertCreated();
+
+        $this->putJson(self::HOTE."/api/parametres/livraison/zones/{$this->zone('Yopougon')->id}", ['nom' => 'Yopougon', 'frais' => 3000])->assertOk();
+
+        $this->assertSame(1500, $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->value('frais_livraison'));
+    }
+
+    public function test_deux_zones_du_meme_nom_sont_refusees(): void
+    {
+        $this->connecte();
+        $this->ajouter('Cocody', 1000)->assertOk();
+
+        $this->ajouter('  cocody ', 500)->assertStatus(422)->assertJsonValidationErrors('nom');
+    }
+
+    public function test_des_frais_negatifs_ou_a_virgule_sont_refuses(): void
+    {
+        $this->connecte();
+
+        $this->ajouter('Cocody', -500)->assertStatus(422)->assertJsonValidationErrors('frais');
+        $this->postJson(self::HOTE.'/api/parametres/livraison/zones', ['nom' => 'Cocody', 'frais' => 1500.5])->assertStatus(422)->assertJsonValidationErrors('frais');
+    }
+
+    public function test_un_operateur_sans_gerer_parametres_recoit_403(): void
+    {
+        $this->connecte('maquis-du-port.localhost', 'yao@maquis-du-port.test');
+
+        $this->getJson('http://maquis-du-port.localhost:8000/api/parametres/livraison')->assertForbidden();
+        $this->postJson('http://maquis-du-port.localhost:8000/api/parametres/livraison/zones', ['nom' => 'Plateau', 'frais' => 1000])->assertForbidden();
+    }
+
+    public function test_la_zone_dun_autre_etablissement_est_introuvable(): void
+    {
+        $waxAdjame = Etablissement::where('slug', 'wax-adjame')->firstOrFail();
+        app(ContexteEtablissement::class)->definir($waxAdjame);
+        $zoneAutre = $waxAdjame->zonesLivraison()->create(['nom' => 'Adjamé', 'frais' => 500]);
+        app(ContexteEtablissement::class)->definir(null);
+        $this->connecte();
+
+        $this->putJson(self::HOTE."/api/parametres/livraison/zones/{$zoneAutre->id}", ['nom' => 'Piratée', 'frais' => 0])->assertNotFound();
+        $this->deleteJson(self::HOTE."/api/parametres/livraison/zones/{$zoneAutre->id}")->assertNotFound();
+        $this->assertSame(500, $zoneAutre->fresh()->frais);
+    }
+
+    public function test_sans_facturation_la_vitrine_ne_propose_aucune_zone_et_ne_facture_rien(): void
+    {
+        $this->connecte();
+        $this->ajouter('Yopougon', 1500);
+        // Des zones existent, mais le commerçant ne facture pas la livraison.
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => false]);
+
+        $this->getJson(self::HOTE.'/api/vitrine/zones-livraison')->assertOk()->assertJsonCount(0, 'data');
+        $this->commanderSurLaVitrine('Yopougon')->assertCreated();
+
+        $commande = $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->firstOrFail();
+        $this->assertNull($commande->zone_livraison_id, 'une zone non proposée ne se facture pas, même nommée');
+        $this->assertSame(0, $commande->frais_livraison);
+        // Et la commune reste libre : une commune absente des zones passe.
+        $this->commanderSurLaVitrine('Marcory')->assertCreated();
+    }
+
+    public function test_avec_facturation_la_commune_doit_etre_dans_la_liste_et_ses_frais_sappliquent(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Yopougon', 1500);
+
+        $this->getJson(self::HOTE.'/api/vitrine/zones-livraison')->assertOk()->assertJsonPath('data.0.nom', 'Yopougon');
+        $this->commanderSurLaVitrine('Marcory')->assertStatus(422)->assertJsonValidationErrors('commune');
+        $this->commanderSurLaVitrine('Yopougon')->assertCreated();
+
+        $commande = $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->firstOrFail();
+        $this->assertSame(1500, $commande->frais_livraison);
+        $this->assertSame($commande->sous_total + 1500, $commande->total);
+    }
+
+    public function test_une_zone_archivee_ne_se_choisit_plus(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Yopougon', 1500);
+        $this->ajouter('Cocody', 1000);
+        $this->commanderSurLaVitrine('Yopougon')->assertCreated();
+        $this->deleteJson(self::HOTE."/api/parametres/livraison/zones/{$this->zone('Yopougon')->id}");
+
+        $this->commanderSurLaVitrine('Yopougon')->assertStatus(422)->assertJsonValidationErrors('commune');
+    }
+
+    /**
+     * La saisie manuelle (lot C) passera par CreerCommande avec une zone
+     * résolue de la même façon : ce test fixe que le service applique les
+     * frais de la zone qu'on lui donne, et rien d'autre.
+     */
+    public function test_creer_commande_reprend_les_frais_de_la_zone(): void
+    {
+        $etablissement = $this->chezAwa();
+        app(ContexteEtablissement::class)->definir($etablissement);
+        $zone = $etablissement->zonesLivraison()->create(['nom' => 'Plateau', 'frais' => 2500]);
+        $produit = Produit::where('slug', 'attieke-frais-du-jour')->firstOrFail();
+
+        $commande = app(CreerCommande::class)->executer(
+            $etablissement,
+            $etablissement->clients()->create(['nom' => 'Client Plateau']),
+            [new LigneCommandeDemandee($produit->id, null, 1)],
+            Canal::Web,
+            SourceCommande::PanierWeb,
+            'livraison-service',
+            zoneLivraison: $zone,
+        );
+
+        $this->assertSame(2500, $commande->frais_livraison);
+        $this->assertSame($produit->prix + 2500, $commande->total);
+    }
+}

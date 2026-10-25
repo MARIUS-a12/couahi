@@ -33,6 +33,7 @@ import { useVerifierPanier } from '../hooks/useVerifierPanier'
 import { creerCommandeVitrine, recupererZonesLivraison } from '../api/vitrine'
 import { allerAuPremierChampEnErreur, extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
+import { libelleFrais } from '../lib/livraison'
 import { IconeMobileMoney } from '../components/IconeMobileMoney'
 
 const ORDRE_CHAMPS = ['client.nom', 'client.telephone', 'commune', 'quartier']
@@ -179,7 +180,7 @@ export function PageCommander() {
                   </option>
                   {requeteZones.data?.map((zone) => (
                     <option key={zone.id} value={zone.nom}>
-                      {zone.nom} — {formaterMontant(zone.frais)}
+                      {zone.nom} — {libelleFrais(zone.frais)}
                     </option>
                   ))}
                 </select>
@@ -259,7 +260,9 @@ export function PageCommander() {
             </div>
             <div className="flex justify-between text-texte-secondaire">
               <span>Livraison</span>
-              <span className="tabular-nums">{formaterMontant(fraisLivraison)}</span>
+              <span className="tabular-nums">
+                {!zonesExistent ? 'À convenir avec la boutique' : zoneChoisie ? libelleFrais(zoneChoisie.frais) : 'Selon la commune'}
+              </span>
             </div>
             <div className="flex justify-between text-titre-section font-semibold text-texte">
               <span>Total</span>

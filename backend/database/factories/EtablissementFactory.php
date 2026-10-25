@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Etablissement;
+use App\Models\ParametreSite;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -28,6 +29,19 @@ class EtablissementFactory extends Factory
             'fuseau_horaire' => 'Africa/Abidjan',
             'devise' => 'XOF',
         ];
+    }
+
+    /**
+     * CreerEtablissement crée toujours la ligne de réglages du site avec
+     * l'établissement : un établissement de test ou de démo qui en serait
+     * privé ne ressemblerait à aucun établissement réel (l'écran Livraison
+     * répondait 404 sur la démo, jamais en production).
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Etablissement $etablissement): void {
+            ParametreSite::create(['etablissement_id' => $etablissement->id]);
+        });
     }
 
     public function boutique(): static

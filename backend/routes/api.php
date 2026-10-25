@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CompteController;
 use App\Http\Controllers\Api\ConsultationPlateformeController;
 use App\Http\Controllers\Api\EtablissementController;
 use App\Http\Controllers\Api\IdentiteEtablissementController;
+use App\Http\Controllers\Api\LivraisonController;
 use App\Http\Controllers\Api\MediaProduitController;
 use App\Http\Controllers\Api\MembreEquipeController;
 use App\Http\Controllers\Api\MobileMoneyEtablissementController;
@@ -214,6 +215,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'destroy']);
 
         Route::get('/statistiques', [StatistiquesController::class, 'index']);
+
+        // Zones de livraison et choix de facturer la livraison (chemin
+        // commerçant), "gerer_parametres" : voir LivraisonController.
+        Route::get('/parametres/livraison', [LivraisonController::class, 'show']);
+        Route::put('/parametres/livraison', [LivraisonController::class, 'choisirFacturation']);
+        Route::post('/parametres/livraison/zones', [LivraisonController::class, 'ajouterZone']);
+        Route::put('/parametres/livraison/zones/{zone}', [LivraisonController::class, 'modifierZone']);
+        Route::delete('/parametres/livraison/zones/{zone}', [LivraisonController::class, 'retirerZone']);
 
         // Étape 12 — abonnement (chemin commerçant, son propre
         // établissement) : lecture seule, "gerer_parametres" exigé. Hors de

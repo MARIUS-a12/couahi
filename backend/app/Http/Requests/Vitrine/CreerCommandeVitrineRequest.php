@@ -3,8 +3,6 @@
 namespace App\Http\Requests\Vitrine;
 
 use App\Enums\ModePaiement;
-use App\Enums\StatutZoneLivraison;
-use App\Models\ZoneLivraison;
 use App\Rules\NumeroTelephoneIvoirien;
 use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Foundation\Http\FormRequest;
@@ -20,7 +18,8 @@ use Illuminate\Validation\Rules\In;
  *
  * Correctif livraison — remplace "zone_livraison_id" : un seul champ
  * "commune" ("on ne demande pas deux fois la même chose"), liste déroulante
- * quand l'établissement a des zones actives, texte libre sinon. Dans le
+ * quand l'établissement facture la livraison par commune, texte libre sinon
+ * (voir Etablissement::zonesLivraisonProposees). Dans le
  * premier cas, la commune DOIT correspondre au nom d'une zone active DE CET
  * ÉTABLISSEMENT — c'est VitrineCommandeController qui la résout ensuite en
  * ZoneLivraison pour le calcul du frais, jamais un identifiant envoyé par le
@@ -95,9 +94,7 @@ class CreerCommandeVitrineRequest extends FormRequest
      */
     private function regleCommune(): array
     {
-        $nomsZonesActives = ZoneLivraison::where('etablissement_id', app(ContexteEtablissement::class)->id())
-            ->where('statut', StatutZoneLivraison::Actif->value)
-            ->pluck('nom');
+        $nomsZonesActives = app(ContexteEtablissement::class)->obtenir()->zonesLivraisonProposees()->pluck('nom');
 
         return $nomsZonesActives->isNotEmpty() ? [Rule::in($nomsZonesActives)] : ['max:100'];
     }

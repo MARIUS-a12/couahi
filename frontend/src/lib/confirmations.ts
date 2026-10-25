@@ -25,3 +25,12 @@ export function confirmerSuppressionLogo(): boolean {
     "Ce logo sera retiré de votre vitrine ; le nom de l'établissement s'affichera à la place.\n\nRetirer le logo ?",
   )
 }
+
+/**
+ * Une zone déjà facturée n'est pas effacée mais archivée côté serveur :
+ * les commandes passées gardent leur commune et leurs frais. Le texte dit
+ * seulement ce qui change pour le client.
+ */
+export function confirmerRetraitZone(commune: string): boolean {
+  return window.confirm(`${commune} ne sera plus proposée à vos clients. Les commandes déjà passées ne changent pas.\n\nRetirer ${commune} ?`)
+}

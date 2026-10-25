@@ -34,7 +34,16 @@ class MigrationVariantesEnCombinaisonsTest extends PostgresTestCase
 
     public function test_les_8_variantes_de_demo_deviennent_des_combinaisons_sans_rien_perdre(): void
     {
-        $this->artisan('migrate:rollback', ['--database' => 'pgsql_testing', '--path' => self::MIGRATIONS_B1, '--step' => 3, '--force' => true])->assertSuccessful();
+        // --step compte les DERNIÈRES migrations passées, avant le filtre par
+        // --path : avec un « 3 » fixe, la première migration ajoutée après
+        // B1 suffisait à laisser une migration de B1 en place. On recule donc
+        // de toutes les migrations depuis la première de B1 ; celles qui ne
+        // sont pas de B1 sont écartées par --path et restent appliquées.
+        $depuisB1 = count(array_filter(
+            glob(database_path('migrations/*.php')),
+            fn (string $fichier) => basename($fichier) >= basename(self::MIGRATIONS_B1[0]),
+        ));
+        $this->artisan('migrate:rollback', ['--database' => 'pgsql_testing', '--path' => self::MIGRATIONS_B1, '--step' => $depuisB1, '--force' => true])->assertSuccessful();
         $this->assertFalse(Schema::hasTable('options_produit'), 'le schéma est bien revenu avant B1');
         $this->assertTrue(Schema::hasColumn('variantes_produit', 'attributs_json'));
 

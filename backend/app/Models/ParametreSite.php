@@ -22,12 +22,14 @@ class ParametreSite extends Model
     protected $attributes = [
         'accepte_commandes' => true,
         'delai_preparation_minutes' => 30,
+        'livraison_par_commune' => false,
     ];
 
     protected $fillable = [
         'etablissement_id',
         'accepte_commandes',
         'delai_preparation_minutes',
+        'livraison_par_commune',
     ];
 
     protected function casts(): array
@@ -35,6 +37,7 @@ class ParametreSite extends Model
         return [
             'accepte_commandes' => 'boolean',
             'delai_preparation_minutes' => 'integer',
+            'livraison_par_commune' => 'boolean',
         ];
     }
 

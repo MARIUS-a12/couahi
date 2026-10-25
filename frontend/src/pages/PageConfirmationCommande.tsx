@@ -28,6 +28,7 @@ import { EtatErreur } from '../components/EtatErreur'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { recupererCommandeVitrine } from '../api/vitrine'
 import { formaterMontant } from '../lib/formatage'
+import { libelleLivraisonCommande } from '../lib/livraison'
 import { IconeMobileMoney } from '../components/IconeMobileMoney'
 
 const LIBELLES_STATUT: Record<string, string> = {
@@ -159,7 +160,7 @@ export function PageConfirmationCommande() {
           </div>
           <div className="flex justify-between text-texte-secondaire">
             <span>Livraison{commande.zone_livraison ? ` (${commande.zone_livraison.nom})` : ''}</span>
-            <span className="tabular-nums">{formaterMontant(commande.frais_livraison)}</span>
+            <span className="tabular-nums">{libelleLivraisonCommande(commande.zone_livraison, commande.frais_livraison)}</span>
           </div>
           <div className="flex justify-between text-titre-section font-semibold text-texte">
             <span>Total</span>

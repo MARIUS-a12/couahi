@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 25 octobre 2026, photos de téléphone corrigées.
+Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 
 ## Ce qui existe et fonctionne
 
@@ -18,13 +18,14 @@ Dernière mise à jour : 25 octobre 2026, photos de téléphone corrigées.
 - Un produit sans variante s'affiche simplement, sans sélecteur.
 - Le panier est gardé sur le téléphone du client. Avant la commande, les prix et le stock sont revérifiés, et un article devenu indisponible est signalé.
 - Le client commande avec son nom, son téléphone, sa commune et son quartier, puis reçoit une page de confirmation avec le numéro de sa commande.
+- Livraison : si la boutique la facture, le client choisit sa commune dans la liste et ses frais s'ajoutent au total (« Offerte » quand ils sont à 0). Sinon, il tape sa commune et lit « Livraison : à convenir avec la boutique », jamais « 0 FCFA ».
 - « Commander sur WhatsApp » ouvre WhatsApp avec un message pré-rempli. Le serveur relit la référence du message, jamais le prix tapé dedans.
 - Paiement par Mobile Money : le client reçoit le numéro à payer, et le commerçant confirme lui-même l'argent reçu.
 - Un lien de boutique partagé sur WhatsApp ou Facebook s'affiche avec le nom, la description et une image.
 - La vitrine d'un commerce dont l'abonnement est impayé est coupée, mais son back-office reste ouvert.
 
 **Le back-office du commerçant**
-- Connexion sécurisée. Seules les erreurs de mot de passe comptent pour un blocage, jamais les connexions réussies.
+- Connexion sécurisée. Seules les erreurs de mot de passe comptent pour un blocage, jamais les connexions réussies. Une session perdue côté serveur ne bloque plus la connexion suivante.
 - Un employé active son compte avec un code donné par l'administrateur.
 - Produits : création, modification, brouillon ou publié, archivage (jamais d'effacement).
 - Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale.
@@ -38,6 +39,7 @@ Dernière mise à jour : 25 octobre 2026, photos de téléphone corrigées.
 - Tableau de bord avec les chiffres des commandes.
 - Équipe : ajout de membres avec un rôle, désactivation, nouveau code d'activation.
 - Identité du commerce : nom, logo, description, coordonnées, horaires (affichés, sans bloquer les commandes).
+- Livraison : le commerçant choisit de facturer la livraison selon la commune ou de ne pas la facturer sur le site, et tient la liste de ses communes avec leurs frais (0 pour offerte). Changer des frais ne touche aucune commande passée.
 - Mon compte : profil et mot de passe.
 - Le commerçant voit chaque consultation de ses données commerciales par l'équipe de la plateforme.
 
@@ -49,24 +51,22 @@ Dernière mise à jour : 25 octobre 2026, photos de téléphone corrigées.
 
 ## Ce qui existe à moitié
 
-**Bloquant pour la mise en ligne, tant que ce n'est pas corrigé :**
-- **Zones de livraison** : la vitrine sait proposer une liste de communes avec des frais, mais aucun écran ne permet de créer ces zones. Seules les boutiques de démonstration en ont. Reste à vérifier dans un vrai navigateur ce que voit le client d'une boutique sans zone.
+Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de téléphone et les zones de livraison sont corrigées.
 
-**Le reste :**
 - **Photos envoyées depuis un ordinateur** : elles ne passent pas par la réduction du navigateur, et sans un réglage du serveur (l'extension exif, à prévoir pour la mise en ligne), un portrait peut apparaître couché.
 - **Ajout de photo au téléphone** : le bouton ouvre directement l'appareil photo, sans proposer de choisir une photo déjà prise dans la galerie. À trancher.
 - **CinetPay** : un commerce peut enregistrer ses identifiants, gardés chiffrés, mais aucun paiement CinetPay n'est encore possible. Le bouton « Payer maintenant » reste donc caché.
 - **Demandes WhatsApp** : chaque clic sur « Commander sur WhatsApp » laisse une trace que le serveur sait relire, mais aucun écran ne les montre encore au commerçant (lot D).
 - **Restaurants** : ils fonctionnent comme une boutique. Une commande de restaurant expire 15 minutes après sa création, souvent avant d'avoir été vue ; ce bug est connu et reporté avec le lot restauration.
+- **Livraison par commune** : un client dont la commune n'est pas dans la liste du commerçant ne peut pas commander en ligne ; il lui reste WhatsApp. Pas de « Autre commune » pour l'instant.
 - **Produits à trois dimensions** (taille, coloris, longueur) : enregistrables, mais ni la grille du back-office ni le sélecteur de la vitrine n'ont été vérifiés sur téléphone dans ce cas.
 
 ## Ce qui n'existe pas encore
 
-1. **Prochain : l'écran des zones de livraison** : le commerçant crée ses zones et leurs frais, ou choisit de ne facturer aucune livraison. Avant le lot C, qui utilise les mêmes communes et les mêmes frais.
-2. **Lot C : saisie manuelle des commandes au back-office**, pour une commande reçue par téléphone ou en boutique.
-3. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
-4. **Lot E** : les tests de non-régression de la vitrine.
-5. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+1. **Lot C, prochain lot : saisie manuelle des commandes au back-office**, pour une commande reçue par téléphone ou en boutique, avec les mêmes communes et les mêmes frais que la vitrine.
+2. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
+3. **Lot E** : les tests de non-régression de la vitrine.
+4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 

@@ -120,11 +120,11 @@ function routeDeclaree(chemin: string): string | undefined {
 }
 
 describe('navigation du back-office selon les permissions renvoyées par /api/moi', () => {
-  it("un administrateur d'établissement voit Mon compte, Identité de la boutique, Paiement, Abonnement, et Équipe dans la barre", () => {
+  it("un administrateur d'établissement voit Mon compte, Identité de la boutique, Paiement, Livraison, Abonnement, et Équipe dans la barre", () => {
     afficherNavigation(moiAvec('admin_etablissement', PERMISSIONS_ADMIN_ETABLISSEMENT))
 
     expect(libellesDeLaBarre()).toEqual(['Produits', 'Commandes', 'Catégories', 'Équipe'])
-    expect(libellesDuMenu()).toEqual(['Mon compte', 'Identité de la boutique', 'Paiement', 'Abonnement'])
+    expect(libellesDuMenu()).toEqual(['Mon compte', 'Identité de la boutique', 'Paiement', 'Livraison', 'Abonnement'])
   })
 
   it('un opérateur ne voit que Mon compte dans le menu, et pas Équipe dans la barre', () => {

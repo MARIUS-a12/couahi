@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\ModePaiement;
 use App\Enums\OperateurMobileMoney;
 use App\Enums\StatutEtablissement;
+use App\Enums\StatutZoneLivraison;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -127,6 +129,30 @@ class Etablissement extends Model
     public function zonesLivraison(): HasMany
     {
         return $this->hasMany(ZoneLivraison::class);
+    }
+
+    /**
+     * Les communes que le client peut choisir, avec leurs frais. Vide quand
+     * le commerçant ne facture pas la livraison, ou n'a encore créé aucune
+     * zone : le client tape alors sa commune librement, et rien n'est
+     * ajouté au total. Seul point de décision, lu par la vitrine, par la
+     * validation de la commande et par la résolution de la zone : une zone
+     * cachée par l'écran ne doit pas pouvoir être facturée par une requête
+     * forgée.
+     *
+     * @return Collection<int, ZoneLivraison>
+     */
+    public function zonesLivraisonProposees(): Collection
+    {
+        if (! ($this->parametreSite()->pourTousEtablissements()->value('livraison_par_commune') ?? false)) {
+            return new Collection;
+        }
+
+        return $this->zonesLivraison()
+            ->pourTousEtablissements()
+            ->where('statut', StatutZoneLivraison::Actif)
+            ->orderBy('nom')
+            ->get();
     }
 
     public function commandes(): HasMany

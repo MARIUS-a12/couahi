@@ -1,6 +1,6 @@
 /**
  * Menu utilisateur déroulant de l'en-tête back-office (Étape 7) : identité,
- * accès à Mon compte / Identité de la boutique / Paiement / Abonnement
+ * accès à Mon compte / Identité de la boutique / Paiement / Livraison / Abonnement
  * (masqués sans gerer_parametres), déconnexion. Entièrement roulé à la main — aucune
  * librairie de menu n'est une dépendance du projet (voir PanneauMessage pour
  * le seul autre overlay existant, dont ce composant reprend l'esprit :
@@ -9,7 +9,7 @@
  * grand écran, feuille montant du bas sur mobile — jamais une liste
  * flottante trop étroite pour le pouce.
  */
-import { ChevronDown, CreditCard, LogOut, Settings, User, Wallet } from 'lucide-react'
+import { ChevronDown, CreditCard, LogOut, Settings, Truck, User, Wallet } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -63,6 +63,12 @@ export function MenuUtilisateur({ moi }: { moi: Moi }) {
             libelle: 'Paiement',
             icone: CreditCard,
             action: () => navigate('/admin/paiement'),
+          },
+          {
+            id: 'livraison',
+            libelle: 'Livraison',
+            icone: Truck,
+            action: () => navigate('/admin/livraison'),
           },
           {
             id: 'abonnement',

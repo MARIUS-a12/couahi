@@ -5,6 +5,7 @@ namespace Tests\Feature\Vitrine;
 use App\Models\Commande;
 use App\Models\Etablissement;
 use App\Models\Produit;
+use App\Services\Livraison\GererZonesLivraison;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -90,6 +91,9 @@ class LivraisonCommandeApiTest extends TestCase
         // chez-awa a SES PROPRES zones actives : la commune doit donc être
         // choisie parmi elles, "Yopougon" (zone de l'AUTRE établissement)
         // n'en fait pas partie, même si elle existe ailleurs en base.
+        // Les zones ne se facturent que si le commerçant l'a choisi (voir
+        // Etablissement::zonesLivraisonProposees).
+        app(GererZonesLivraison::class)->choisirFacturation($chezAwa, true);
         $chezAwa->zonesLivraison()->create(['nom' => 'Cocody', 'frais' => 1000]);
         $maquisDuPort->zonesLivraison()->create(['nom' => 'Yopougon', 'frais' => 500]);
 
@@ -108,6 +112,9 @@ class LivraisonCommandeApiTest extends TestCase
         $this->seed();
         $chezAwa = $this->chezAwa();
         $produit = Produit::factory()->for($chezAwa)->publie()->create(['prix' => 2000, 'quantite_stock' => 10, 'quantite_reservee' => 0]);
+        // Les zones ne se facturent que si le commerçant l'a choisi (voir
+        // Etablissement::zonesLivraisonProposees).
+        app(GererZonesLivraison::class)->choisirFacturation($chezAwa, true);
         $chezAwa->zonesLivraison()->create(['nom' => 'Cocody', 'frais' => 1200]);
 
         $reponse = $this->depuis('chez-awa.localhost')->postJson(

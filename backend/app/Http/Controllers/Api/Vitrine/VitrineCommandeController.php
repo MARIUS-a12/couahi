@@ -6,7 +6,6 @@ use App\Enums\Canal;
 use App\Enums\ModePaiement;
 use App\Enums\SourceCommande;
 use App\Enums\StatutProduit;
-use App\Enums\StatutZoneLivraison;
 use App\Exceptions\ArticleIndisponibleException;
 use App\Exceptions\SelectionVarianteInvalideException;
 use App\Http\Controllers\Controller;
@@ -71,10 +70,7 @@ class VitrineCommandeController extends Controller
             );
 
             $commune = $request->validated('commune');
-            $zoneLivraison = ZoneLivraison::where('etablissement_id', $etablissement->id)
-                ->where('statut', StatutZoneLivraison::Actif->value)
-                ->where('nom', $commune)
-                ->first();
+            $zoneLivraison = $etablissement->zonesLivraisonProposees()->firstWhere('nom', $commune);
 
             $lignes = array_map(
                 fn (array $ligne) => new LigneCommandeDemandee(

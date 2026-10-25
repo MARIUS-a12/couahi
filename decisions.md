@@ -645,3 +645,35 @@ payer la data. Relever la mémoire de PHP pour cette route a aussi été
 écarté : un plafond qui dépend d'un réglage du serveur se perd au
 premier changement d'hébergeur, et 48 mégapixels demanderaient 250 Mo
 par envoi.
+
+## 2026-10-25 — La livraison se facture par commune, sur un choix explicite du commerçant
+
+Le commerçant choisit : facturer la livraison selon la commune (ses zones
+et leurs frais), ou ne pas la facturer sur le site. Sans facturation, le
+client tape sa commune et lit « Livraison : à convenir avec la boutique ».
+Une zone à 0 FCFA s'affiche « Offerte ».
+Alternative écartée : déduire le choix de la seule présence de zones.
+Écartée parce que « aucune zone » voulait alors dire à la fois « je ne
+facture pas » et « je n'ai pas encore configuré », et qu'un commerçant qui
+suspend la facturation aurait dû effacer ses zones pour la reprendre plus
+tard.
+Alternative écartée : afficher « 0 FCFA » quand rien n'est facturé. C'est
+ce que faisait la vitrine. Écartée parce que le client lit une livraison
+gratuite et découvre les frais à la porte.
+Une zone déjà portée par une commande est archivée, jamais effacée : la
+commande garde le lien vers la zone qui l'a facturée. Les frais, eux, sont
+copiés sur la commande : les modifier ne change aucune commande passée.
+Une seule méthode décide des zones proposées, et la vitrine, la
+validation de la commande et le calcul des frais la lisent toutes les
+trois : une zone que l'écran ne propose pas ne peut pas être facturée par
+une requête forgée.
+
+## 2026-10-25 — Un 419 redemande un jeton CSRF et rejoue la requête une fois
+
+Un cookie XSRF-TOKEN encore présent mais périmé (session perdue côté
+serveur) faisait refuser chaque écriture, connexion comprise, et le
+commerçant lisait « Impossible de contacter le serveur » jusqu'à vider ses
+cookies. Le client HTTP redemande un jeton et rejoue la requête, une seule
+fois. Alternative écartée : redemander un jeton avant chaque écriture.
+Écartée parce qu'elle double chaque requête pour un cas rare ; un second
+419 reste une vraie erreur, montrée comme telle.
