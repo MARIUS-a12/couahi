@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\ImageTropGrandeException;
 use App\Exceptions\LimiteMediasAtteinteException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ReordonnerMediasProduitRequest;
@@ -48,6 +49,8 @@ class MediaProduitController extends Controller
         // qu'une erreur serveur.
         try {
             $variantes = $this->generateur->generer($request->file('photo'), $disque);
+        } catch (ImageTropGrandeException $exception) {
+            throw ValidationException::withMessages(['photo' => [$exception->getMessage()]]);
         } catch (\Throwable) {
             throw ValidationException::withMessages([
                 'photo' => ["Le fichier envoyé n'est pas une image valide."],

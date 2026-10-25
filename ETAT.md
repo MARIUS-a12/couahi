@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 25 octobre 2026, fin du lot B3.
+Dernière mise à jour : 25 octobre 2026, photos de téléphone corrigées.
 
 ## Ce qui existe et fonctionne
 
@@ -28,6 +28,7 @@ Dernière mise à jour : 25 octobre 2026, fin du lot B3.
 - Un employé active son compte avec un code donné par l'administrateur.
 - Produits : création, modification, brouillon ou publié, archivage (jamais d'effacement).
 - Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale.
+- Une photo prise au téléphone (12 mégapixels, plusieurs Mo) est réduite sur le téléphone avant l'envoi, autour de 150 à 400 Ko, pour épargner la data mobile ; le logo aussi. Une photo trop grande pour le serveur (au-delà de 16 mégapixels, depuis un ordinateur) est refusée avec un message qui dit quoi faire.
 - Variantes : dimensions et valeurs dans un ordre réglable, grille des combinaisons au doigt, plage de pointures en un geste (de 39 à 45), prix et stock propres à chaque variante, photo par coloris.
 - Stock compté à l'unité, ou simple interrupteur « Disponible » ; le mode se change tant qu'aucune commande en cours n'en dépend.
 - Une commande réserve son stock. Une commande non payée expire au bout de 15 minutes, ou de 24 heures en Mobile Money, et son stock est alors rendu.
@@ -49,10 +50,11 @@ Dernière mise à jour : 25 octobre 2026, fin du lot B3.
 ## Ce qui existe à moitié
 
 **Bloquant pour la mise en ligne, tant que ce n'est pas corrigé :**
-- **Photos prises au téléphone** : une photo de 12 mégapixels, le format courant d'un téléphone, fait échouer l'envoi. Seules passent les photos plus petites (environ 2 mégapixels).
 - **Zones de livraison** : la vitrine sait proposer une liste de communes avec des frais, mais aucun écran ne permet de créer ces zones. Seules les boutiques de démonstration en ont. Reste à vérifier dans un vrai navigateur ce que voit le client d'une boutique sans zone.
 
 **Le reste :**
+- **Photos envoyées depuis un ordinateur** : elles ne passent pas par la réduction du navigateur, et sans un réglage du serveur (l'extension exif, à prévoir pour la mise en ligne), un portrait peut apparaître couché.
+- **Ajout de photo au téléphone** : le bouton ouvre directement l'appareil photo, sans proposer de choisir une photo déjà prise dans la galerie. À trancher.
 - **CinetPay** : un commerce peut enregistrer ses identifiants, gardés chiffrés, mais aucun paiement CinetPay n'est encore possible. Le bouton « Payer maintenant » reste donc caché.
 - **Demandes WhatsApp** : chaque clic sur « Commander sur WhatsApp » laisse une trace que le serveur sait relire, mais aucun écran ne les montre encore au commerçant (lot D).
 - **Restaurants** : ils fonctionnent comme une boutique. Une commande de restaurant expire 15 minutes après sa création, souvent avant d'avoir été vue ; ce bug est connu et reporté avec le lot restauration.
@@ -60,12 +62,11 @@ Dernière mise à jour : 25 octobre 2026, fin du lot B3.
 
 ## Ce qui n'existe pas encore
 
-1. **Prochain : les photos de 12 mégapixels**, corrigées côté serveur (garantie) puis côté téléphone (réduction avant l'envoi, pour la data mobile).
-2. **L'écran des zones de livraison** : le commerçant crée ses zones et leurs frais, ou choisit de ne facturer aucune livraison. Avant le lot C, qui utilise les mêmes communes et les mêmes frais.
-3. **Lot C : saisie manuelle des commandes au back-office**, pour une commande reçue par téléphone ou en boutique.
-4. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
-5. **Lot E** : les tests de non-régression de la vitrine.
-6. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+1. **Prochain : l'écran des zones de livraison** : le commerçant crée ses zones et leurs frais, ou choisit de ne facturer aucune livraison. Avant le lot C, qui utilise les mêmes communes et les mêmes frais.
+2. **Lot C : saisie manuelle des commandes au back-office**, pour une commande reçue par téléphone ou en boutique.
+3. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
+4. **Lot E** : les tests de non-régression de la vitrine.
+5. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 

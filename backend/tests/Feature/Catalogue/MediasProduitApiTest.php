@@ -192,6 +192,40 @@ class MediasProduitApiTest extends TestCase
         $reponse->assertJsonValidationErrors('photo');
     }
 
+    /**
+     * Quelques dizaines d'octets qui annoncent 10 000 × 10 000 pixels : sans
+     * la lecture préalable des dimensions, le décodage réclamerait 400 Mo et
+     * tuerait la requête. Refusé avant tout décodage, avec le message qui
+     * dit au commerçant quoi faire. La preuve sous 128 Mo, sur un vrai
+     * serveur, est dans EnvoiPhotoSousLimiteMemoireTest.
+     */
+    public function test_4b_image_aux_dimensions_deraisonnables_refusee_sans_etre_decodee(): void
+    {
+        Storage::fake('public');
+        $this->seed();
+        $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
+        $produit = $this->produitDe('chez-awa');
+        $fichiersAvant = count(Storage::disk('public')->allFiles());
+
+        $reponse = $this->depuis('chez-awa.localhost')->post(
+            "http://chez-awa.localhost:8000/api/produits/{$produit->id}/medias",
+            ['photo' => UploadedFile::fake()->createWithContent('immense.png', $this->enTetePng(10000, 10000))],
+        );
+
+        $reponse->assertStatus(422);
+        $this->assertStringContainsString('trop grande (100 mégapixels, 16 au maximum)', $reponse->json('errors.photo.0'));
+        $this->assertCount($fichiersAvant, Storage::disk('public')->allFiles(), 'aucun fichier écrit');
+    }
+
+    /** Signature et en-tête IHDR d'un PNG, sans aucune donnée d'image. */
+    private function enTetePng(int $largeur, int $hauteur): string
+    {
+        $ihdr = pack('NNCCCCC', $largeur, $hauteur, 8, 2, 0, 0, 0);
+
+        return "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr))
+            .pack('N', 0).'IEND'.pack('N', crc32('IEND'));
+    }
+
     public function test_4_fichier_trop_lourd_refuse_avec_message_clair(): void
     {
         Storage::fake('public');

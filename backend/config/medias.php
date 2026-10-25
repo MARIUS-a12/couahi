@@ -19,6 +19,17 @@ return [
 
     'poids_max_octets' => 8 * 1024 * 1024,
 
+    /*
+    | Au-delà, l'image est refusée avant d'être décodée (voir
+    | GenerateurVariantesImage) : décodée, elle ne tiendrait pas dans les
+    | 128 Mo d'une requête PHP de production (environ 5 octets par pixel).
+    | Valeur mesurée, pas devinée : EnvoiPhotoSousLimiteMemoireTest envoie
+    | une image à ce plafond à un vrai serveur lancé avec 24 Mo de moins
+    | que la production. 20 mégapixels y échouaient ; 16 couvrent les
+    | photos de téléphone (12 Mpx, et 16 Mpx en 4:3).
+    */
+    'pixels_max' => 16_000_000,
+
     'qualite_webp' => 80,
 
     'qualite_jpeg' => 80,

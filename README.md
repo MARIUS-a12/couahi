@@ -37,7 +37,11 @@ son propre cookie de session, volontairement (voir decisions.md).
 
 Prérequis : PHP 8.4 avec les extensions `gd` et `pdo_pgsql`, Composer,
 Node 22, PostgreSQL avec deux bases : celle de développement, et
-`saas_boutiques_test` pour la suite de tests Postgres.
+`saas_boutiques_test` pour la suite de tests Postgres. L'extension
+`exif` est recommandée, et nécessaire en production : sans elle, une
+photo envoyée sans passer par la réduction du navigateur (depuis un
+ordinateur, par exemple) garde son orientation d'origine et peut
+apparaître couchée.
 
 Backend :
 

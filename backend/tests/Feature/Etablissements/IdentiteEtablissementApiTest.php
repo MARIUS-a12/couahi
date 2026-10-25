@@ -4,6 +4,7 @@ namespace Tests\Feature\Etablissements;
 
 use App\Models\Etablissement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 /**
@@ -338,5 +339,27 @@ class IdentiteEtablissementApiTest extends TestCase
         $awaApres = collect($listeApres)->firstWhere('id', $chezAwa->id);
         // Le logo n'a pas été posé dans ce test : seul "logo" doit rester.
         $this->assertSame(['logo'], $awaApres['identite_champs_manquants']);
+    }
+
+    /**
+     * Même générateur que les photos produit (voir MediasProduitApiTest,
+     * test 4b) : une image aux dimensions déraisonnables est refusée avant
+     * d'être décodée, et le message dit quoi faire — jamais « image
+     * invalide », qui laisserait croire le fichier abîmé.
+     */
+    public function test_13_logo_aux_dimensions_deraisonnables_refuse_avec_message_clair(): void
+    {
+        $this->seed();
+        $this->connecte('chez-awa.localhost', 'awa@chez-awa.test');
+        $ihdr = pack('NNCCCCC', 10000, 10000, 8, 2, 0, 0, 0);
+        $png = "\x89PNG\r\n\x1a\n".pack('N', 13).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr)).pack('N', 0).'IEND'.pack('N', crc32('IEND'));
+
+        $reponse = $this->depuis('chez-awa.localhost')->post(
+            'http://chez-awa.localhost:8000/api/parametres/etablissement/logo',
+            ['logo' => UploadedFile::fake()->createWithContent('logo.png', $png)],
+        );
+
+        $reponse->assertStatus(422);
+        $this->assertStringContainsString('trop grande (100 mégapixels', $reponse->json('errors.logo.0'));
     }
 }

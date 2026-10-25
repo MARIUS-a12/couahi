@@ -6,6 +6,12 @@
  * réordonner (la première devient la principale), suppression avec
  * confirmation. Maximum 15 photos, comme le serveur (config medias.max_par_produit).
  *
+ * Chaque photo est réduite sur le téléphone avant de partir (voir
+ * lib/reductionPhoto) : la limite de 8 Mo s'applique donc au fichier
+ * réduit, et une photo de 12 Mo prise au téléphone passe. Un refus du
+ * serveur (photo trop grande) s'affiche tel quel : son message dit quoi
+ * faire, « Échec de l'envoi » ne le disait pas.
+ *
  * Toute mise à jour (envoi, suppression, réordonnancement) écrit directement
  * dans le cache react-query de la requête produit plutôt que de garder son
  * propre état des photos : PageFormulaireProduit et cette zone lisent alors
@@ -19,6 +25,8 @@ import type { Media } from '../api/medias'
 import { envoyerMediaProduit, reordonnerMediasProduit, supprimerMediaProduit } from '../api/medias'
 import type { Produit } from '../api/produits'
 import { confirmerSuppressionPhoto } from '../lib/confirmations'
+import { extraireErreursChamps } from '../lib/erreursValidation'
+import { reduirePhoto } from '../lib/reductionPhoto'
 
 const MAX_PHOTOS = 15
 const POIDS_MAX_OCTETS = 8 * 1024 * 1024
@@ -71,9 +79,10 @@ export function ZoneEnvoiPhotos({ produitId, medias }: { produitId: number; medi
 
     let mediasActuels = medias
 
-    for (const fichier of aTraiter) {
+    for (const choisi of aTraiter) {
       const id = crypto.randomUUID()
-      const previewUrl = URL.createObjectURL(fichier)
+      const previewUrl = URL.createObjectURL(choisi)
+      const fichier = choisi.type.startsWith('image/') ? await reduirePhoto(choisi) : choisi
       const erreurValidation = validerFichier(fichier)
 
       setEnvoisEnCours((actuels) => [...actuels, { id, previewUrl, progression: 0, erreur: erreurValidation }])
@@ -93,9 +102,15 @@ export function ZoneEnvoiPhotos({ produitId, medias }: { produitId: number; medi
         definirMedias(mediasActuels)
         setEnvoisEnCours((actuels) => actuels.filter((envoi) => envoi.id !== id))
         URL.revokeObjectURL(previewUrl)
-      } catch {
+      } catch (erreur) {
+        // Le refus du serveur est trop long pour une vignette de 100 px :
+        // il va dans le message général, la vignette dit seulement « Refusée ».
+        const refus = extraireErreursChamps(erreur).photo
+        if (refus) {
+          setErreurGenerale(refus)
+        }
         setEnvoisEnCours((actuels) =>
-          actuels.map((envoi) => (envoi.id === id ? { ...envoi, erreur: "Échec de l'envoi. Réessayez." } : envoi)),
+          actuels.map((envoi) => (envoi.id === id ? { ...envoi, erreur: refus ? 'Refusée.' : "Échec de l'envoi. Réessayez." } : envoi)),
         )
       }
     }

@@ -621,3 +621,27 @@ chiné », seulement sur la ligne dont chaque valeur désigne une photo.
 Alternative écartée : remonter la page jusqu'à la photo à chaque choix.
 Écartée parce qu'elle arracherait le client au sélecteur alors qu'il lui
 reste la taille à choisir.
+
+## 2026-10-25 — Une photo est réduite deux fois : sur le téléphone par confort, sur le serveur par garantie
+
+Une photo de téléphone de 12 mégapixels faisait échouer l'envoi : décodée,
+elle occupe environ 48 Mo, et le serveur la recopiait pour chacun des
+trois formats, au-delà des 128 Mo d'une requête PHP. Le serveur décode
+désormais l'original une seule fois, le réduit une seule fois, et tire
+les six fichiers de cette version réduite. Au-delà de 16 mégapixels, il
+refuse avant même de décoder, avec un message qui dit au commerçant quoi
+faire. Ce plafond est mesuré, pas choisi : GD coûte environ 5 octets par
+pixel, 20 mégapixels échouaient sur un vrai serveur réglé 16 Mo sous la
+production, 16 passent avec 24 Mo de marge.
+Le téléphone, lui, réduit la photo avant l'envoi (le plus petit côté à
+1200 px, environ 150 à 400 Ko) : envoyer 5 Mo pour en garder 300 Ko,
+c'est faire payer au commerçant, en data mobile, ce qui est jeté à
+l'arrivée. Le navigateur redresse aussi au passage un portrait pris au
+téléphone.
+Alternatives écartées : l'une ou l'autre seule. Le téléphone seul ne
+protège de rien (un ordinateur, un navigateur ancien où la réduction
+échoue, une requête forgée envoient l'original). Le serveur seul fait
+payer la data. Relever la mémoire de PHP pour cette route a aussi été
+écarté : un plafond qui dépend d'un réglage du serveur se perd au
+premier changement d'hébergeur, et 48 mégapixels demanderaient 250 Mo
+par envoi.

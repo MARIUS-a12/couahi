@@ -14,6 +14,7 @@ import { JOURS_SEMAINE } from '../api/identite'
 import { ratioContrasteAvecBlanc } from '../lib/couleurAccent'
 import { confirmerSuppressionLogo } from '../lib/confirmations'
 import { allerAuPremierChampEnErreur, extraireErreursChamps } from '../lib/erreursValidation'
+import { reduirePhoto } from '../lib/reductionPhoto'
 import { BandeauSucces } from './BandeauSucces'
 import { ChampTexte } from './ChampTexte'
 import { EtatBouton } from './EtatBouton'
@@ -185,13 +186,16 @@ export function FormulaireIdentiteEtablissement({ service }: { service: ServiceI
     }
   }
 
+  /** Réduit sur le téléphone avant l'envoi, comme les photos produit (voir lib/reductionPhoto). */
   async function envoyerLogo(fichier: File) {
     setLogoEnCours(true)
     try {
-      const misAJour = await service.uploaderLogo(fichier)
+      const misAJour = await service.uploaderLogo(await reduirePhoto(fichier))
       appliquer(misAJour)
-    } catch {
-      setErreurGenerique("Impossible d'envoyer ce logo. Vérifiez qu'il s'agit bien d'une image.")
+    } catch (erreur) {
+      setErreurGenerique(
+        extraireErreursChamps(erreur).logo ?? "Impossible d'envoyer ce logo. Vérifiez qu'il s'agit bien d'une image.",
+      )
     } finally {
       setLogoEnCours(false)
     }

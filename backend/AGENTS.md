@@ -209,6 +209,17 @@ De même, chaque configuration qu'un commerçant peut choisir a au moins un
 maquis-du-port), Mobile Money seul avec du stock compté (wax-adjame).
 DonneesDemoTest le vérifie.
 
+## Mémoire et images
+Tout traitement d'une image envoyée se prouve sous la limite de mémoire
+de production (128 Mo), dans un processus PHP neuf : un vrai serveur
+lancé avec cette limite, comme le fait EnvoiPhotoSousLimiteMemoireTest.
+Jamais dans le processus PHPUnit, qui porte la mémoire de tous les tests
+précédents et dont la limite ne dit rien d'une requête réelle. Une photo
+de téléphone de 12 mégapixels tuait la requête d'envoi (500 muette) alors
+que tous les tests passaient : ils n'envoyaient que des images de
+100 pixels. Un plafond de taille se mesure avec de la marge (24 Mo sous la
+limite), jamais au ras.
+
 ## Tâches planifiées
 Toute tâche planifiée a au moins un test qui l'exécute PAR LE
 PLANIFICATEUR (schedule:run), jamais seulement par appel direct à son

@@ -2,6 +2,7 @@
 
 namespace App\Services\Etablissements;
 
+use App\Exceptions\ImageTropGrandeException;
 use App\Models\Etablissement;
 use App\Services\Medias\GenerateurVariantesImage;
 use App\Support\Vitrine\CacheVitrine;
@@ -28,6 +29,8 @@ class MettreAJourLogoEtablissement
 
         try {
             $variantes = $this->generateur->generer($fichier, $disque, config('medias.formats_logo'), carre: true);
+        } catch (ImageTropGrandeException $exception) {
+            throw ValidationException::withMessages(['logo' => [$exception->getMessage()]]);
         } catch (\Throwable) {
             throw ValidationException::withMessages([
                 'logo' => ["Le fichier envoyé n'est pas une image valide."],
