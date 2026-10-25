@@ -677,3 +677,14 @@ cookies. Le client HTTP redemande un jeton et rejoue la requête, une seule
 fois. Alternative écartée : redemander un jeton avant chaque écriture.
 Écartée parce qu'elle double chaque requête pour un cas rare ; un second
 419 reste une vraie erreur, montrée comme telle.
+
+## 2026-10-25 — « Autre commune » : une commune hors liste passe, livraison à convenir
+
+Quand la boutique facture par commune, un client dont la commune n'est pas
+dans la liste choisit « Autre commune » et la saisit. Aucune zone, aucun
+frais : la livraison est à convenir, le récapitulatif le dit sous le
+total, et la boutique l'appelle. Taper une commune de la liste y est
+refusé, pour qu'« Autre » ne serve pas à éviter des frais connus.
+Alternative écartée : n'accepter que les communes de la liste. Écartée
+parce que perdre un client de Bingerville coûte plus qu'un total sans
+frais de livraison.

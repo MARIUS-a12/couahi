@@ -234,6 +234,11 @@ export type NouvelleCommandePayload = {
   // (voir PageCommander). Le serveur la résout lui-même en zone pour le
   // calcul du frais, jamais un identifiant envoyé par le navigateur.
   commune: string
+  /**
+   * La commune n'est pas dans la liste du commerçant : saisie librement,
+   * livraison à convenir, aucun frais ajouté (voir PageCommander).
+   */
+  autre_commune?: boolean
   quartier: string
   cle_idempotence: string
   // Étape 13 : refusé par le serveur s'il n'est pas le mode proposé.

@@ -58,7 +58,7 @@ class LivraisonApiTest extends TestCase
 
     private ?Produit $produitEnStock = null;
 
-    private function commanderSurLaVitrine(string $commune): TestResponse
+    private function commanderSurLaVitrine(string $commune, bool $autreCommune = false): TestResponse
     {
         // Un produit bien approvisionné : plusieurs commandes par test, et
         // la livraison seule doit pouvoir les faire échouer.
@@ -68,6 +68,7 @@ class LivraisonApiTest extends TestCase
             'lignes' => [['produit_id' => $produit->id, 'quantite' => 1]],
             'client' => ['nom' => 'Koffi', 'telephone' => '0701020304'],
             'commune' => $commune,
+            'autre_commune' => $autreCommune,
             'quartier' => 'Niangon',
             'cle_idempotence' => 'livraison-'.md5($commune.microtime()),
         ]);
@@ -221,5 +222,40 @@ class LivraisonApiTest extends TestCase
 
         $this->assertSame(2500, $commande->frais_livraison);
         $this->assertSame($produit->prix + 2500, $commande->total);
+    }
+
+    /**
+     * Perdre un client de Bingerville coûte plus qu'un total sans frais : sa
+     * commune passe, aucune zone, aucun frais, livraison à convenir.
+     */
+    public function test_autre_commune_passe_sans_frais_ni_zone(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Cocody', 1500);
+
+        $this->commanderSurLaVitrine('Bingerville', autreCommune: true)->assertCreated();
+
+        $commande = $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->firstOrFail();
+        $this->assertSame('Bingerville', $commande->commune);
+        $this->assertNull($commande->zone_livraison_id);
+        $this->assertSame(0, $commande->frais_livraison);
+        $this->assertSame($commande->sous_total, $commande->total);
+    }
+
+    /**
+     * « Autre commune » ne sert pas à éviter des frais connus : taper une
+     * commune de la liste est refusé, avec de quoi corriger.
+     */
+    public function test_autre_commune_refuse_une_commune_de_la_liste(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Cocody', 1500);
+
+        $reponse = $this->commanderSurLaVitrine(' cocody', autreCommune: true)->assertStatus(422);
+
+        $this->assertStringContainsString('est dans la liste', $reponse->json('errors.commune.0'));
+        $this->assertSame(0, $this->chezAwa()->commandes()->pourTousEtablissements()->count());
     }
 }

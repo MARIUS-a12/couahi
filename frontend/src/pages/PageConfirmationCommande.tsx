@@ -166,6 +166,9 @@ export function PageConfirmationCommande() {
             <span>Total</span>
             <span className="tabular-nums">{formaterMontant(commande.total)}</span>
           </div>
+          {commande.zone_livraison === null && commande.frais_livraison === 0 && (
+            <p className="text-petit text-texte-secondaire">Ce total n’inclut pas la livraison : la boutique vous contactera pour la convenir.</p>
+          )}
         </div>
       </div>
 

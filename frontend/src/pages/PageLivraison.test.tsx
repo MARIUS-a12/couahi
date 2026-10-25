@@ -141,6 +141,26 @@ describe('ce que le client voit en face de « Livraison »', () => {
     expect(screen.getAllByText('Offerte').length).toBeGreaterThan(0)
   })
 
+  it('« Autre commune » : saisie libre, livraison à convenir, et le total dit qu’il ne l’inclut pas', async () => {
+    vi.mocked(recupererZonesLivraison).mockResolvedValue([{ id: 2, nom: 'Cocody', frais: 1500 }] as never)
+    afficher(<PageCommander />)
+
+    await screen.findByText('Selon la commune')
+    expect(screen.queryByText(/n’inclut pas la livraison/)).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Commune/), { target: { value: '__autre__' } })
+
+    expect(screen.getByLabelText(/^Votre commune/)).toBeInTheDocument()
+    expect(screen.getByText('À convenir avec la boutique')).toBeInTheDocument()
+    expect(screen.getByText(/Ce total n’inclut pas la livraison/)).toBeInTheDocument()
+  })
+
+  it('une boutique qui ne facture pas le dit aussi sous le total', async () => {
+    vi.mocked(recupererZonesLivraison).mockResolvedValue([])
+    afficher(<PageCommander />)
+
+    expect(await screen.findByText(/Ce total n’inclut pas la livraison/)).toBeInTheDocument()
+  })
+
   it('une commande passée sans zone se règle avec la boutique ; une zone à 0 est offerte', () => {
     expect(libelleLivraisonCommande(null, 0)).toBe('À convenir avec la boutique')
     expect(libelleLivraisonCommande({ nom: 'Adjamé' }, 0)).toBe('Offerte')

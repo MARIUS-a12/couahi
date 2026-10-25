@@ -18,7 +18,7 @@ Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 - Un produit sans variante s'affiche simplement, sans sélecteur.
 - Le panier est gardé sur le téléphone du client. Avant la commande, les prix et le stock sont revérifiés, et un article devenu indisponible est signalé.
 - Le client commande avec son nom, son téléphone, sa commune et son quartier, puis reçoit une page de confirmation avec le numéro de sa commande.
-- Livraison : si la boutique la facture, le client choisit sa commune dans la liste et ses frais s'ajoutent au total (« Offerte » quand ils sont à 0). Sinon, il tape sa commune et lit « Livraison : à convenir avec la boutique », jamais « 0 FCFA ».
+- Livraison : si la boutique la facture, le client choisit sa commune dans la liste et ses frais s'ajoutent au total (« Offerte » quand ils sont à 0). Une commune absente de la liste se choisit par « Autre commune » : saisie libre, livraison à convenir. Quand rien n'est facturé, le client lit « Livraison : à convenir avec la boutique », jamais « 0 FCFA », et une phrase sous le total dit qu'il n'inclut pas la livraison.
 - « Commander sur WhatsApp » ouvre WhatsApp avec un message pré-rempli. Le serveur relit la référence du message, jamais le prix tapé dedans.
 - Paiement par Mobile Money : le client reçoit le numéro à payer, et le commerçant confirme lui-même l'argent reçu.
 - Un lien de boutique partagé sur WhatsApp ou Facebook s'affiche avec le nom, la description et une image.
@@ -28,7 +28,7 @@ Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 - Connexion sécurisée. Seules les erreurs de mot de passe comptent pour un blocage, jamais les connexions réussies. Une session perdue côté serveur ne bloque plus la connexion suivante.
 - Un employé active son compte avec un code donné par l'administrateur.
 - Produits : création, modification, brouillon ou publié, archivage (jamais d'effacement).
-- Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale.
+- Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale. Au téléphone, le bouton propose la galerie ou l'appareil photo.
 - Une photo prise au téléphone (12 mégapixels, plusieurs Mo) est réduite sur le téléphone avant l'envoi, autour de 150 à 400 Ko, pour épargner la data mobile ; le logo aussi. Une photo trop grande pour le serveur (au-delà de 16 mégapixels, depuis un ordinateur) est refusée avec un message qui dit quoi faire.
 - Variantes : dimensions et valeurs dans un ordre réglable, grille des combinaisons au doigt, plage de pointures en un geste (de 39 à 45), prix et stock propres à chaque variante, photo par coloris.
 - Stock compté à l'unité, ou simple interrupteur « Disponible » ; le mode se change tant qu'aucune commande en cours n'en dépend.
@@ -53,12 +53,10 @@ Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 
 Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de téléphone et les zones de livraison sont corrigées.
 
-- **Photos envoyées depuis un ordinateur** : elles ne passent pas par la réduction du navigateur, et sans un réglage du serveur (l'extension exif, à prévoir pour la mise en ligne), un portrait peut apparaître couché.
-- **Ajout de photo au téléphone** : le bouton ouvre directement l'appareil photo, sans proposer de choisir une photo déjà prise dans la galerie. À trancher.
+- **Photos envoyées depuis un ordinateur** : elles ne passent pas par la réduction du navigateur ; sans l'extension exif sur le serveur (voir la liste de mise en ligne), un portrait peut apparaître couché.
 - **CinetPay** : un commerce peut enregistrer ses identifiants, gardés chiffrés, mais aucun paiement CinetPay n'est encore possible. Le bouton « Payer maintenant » reste donc caché.
 - **Demandes WhatsApp** : chaque clic sur « Commander sur WhatsApp » laisse une trace que le serveur sait relire, mais aucun écran ne les montre encore au commerçant (lot D).
 - **Restaurants** : ils fonctionnent comme une boutique. Une commande de restaurant expire 15 minutes après sa création, souvent avant d'avoir été vue ; ce bug est connu et reporté avec le lot restauration.
-- **Livraison par commune** : un client dont la commune n'est pas dans la liste du commerçant ne peut pas commander en ligne ; il lui reste WhatsApp. Pas de « Autre commune » pour l'instant.
 - **Produits à trois dimensions** (taille, coloris, longueur) : enregistrables, mais ni la grille du back-office ni le sélecteur de la vitrine n'ont été vérifiés sur téléphone dans ce cas.
 
 ## Ce qui n'existe pas encore
@@ -71,3 +69,9 @@ Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 
 Bloqué hors de nous : le paiement CinetPay, qui attend le RCCM, et l'IA WhatsApp, qui attend le compte Meta.
+
+## À faire pour la mise en ligne
+
+Ce qui doit être réglé sur le serveur ou autour, en plus du code. On y ajoute au fil des lots.
+
+- Installer l'extension PHP exif : sans elle, une photo envoyée depuis un ordinateur peut apparaître couchée.

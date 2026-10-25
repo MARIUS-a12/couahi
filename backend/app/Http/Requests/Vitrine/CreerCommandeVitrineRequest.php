@@ -54,6 +54,7 @@ class CreerCommandeVitrineRequest extends FormRequest
             'client.email' => ['nullable', 'email', 'max:255'],
 
             'commune' => ['required', 'string', ...$this->regleCommune()],
+            'autre_commune' => ['sometimes', 'boolean'],
             'quartier' => ['required', 'string', 'max:150'],
 
             'cle_idempotence' => ['required', 'string', 'max:255'],
@@ -96,7 +97,24 @@ class CreerCommandeVitrineRequest extends FormRequest
     {
         $nomsZonesActives = app(ContexteEtablissement::class)->obtenir()->zonesLivraisonProposees()->pluck('nom');
 
-        return $nomsZonesActives->isNotEmpty() ? [Rule::in($nomsZonesActives)] : ['max:100'];
+        if ($nomsZonesActives->isEmpty()) {
+            return ['max:100'];
+        }
+
+        if (! $this->boolean('autre_commune')) {
+            return [Rule::in($nomsZonesActives)];
+        }
+
+        // « Autre commune » : saisie libre, livraison à convenir. Une
+        // commune de la liste n'y a pas sa place, sinon choisir « Autre »
+        // et taper « Cocody » suffirait à ne pas payer les frais de Cocody.
+        $listees = $nomsZonesActives->map(fn (string $nom) => mb_strtolower($nom));
+
+        return ['max:100', function (string $attribut, mixed $valeur, callable $echec) use ($listees): void {
+            if ($listees->contains(mb_strtolower(trim((string) $valeur)))) {
+                $echec("{$valeur} est dans la liste : choisissez-la, ses frais de livraison sont connus.");
+            }
+        }];
     }
 
     public function messages(): array

@@ -14,6 +14,11 @@
  * l'établissement en a, du texte libre sinon) : on ne demande pas deux fois
  * la même chose.
  *
+ * « Autre commune » : quand la boutique facture par commune, un client dont
+ * la commune n'est pas dans la liste la saisit librement. La livraison est
+ * alors à convenir, le total n'en inclut pas, et la boutique l'appelle.
+ * Perdre un client de Bingerville coûte plus qu'un total sans frais.
+ *
  * Étape 13 : quand l'établissement propose le Mobile Money, la commande est
  * passée dans ce mode — le client reçoit le numéro à payer sur la page de
  * confirmation, jamais avant d'avoir une commande et son numéro à citer.
@@ -48,6 +53,9 @@ function extraireErreurArticle(erreur: unknown): { message: string; article: str
   return donnees.article ? { message: donnees.message ?? '', article: donnees.article } : null
 }
 
+/** Valeur de l'option « Autre commune » : jamais un nom de commune réel. */
+const AUTRE_COMMUNE = '__autre__'
+
 export function PageCommander() {
   const { lignes, vider } = usePanier()
   const requeteVerification = useVerifierPanier(lignes)
@@ -60,6 +68,7 @@ export function PageCommander() {
   const [nom, setNom] = useState('')
   const [telephone, setTelephone] = useState('')
   const [commune, setCommune] = useState('')
+  const [autreCommune, setAutreCommune] = useState(false)
   const [quartier, setQuartier] = useState('')
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
   const [erreurGenerique, setErreurGenerique] = useState<string | null>(null)
@@ -106,6 +115,7 @@ export function PageCommander() {
       })),
       client: { nom, telephone },
       commune,
+      autre_commune: autreCommune,
       quartier,
       cle_idempotence: cleIdempotence,
       // Le mode que propose l'établissement, tel quel (le serveur refuse
@@ -115,7 +125,10 @@ export function PageCommander() {
   }
 
   const zonesExistent = (requeteZones.data?.length ?? 0) > 0
-  const zoneChoisie = requeteZones.data?.find((zone) => zone.nom === commune) ?? null
+  const zoneChoisie = autreCommune ? null : (requeteZones.data?.find((zone) => zone.nom === commune) ?? null)
+  // La boutique ne facture pas, ou le client a pris « Autre commune » : la
+  // livraison se convient avec elle, et le total le dit.
+  const livraisonAConvenir = !zonesExistent || autreCommune
   const sousTotal = requeteVerification.data?.sous_total ?? 0
   const fraisLivraison = zoneChoisie?.frais ?? 0
   const total = sousTotal + fraisLivraison
@@ -171,8 +184,12 @@ export function PageCommander() {
                 <select
                   id="commune"
                   required
-                  value={commune}
-                  onChange={(evenement) => setCommune(evenement.target.value)}
+                  value={autreCommune ? AUTRE_COMMUNE : commune}
+                  onChange={(evenement) => {
+                    const choix = evenement.target.value
+                    setAutreCommune(choix === AUTRE_COMMUNE)
+                    setCommune(choix === AUTRE_COMMUNE ? '' : choix)
+                  }}
                   className="h-11 w-full rounded border border-bordure bg-surface px-3 text-corps text-texte transition-colors focus:border-texte focus:outline focus:outline-2 focus:outline-texte focus:outline-offset-1"
                 >
                   <option value="" disabled>
@@ -183,8 +200,25 @@ export function PageCommander() {
                       {zone.nom} — {libelleFrais(zone.frais)}
                     </option>
                   ))}
+                  <option value={AUTRE_COMMUNE}>Autre commune — livraison à convenir</option>
                 </select>
-                {erreurs.commune && <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurs.commune}</p>}
+                {!autreCommune && erreurs.commune && (
+                  <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurs.commune}</p>
+                )}
+                {autreCommune && (
+                  <div className="mt-3">
+                    <ChampTexteVitrine
+                      id="commune-autre"
+                      label="Votre commune"
+                      requis
+                      maxLength={100}
+                      placeholder="Bingerville"
+                      valeur={commune}
+                      onChange={setCommune}
+                      erreur={erreurs.commune}
+                    />
+                  </div>
+                )}
               </div>
             ) : (
               <ChampTexteVitrine
@@ -261,13 +295,16 @@ export function PageCommander() {
             <div className="flex justify-between text-texte-secondaire">
               <span>Livraison</span>
               <span className="tabular-nums">
-                {!zonesExistent ? 'À convenir avec la boutique' : zoneChoisie ? libelleFrais(zoneChoisie.frais) : 'Selon la commune'}
+                {livraisonAConvenir ? 'À convenir avec la boutique' : zoneChoisie ? libelleFrais(zoneChoisie.frais) : 'Selon la commune'}
               </span>
             </div>
             <div className="flex justify-between text-titre-section font-semibold text-texte">
               <span>Total</span>
               <span className="tabular-nums">{formaterMontant(total)}</span>
             </div>
+            {livraisonAConvenir && (
+              <p className="text-petit text-texte-secondaire">Ce total n’inclut pas la livraison : la boutique vous contactera pour la convenir.</p>
+            )}
           </div>
         </div>
       </div>

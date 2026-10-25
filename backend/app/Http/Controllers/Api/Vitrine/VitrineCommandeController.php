@@ -70,7 +70,11 @@ class VitrineCommandeController extends Controller
             );
 
             $commune = $request->validated('commune');
-            $zoneLivraison = $etablissement->zonesLivraisonProposees()->firstWhere('nom', $commune);
+            // « Autre commune » (voir CreerCommandeVitrineRequest) : aucune
+            // zone, aucun frais, la livraison se convient avec la boutique.
+            $zoneLivraison = $request->boolean('autre_commune')
+                ? null
+                : $etablissement->zonesLivraisonProposees()->firstWhere('nom', $commune);
 
             $lignes = array_map(
                 fn (array $ligne) => new LigneCommandeDemandee(

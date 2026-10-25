@@ -48,6 +48,12 @@ describe('envoi d’une photo', () => {
     expect(screen.queryByText(/8 Mo/)).not.toBeInTheDocument()
   })
 
+  it('le téléphone propose la galerie, pas seulement l’appareil photo', () => {
+    // capture="environment" ouvrait directement l'appareil photo : or le
+    // commerçant a ses photos dans sa galerie, ou reçues par WhatsApp.
+    expect(afficher()).not.toHaveAttribute('capture')
+  })
+
   it('le refus du serveur s’affiche tel quel, pas « Échec de l’envoi »', async () => {
     const message = 'Cette photo est trop grande (24 mégapixels, 16 au maximum). Envoyez-la depuis votre téléphone…'
     vi.mocked(envoyerMediaProduit).mockRejectedValue(

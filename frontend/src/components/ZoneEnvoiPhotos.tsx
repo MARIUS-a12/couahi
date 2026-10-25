@@ -285,7 +285,6 @@ export function ZoneEnvoiPhotos({ produitId, medias }: { produitId: number; medi
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
-            capture="environment"
             className="hidden"
             onChange={(evenement) => {
               if (evenement.target.files) {
