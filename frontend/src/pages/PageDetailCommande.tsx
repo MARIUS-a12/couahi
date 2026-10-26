@@ -154,8 +154,14 @@ export function PageDetailCommande() {
         <h2 className="text-titre-section font-semibold text-texte">Client</h2>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-corps font-medium text-texte">{commande.client?.nom}</p>
+            <p className="text-corps font-medium text-texte">{commande.client === null ? 'Client de passage' : commande.client?.nom}</p>
             <p className="tabular-nums text-corps text-texte-secondaire">{commande.client?.telephone}</p>
+            {commande.cree_par && (
+              <p className="mt-1 text-petit text-texte-secondaire">
+                Saisie par {commande.cree_par}
+                {commande.canal_libelle ? ` — ${commande.canal_libelle}` : ''}
+              </p>
+            )}
           </div>
           {commande.client && (
             <a
@@ -223,10 +229,13 @@ export function PageDetailCommande() {
             <dt>Sous-total</dt>
             <dd className="tabular-nums">{formaterMontant(commande.sous_total)}</dd>
           </div>
-          <div className="flex justify-between text-texte-secondaire">
-            <dt>Livraison{commande.zone_livraison ? ` — ${commande.zone_livraison.nom}` : ''}</dt>
-            <dd className="tabular-nums">{libelleLivraisonCommande(commande.zone_livraison ?? null, commande.frais_livraison)}</dd>
-          </div>
+          {/* Au comptoir, la marchandise part de la main à la main : aucune livraison. */}
+          {commande.canal !== 'comptoir' && (
+            <div className="flex justify-between text-texte-secondaire">
+              <dt>Livraison{commande.zone_livraison ? ` — ${commande.zone_livraison.nom}` : ''}</dt>
+              <dd className="tabular-nums">{libelleLivraisonCommande(commande.zone_livraison ?? null, commande.frais_livraison)}</dd>
+            </div>
+          )}
           <div className="flex justify-between text-titre-section font-semibold text-texte">
             <dt>Total</dt>
             <dd className="tabular-nums">{formaterMontant(commande.total)}</dd>

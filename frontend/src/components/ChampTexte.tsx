@@ -24,7 +24,7 @@ export function ChampTexte({
   requis?: boolean
   multiligne?: boolean
   placeholder?: string
-  type?: 'text' | 'email' | 'password'
+  type?: 'text' | 'email' | 'password' | 'tel'
   autoComplete?: string
   maxLength?: number
 }) {

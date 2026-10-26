@@ -40,6 +40,9 @@ class CommandeResource extends JsonResource
             'statut' => $this->statut->value,
             'statut_libelle' => $this->statut->libelle(),
             'canal' => $this->canal->value,
+            'canal_libelle' => $this->canal->libelle(),
+            // Qui l'a saisie au back-office (lot C) ; null pour la vitrine.
+            'cree_par' => $this->whenLoaded('creePar', fn () => $this->creePar?->name),
             'sous_total' => $this->sous_total,
             'frais_livraison' => $this->frais_livraison,
             'total' => $this->total,
@@ -91,7 +94,9 @@ class CommandeResource extends JsonResource
                     'reference' => $this->remboursement_reference,
                 ],
             ],
-            'client' => $this->whenLoaded('client', fn () => [
+            // null pour une vente au comptoir sans client identifié :
+            // l'interface affiche « Client de passage ».
+            'client' => $this->whenLoaded('client', fn () => $this->client === null ? null : [
                 'nom' => $this->client->nom,
                 'telephone' => $this->client->telephone,
             ]),

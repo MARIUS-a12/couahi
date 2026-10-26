@@ -14,6 +14,8 @@ use App\Models\Client;
 use App\Models\Commande;
 use App\Models\Etablissement;
 use App\Models\Produit;
+use App\Models\ReferenceWhatsapp;
+use App\Models\User;
 use App\Models\VarianteProduit;
 use App\Models\ZoneLivraison;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -27,17 +29,24 @@ class CreerCommande
     ) {}
 
     /**
+     * Lot C, étendu sans changer la vitrine : $client peut être null (vente
+     * au comptoir sans client identifié), $auteur est qui saisit la commande
+     * au back-office, $referenceWhatsapp la référence collée. La vitrine ne
+     * passe aucun des deux derniers, et rien ne change pour elle.
+     *
      * @param  LigneCommandeDemandee[]  $lignes
      */
     public function executer(
         Etablissement $etablissement,
-        Client $client,
+        ?Client $client,
         array $lignes,
         Canal $canal,
         SourceCommande $source,
         string $cleIdempotence,
         ?ZoneLivraison $zoneLivraison = null,
         ?ModePaiement $modePaiement = null,
+        ?User $auteur = null,
+        ?ReferenceWhatsapp $referenceWhatsapp = null,
     ): Commande {
         // pourTousEtablissements() partout dans ce service, jamais le
         // contexte ambiant : $etablissement, reçu en paramètre, est déjà la
@@ -61,6 +70,8 @@ class CreerCommande
                 $cleIdempotence,
                 $zoneLivraison,
                 $modePaiement,
+                $auteur,
+                $referenceWhatsapp,
             ));
         } catch (UniqueConstraintViolationException) {
             // Une commande portant la même clé a été insérée entre notre
@@ -77,13 +88,15 @@ class CreerCommande
      */
     private function creerDansLaTransaction(
         Etablissement $etablissement,
-        Client $client,
+        ?Client $client,
         array $lignes,
         Canal $canal,
         SourceCommande $source,
         string $cleIdempotence,
         ?ZoneLivraison $zoneLivraison,
         ?ModePaiement $modePaiement,
+        ?User $auteur,
+        ?ReferenceWhatsapp $referenceWhatsapp,
     ): Commande {
         $lignesResolues = $this->resoudreEtTrierLignes($etablissement, $lignes);
 
@@ -102,7 +115,10 @@ class CreerCommande
         // avec un client au comptoir, ne la voyait pas dans les 15 minutes.
         // Le restaurant garde 15 minutes en attendant son propre délai
         // (voir decisions.md, lot restauration).
+        // Saisie au back-office : jamais d'expiration. Le commerçant a parlé
+        // au client ; s'il se désiste, on annule à la main.
         $expireLe = match (true) {
+            $source === SourceCommande::BackOffice => null,
             $modePaiement === ModePaiement::MobileMoney => now()->addHours(24),
             $canal === Canal::Web && $etablissement->estRestaurant() => now()->addMinutes(15),
             $canal === Canal::Web => now()->addHours(24),
@@ -113,7 +129,9 @@ class CreerCommande
         $fraisLivraison = $zoneLivraison?->frais ?? 0;
 
         $commande = $etablissement->commandes()->create([
-            'client_id' => $client->id,
+            'client_id' => $client?->id,
+            'cree_par' => $auteur?->id,
+            'reference_whatsapp_id' => $referenceWhatsapp?->id,
             // Pris en DERNIER (après les verrous de stock) : le verrou du
             // compteur, tenu jusqu'au commit, fait attendre toutes les autres
             // commandes de cette boutique. Après lui, rien que des INSERT
@@ -136,7 +154,7 @@ class CreerCommande
         $commande->historique()->make([
             'ancien_statut' => null,
             'nouveau_statut' => StatutCommande::AttentePaiement,
-            'utilisateur_id' => null,
+            'utilisateur_id' => $auteur?->id,
             'motif' => null,
         ])->pourEtablissement($etablissement->id)->save();
 
@@ -290,7 +308,16 @@ class CreerCommande
             : Produit::reserverAtomiquement($ligne->produit->id, $ligne->quantite);
 
         if (! $reserve) {
-            throw ArticleIndisponibleException::stockInsuffisant($ligne->produit, $ligne->variante, $ligne->quantite);
+            $article = $ligne->variante !== null
+                ? VarianteProduit::pourTousEtablissements()->find($ligne->variante->id)
+                : Produit::pourTousEtablissements()->find($ligne->produit->id);
+
+            throw ArticleIndisponibleException::stockInsuffisant(
+                $ligne->produit,
+                $ligne->variante,
+                $ligne->quantite,
+                max(0, (int) $article?->quantite_stock - (int) $article?->quantite_reservee),
+            );
         }
     }
 }

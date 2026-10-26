@@ -226,6 +226,20 @@ que tous les tests passaient : ils n'envoyaient que des images de
 100 pixels. Un plafond de taille se mesure avec de la marge (24 Mo sous la
 limite), jamais au ras.
 
+## Vérifier un écran dans Chrome piloté
+Un Chrome sans fenêtre piloté par le protocole DevTools ne livre pas
+toujours les entrées simulées (Input.dispatchTouchEvent, gestes, souris) :
+après la connexion au back-office, aucune n'atteint la page, et un toucher
+reste sans réponse. Avant de conclure qu'un écran est cassé, poser un
+écouteur en phase de capture sur document : s'il ne reçoit rien, c'est le
+pilote, pas l'écran. Dans ce cas, déclencher les boutons par
+element.click() (mêmes gestionnaires, mêmes requêtes), le dire dans le
+compte rendu, et faire confirmer le geste au doigt par l'utilisateur sur
+un vrai téléphone. Le profil Chrome se passe en chemin complet : avec un
+chemin relatif, Chrome n'ouvre jamais son port. Toute preuve d'un écran
+s'accompagne du journal réseau (requête, corps, code, réponse) et des
+SELECT bruts, pas seulement d'une capture.
+
 ## Tâches planifiées
 Toute tâche planifiée a au moins un test qui l'exécute PAR LE
 PLANIFICATEUR (schedule:run), jamais seulement par appel direct à son

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Vitrine;
 
 use App\Enums\ModePaiement;
+use App\Rules\CommuneDeLivraison;
 use App\Rules\NumeroTelephoneIvoirien;
 use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Foundation\Http\FormRequest;
@@ -53,7 +54,7 @@ class CreerCommandeVitrineRequest extends FormRequest
             'client.telephone' => ['required', 'string', new NumeroTelephoneIvoirien],
             'client.email' => ['nullable', 'email', 'max:255'],
 
-            'commune' => ['required', 'string', ...$this->regleCommune()],
+            'commune' => ['required', 'string', 'max:100', new CommuneDeLivraison(app(ContexteEtablissement::class)->obtenir(), $this->boolean('autre_commune'))],
             'autre_commune' => ['sometimes', 'boolean'],
             'quartier' => ['required', 'string', 'max:150'],
 
@@ -93,30 +94,6 @@ class CreerCommandeVitrineRequest extends FormRequest
     /**
      * @return array{0: In|string}
      */
-    private function regleCommune(): array
-    {
-        $nomsZonesActives = app(ContexteEtablissement::class)->obtenir()->zonesLivraisonProposees()->pluck('nom');
-
-        if ($nomsZonesActives->isEmpty()) {
-            return ['max:100'];
-        }
-
-        if (! $this->boolean('autre_commune')) {
-            return [Rule::in($nomsZonesActives)];
-        }
-
-        // « Autre commune » : saisie libre, livraison à convenir. Une
-        // commune de la liste n'y a pas sa place, sinon choisir « Autre »
-        // et taper « Cocody » suffirait à ne pas payer les frais de Cocody.
-        $listees = $nomsZonesActives->map(fn (string $nom) => mb_strtolower($nom));
-
-        return ['max:100', function (string $attribut, mixed $valeur, callable $echec) use ($listees): void {
-            if ($listees->contains(mb_strtolower(trim((string) $valeur)))) {
-                $echec("{$valeur} est dans la liste : choisissez-la, ses frais de livraison sont connus.");
-            }
-        }];
-    }
-
     public function messages(): array
     {
         return [

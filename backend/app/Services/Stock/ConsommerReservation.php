@@ -24,9 +24,13 @@ class ConsommerReservation
      * ou libérée entre-temps n'est pas retouchée). Rejouer l'appel entier
      * ne décrémente donc jamais deux fois le même stock.
      */
-    public function executer(Commande $commande): void
+    /**
+     * $utilisateurId : qui confirme, pour l'historique. Null quand c'est le
+     * système (paiement constaté automatiquement).
+     */
+    public function executer(Commande $commande, ?int $utilisateurId = null): void
     {
-        DB::transaction(function () use ($commande) {
+        DB::transaction(function () use ($commande, $utilisateurId) {
             // pourTousEtablissements() : voir la même remarque dans
             // LibererReservation — $commande est déjà l'instance de confiance
             // de l'appelant, pas une lecture tenant-scopée.
@@ -42,7 +46,7 @@ class ConsommerReservation
             $commande->historique()->make([
                 'ancien_statut' => StatutCommande::AttentePaiement,
                 'nouveau_statut' => StatutCommande::Payee,
-                'utilisateur_id' => null,
+                'utilisateur_id' => $utilisateurId,
                 'motif' => null,
             ])->pourEtablissement($commande->etablissement_id)->save();
 

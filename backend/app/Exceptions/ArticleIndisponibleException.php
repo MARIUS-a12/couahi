@@ -13,20 +13,29 @@ use RuntimeException;
  */
 class ArticleIndisponibleException extends RuntimeException
 {
+    /**
+     * $quantiteDemandee et $quantiteDisponible : pour le back-office, qui
+     * dit au commerçant combien il en reste (lot C). Le message, lu par la
+     * vitrine, ne change pas : un client n'a pas à connaître le stock exact.
+     */
     private function __construct(
         public readonly Produit $produit,
         public readonly ?VarianteProduit $variante,
         string $message,
+        public readonly ?int $quantiteDemandee = null,
+        public readonly ?int $quantiteDisponible = null,
     ) {
         parent::__construct($message);
     }
 
-    public static function stockInsuffisant(Produit $produit, ?VarianteProduit $variante, int $quantiteDemandee): self
+    public static function stockInsuffisant(Produit $produit, ?VarianteProduit $variante, int $quantiteDemandee, ?int $quantiteDisponible = null): self
     {
         return new self(
             $produit,
             $variante,
             sprintf('Stock insuffisant pour "%s" (%d demandé(s)).', self::nomAffiche($produit, $variante), $quantiteDemandee),
+            $quantiteDemandee,
+            $quantiteDisponible,
         );
     }
 

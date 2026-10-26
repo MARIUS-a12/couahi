@@ -6,7 +6,7 @@
  * récent au plus ancien, pagination à 25. Cartes empilées sous 768px, comme
  * pour les produits. Rafraîchi toutes les 60 secondes (voir useCommandes).
  */
-import { PackageSearch, Search, ShoppingCart } from 'lucide-react'
+import { PackageSearch, Plus, Search, ShoppingCart } from 'lucide-react'
 import { useState } from 'react'
 import { BadgeStatutCommande } from '../components/BadgeStatutCommande'
 import { PastillePaiement } from '../components/PastillePaiement'
@@ -18,6 +18,7 @@ import { EtatErreur } from '../components/EtatErreur'
 import { FiltresStatutCommande } from '../components/FiltresStatutCommande'
 import { IconeCanal } from '../components/IconeCanal'
 import { useCommandes } from '../hooks/useCommandes'
+import { useMoi } from '../hooks/useMoi'
 import { useValeurDifferee } from '../hooks/useValeurDifferee'
 import { formaterMontant } from '../lib/formatage'
 import { useNavigate } from 'react-router-dom'
@@ -37,6 +38,8 @@ export function PageListeCommandes() {
   const [statut, setStatut] = useState<StatutCommande | ''>('')
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
+  const { data: moi } = useMoi()
+  const peutSaisir = moi?.permissions.includes('creer_commandes') ?? false
 
   const rechercheDifferee = useValeurDifferee(recherche)
 
@@ -57,7 +60,14 @@ export function PageListeCommandes() {
         icone={<ShoppingCart aria-hidden="true" size={22} strokeWidth={1.75} />}
         couleur="bleu"
         titre="Commandes"
-        sousTitre="Toutes les commandes passées par vos clients, vitrine et WhatsApp confondus."
+        sousTitre="Toutes les commandes : vitrine, WhatsApp, téléphone et comptoir."
+        action={
+          peutSaisir ? (
+            <Bouton variante="principal" icone={<Plus aria-hidden="true" size={20} strokeWidth={1.5} />} onClick={() => navigate('/admin/commandes/nouvelle')}>
+              Nouvelle commande
+            </Bouton>
+          ) : undefined
+        }
       />
 
       <BandeStatistiquesCommandes />
@@ -139,7 +149,7 @@ export function PageListeCommandes() {
                       <SignalLigne commande={commande} />
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
-                      <div className="text-corps text-texte">{commande.client?.nom ?? '—'}</div>
+                      <div className="text-corps text-texte">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? '—')}</div>
                       <div className="text-petit tabular-nums text-texte-secondaire">{commande.client?.telephone}</div>
                     </td>
                     <td className="border-b border-bordure px-4 py-3 tabular-nums text-corps text-texte">
@@ -204,7 +214,7 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="block text-corps font-bold tabular-nums text-texte">{commande.numero}</span>
-          <span className="text-petit text-texte-secondaire">{commande.client?.nom ?? '—'}</span>
+          <span className="text-petit text-texte-secondaire">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? '—')}</span>
         </div>
         <BadgeStatutCommande statut={commande.statut} />
       </div>

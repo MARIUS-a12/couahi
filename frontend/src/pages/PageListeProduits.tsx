@@ -7,7 +7,7 @@
  * (modifier, archiver/republier) ; la création passe par le bouton
  * "Ajouter un produit".
  */
-import { Archive, ArchiveRestore, ArrowDown, ArrowUp, Package, Pencil, Plus } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, Package, Pencil, Plus, ShoppingBag } from 'lucide-react'
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -43,6 +43,9 @@ export function PageListeProduits() {
   const { data: categories } = useCategories()
   const { data: moi } = useMoi()
   const peutGererCatalogue = moi?.permissions.includes('gerer_catalogue') ?? false
+  // Lot C : « Vendre » ouvre la saisie manuelle avec ce produit déjà choisi.
+  const peutVendre = moi?.permissions.includes('creer_commandes') ?? false
+  const vendre = (produitId: number) => navigate(`/admin/commandes/nouvelle?produit=${produitId}`)
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
@@ -196,6 +199,19 @@ export function PageListeProduits() {
                     </div>
                   </div>
 
+                  {peutVendre && !estArchive && (
+                    <div className="mt-3 border-t border-bordure pt-3">
+                      <Bouton
+                        variante="principal"
+                        className="w-full"
+                        icone={<ShoppingBag aria-hidden="true" size={20} strokeWidth={1.5} />}
+                        onClick={() => vendre(produit.id)}
+                      >
+                        Vendre
+                      </Bouton>
+                    </div>
+                  )}
+
                   {peutGererCatalogue && (
                     <div className="mt-3 flex gap-2 border-t border-bordure pt-3">
                       <Bouton
@@ -254,7 +270,7 @@ export function PageListeProduits() {
                   direction={direction}
                   onClick={() => trierPar('date')}
                 />
-                {peutGererCatalogue && (
+                {(peutGererCatalogue || peutVendre) && (
                   <th className="border-b border-bordure px-4 py-2 font-medium">Actions</th>
                 )}
               </tr>
@@ -289,9 +305,17 @@ export function PageListeProduits() {
                     <td className="border-b border-bordure px-4 py-3 tabular-nums text-petit text-texte-secondaire">
                       {new Date(produit.created_at).toLocaleDateString('fr-FR')}
                     </td>
-                    {peutGererCatalogue && (
+                    {(peutGererCatalogue || peutVendre) && (
                       <td className="border-b border-bordure px-4 py-3">
                         <div className="flex items-center gap-1">
+                          {peutVendre && !estArchive && (
+                            <button type="button" onClick={() => vendre(produit.id)} aria-label={`Vendre ${produit.nom}`} className="flex h-11 cursor-pointer items-center gap-1.5 rounded px-3 text-corps font-medium text-primaire transition-[background-color,transform] hover:bg-primaire/10 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1">
+                              <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.5} />
+                              Vendre
+                            </button>
+                          )}
+                          {peutGererCatalogue && (
+                          <>
                           <Link
                             to={`/admin/produits/${produit.id}/modifier`}
                             title="Modifier"
@@ -322,6 +346,8 @@ export function PageListeProduits() {
                             >
                               <Archive aria-hidden="true" size={20} strokeWidth={1.5} />
                             </button>
+                          )}
+                          </>
                           )}
                         </div>
                       </td>

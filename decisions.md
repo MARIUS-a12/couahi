@@ -701,3 +701,57 @@ Alternative écartée : un délai court avec une alerte au commerçant.
 perdue coûte plus que du stock réservé une journée. Le restaurant reste à
 15 minutes : un plat ne se réserve pas un jour, son délai propre viendra
 avec le lot restauration.
+
+## 2026-10-26 — Au comptoir, « Livrée » veut dire marchandise remise
+
+Une vente au comptoir est terminée quand elle est saisie : l'argent est
+encaissé, l'article est parti avec le client. Elle est donc créée,
+confirmée (sa réservation consommée), passée à « Livrée » et payée en
+espèces, dans une seule transaction : si une étape échoue, rien n'est
+écrit. « Livrée » désigne la marchandise remise au client, ce qui est
+littéralement vrai au comptoir ; ce n'est pas une livraison à domicile, et
+le détail de la commande n'affiche aucune ligne de livraison. Alternative
+écartée : un statut « Vendue » propre au comptoir. Écartée parce qu'il
+aurait fallu l'ajouter à chaque filtre, chaque chiffre et chaque
+transition, pour dire la même chose que « Livrée ». Une vente au comptoir
+n'est jamais à traiter et n'expire jamais.
+
+## 2026-10-26 — Une vente au comptoir se fait sans client
+
+Le client de passage ne laisse ni nom ni numéro : la commande est créée
+sans client (client_id vide), affichée « Client de passage ». Un habitué
+peut être identifié par un lien discret. Alternative écartée : un client
+fictif « Comptoir » partagé. Écartée parce qu'il fausserait le nombre de
+clients, l'historique d'achat et le repérage des doublons par téléphone.
+
+## 2026-10-26 — La saisie manuelle passe par CreerCommande, jamais à côté
+
+Comptoir, téléphone et WhatsApp appellent le même CreerCommande que la
+vitrine, étendu (client facultatif, canal, auteur, référence WhatsApp),
+puis les services existants de confirmation, de transition et de
+paiement. Les prix sont relus en base ; un prix envoyé par l'écran n'est
+même pas lu, et il n'existe pas de remise. Une commande saisie garde qui
+l'a créée, par quel canal et quand ; chaque paiement garde qui l'a reçu.
+Une commande au téléphone ou sur WhatsApp est confirmée à la création
+(le commerçant a parlé au client et vu son stock), non payée, et
+n'expire jamais. Un produit en brouillon se vend : il est en rayon même
+s'il n'est pas encore en ligne ; un produit archivé, non. Alternative
+écartée : un service propre à la saisie manuelle. Écartée parce que deux chemins de création finissent toujours
+par diverger sur le stock ou les prix.
+
+## 2026-10-26 — Un doublon possible avertit, il ne bloque pas
+
+Même téléphone avec une commande en cours de moins de 24 heures, ou
+référence WhatsApp déjà utilisée : le serveur répond 409 avec les
+commandes concernées, l'écran les montre avec leur lien, et « Créer quand
+même » renvoie la saisie avec une confirmation. Alternative écartée :
+refuser. Écartée parce qu'un client commande parfois deux fois dans la
+journée, et qu'un commerçant bloqué ressaisirait en changeant le numéro.
+
+## 2026-10-26 — Saisir une commande est une permission à part
+
+creer_commandes, distincte de gerer_commandes : l'administrateur,
+l'opérateur et le caissier l'ont, le gestionnaire de stock non. Le
+message de stock insuffisant du back-office nomme l'article, la quantité
+demandée et la quantité disponible ; celui de la vitrine ne change pas et
+ne révèle pas le stock exact.

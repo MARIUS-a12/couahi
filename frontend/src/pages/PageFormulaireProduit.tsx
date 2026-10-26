@@ -22,6 +22,8 @@ import type { ModeStock, Produit, ProduitPayload } from '../api/produits'
 import { archiverProduit, creerProduit, modifierProduit } from '../api/produits'
 import { recupererVariantes } from '../api/variantes'
 import { BlocStock } from '../components/BlocStock'
+import { ShoppingBag } from 'lucide-react'
+import { Bouton } from '../components/Bouton'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampPrix } from '../components/ChampPrix'
 import { ChampTexte } from '../components/ChampTexte'
@@ -136,6 +138,7 @@ function FormulaireProduit({
 
   const { data: moi } = useMoi()
   const peutGererCatalogue = moi?.permissions.includes('gerer_catalogue') ?? false
+  const peutVendre = moi?.permissions.includes('creer_commandes') ?? false
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -259,9 +262,19 @@ function FormulaireProduit({
     <div className="mx-auto max-w-2xl pb-4">
       <div className="mb-4 flex items-center gap-2">
         <BoutonRetour vers="/admin/produits" />
-        <h1 className="text-titre-page font-semibold text-texte">
+        <h1 className="flex-1 text-titre-page font-semibold text-texte">
           {estModification ? 'Modifier le produit' : 'Nouveau produit'}
         </h1>
+        {estModification && peutVendre && produitExistant?.statut !== 'archive' && (
+          <Bouton
+            variante="principal"
+            taille="petite"
+            icone={<ShoppingBag aria-hidden="true" size={18} strokeWidth={1.5} />}
+            onClick={() => navigate(`/admin/commandes/nouvelle?produit=${produitId}`)}
+          >
+            Vendre
+          </Bouton>
+        )}
       </div>
 
       <form onSubmit={soumettre} className="space-y-4">

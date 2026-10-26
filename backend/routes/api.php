@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AbonnementController;
 use App\Http\Controllers\Api\ActivationController;
 use App\Http\Controllers\Api\CategorieController;
 use App\Http\Controllers\Api\CommandeController;
+use App\Http\Controllers\Api\CommandeManuelleController;
 use App\Http\Controllers\Api\CompteController;
 use App\Http\Controllers\Api\ConsultationPlateformeController;
 use App\Http\Controllers\Api\EtablissementController;
@@ -180,6 +181,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // Étape 9 — "statistiques" avant "{commande}" : sinon ce dernier
         // capturerait le chemin littéral comme un identifiant de commande
         // (même précaution que "sous-domaine-disponible" plus haut).
+        // Lot C — saisie manuelle (comptoir, téléphone, WhatsApp),
+        // « creer_commandes » : voir CommandeManuelleController. Avant
+        // "{commande}" pour la même raison que "statistiques".
+        Route::get('/commandes/manuelles/articles', [CommandeManuelleController::class, 'articles']);
+        Route::get('/commandes/manuelles/client', [CommandeManuelleController::class, 'client']);
+        Route::get('/commandes/manuelles/zones', [CommandeManuelleController::class, 'zones']);
+        Route::post('/commandes/manuelles', [CommandeManuelleController::class, 'store']);
+
         Route::get('/commandes', [CommandeController::class, 'index']);
         Route::get('/commandes/statistiques', [CommandeController::class, 'statistiques']);
         Route::get('/commandes/{commande}', [CommandeController::class, 'show']);

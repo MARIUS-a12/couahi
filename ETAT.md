@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
+Dernière mise à jour : 26 octobre 2026, lot C (saisie manuelle des commandes).
 
 ## Ce qui existe et fonctionne
 
@@ -35,6 +35,12 @@ Dernière mise à jour : 25 octobre 2026, écran des zones de livraison.
 - Une commande réserve son stock. Une commande de la vitrine non traitée expire au bout de 24 heures (15 minutes pour un restaurant), et son stock est alors rendu.
 - Catégories sur deux niveaux (Chaussures › Sandales).
 - Commandes : liste filtrée par statut et détail. On les fait passer de confirmée à prête puis livrée, ou on les annule (le stock revient).
+- Saisie manuelle d'une commande : bouton « Nouvelle commande » sur la page Commandes, et « Vendre » sur la liste des produits et sur la fiche d'un produit, qui ouvre la saisie avec ce produit déjà choisi. Le premier choix est le canal : Comptoir, WhatsApp ou Téléphone.
+- Au comptoir : des articles seulement, sans client ni livraison. « Encaisser » termine la vente d'un coup : livrée, payée en espèces, stock décompté. Trois touchers depuis « Vendre ». La liste l'affiche « Client de passage » ; un habitué peut être identifié par un lien discret.
+- Au téléphone et sur WhatsApp : le numéro d'abord ; un client connu préremplit son nom, sa commune et son quartier. Mêmes communes et mêmes frais que la vitrine, « Autre commune » comprise. La commande est confirmée, non payée, et n'expire jamais.
+- Recherche dans tout le catalogue de la boutique (brouillons compris, archivés exclus) avec variante, prix et stock disponible ; on ne dépasse pas le stock, le total suit en direct. Une référence WhatsApp se colle derrière un lien.
+- Les prix viennent toujours de la base, sans remise. Un stock insuffisant est expliqué au back-office (article, demandé, disponible). Un doublon possible (même numéro avec une commande en cours de moins de 24 heures, ou référence déjà utilisée) avertit, avec le lien, sans bloquer.
+- Chaque commande saisie garde qui l'a créée, par quel canal et quand ; chaque paiement garde qui l'a reçu. Saisir une commande demande la permission « Saisir des commandes » : administrateur, opérateur et caissier l'ont, le gestionnaire de stock non.
 - Paiements : paiement partiel enregistré tel quel, remboursement constaté à la main.
 - Tableau de bord avec les chiffres des commandes.
 - Équipe : ajout de membres avec un rôle, désactivation, nouveau code d'activation.
@@ -61,10 +67,19 @@ Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de 
 
 ## Ce qui n'existe pas encore
 
-1. **Lot C, prochain lot : saisie manuelle des commandes au back-office**, pour une commande reçue par téléphone ou en boutique, avec les mêmes communes et les mêmes frais que la vitrine.
+1. **Prochain : le petit lot de l'écran des variantes, avant le lot D.** Un commerçant qui crée à la main un produit à variantes (« pantalon homme ») se fait piéger quatre fois :
+   - Il tape « blanc, noir » dans le champ des valeurs : la virgule n'est pas comprise. Une liste séparée par des virgules doit donner deux valeurs, Blanc et Noir.
+   - Le bandeau affiche « Tout est enregistré » alors que le champ contient encore un texte non ajouté. Un texte saisi mais non validé n'est pas enregistré, et le bandeau doit le dire (le même mensonge que celui des stocks, corrigé en B2).
+   - Deux boutons verts sur le même écran, « Créer les N variantes » dans la grille et « Enregistrer les modifications » en bas, qui n'enregistrent pas la même chose. Le commerçant appuie sur le plus gros, croit avoir tout enregistré, et perd sa grille.
+   - Tailles et couleurs définies, aucune variante créée, et rien ne le signale : la fiche vitrine reste un produit simple sans qu'il comprenne pourquoi. Le back-office doit dire : « Tailles et couleurs définies, aucune variante créée : cochez les combinaisons ci-dessous. »
 2. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
-3. **Lot E** : les tests de non-régression de la vitrine.
-4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+3. **Après le lot D, décidé, rien de codé :**
+   - **Rôles cumulables** : une personne peut avoir plusieurs rôles, et ses droits s'additionnent. Une phrase en direct explique ce qu'elle pourra faire, avec une case « voit les chiffres ». Au moins un rôle par personne, et toujours un administrateur actif.
+   - **Tableau de bord** : vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
+   - **Paiements** : paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
+   - **Équipe** : l'écran d'activation n'affiche qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien complet et un bouton pour l'envoyer par WhatsApp.
+4. **Lot E** : les tests de non-régression de la vitrine.
+5. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 

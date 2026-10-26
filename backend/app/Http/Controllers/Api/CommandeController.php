@@ -129,6 +129,7 @@ class CommandeController extends Controller
             'historique.utilisateur',
             'paiementConfirmePar',
             'remboursePar',
+            'creePar',
         ]);
 
         return new CommandeResource($commande);

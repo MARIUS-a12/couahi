@@ -6,7 +6,7 @@
 import { client } from '../lib/client'
 
 export type StatutCommande = 'attente_paiement' | 'payee' | 'prete' | 'livree' | 'expiree' | 'annulee'
-export type CanalCommande = 'web' | 'whatsapp'
+export type CanalCommande = 'web' | 'whatsapp' | 'comptoir' | 'telephone'
 
 export type ClientCommande = {
   nom: string
@@ -19,6 +19,9 @@ export type Commande = {
   statut: StatutCommande
   statut_libelle: string
   canal: CanalCommande
+  canal_libelle?: string
+  /** Qui l'a saisie au back-office (lot C) ; null pour la vitrine. */
+  cree_par?: string | null
   sous_total: number
   frais_livraison: number
   total: number
@@ -26,7 +29,8 @@ export type Commande = {
   created_at: string
   nombre_articles: number
   en_retard: boolean
-  client?: ClientCommande
+  /** null : vente au comptoir sans client identifié, « Client de passage ». */
+  client?: ClientCommande | null
   // Étape 13 — le paiement a sa propre machine d'état, distincte du statut.
   mode_paiement: 'cinetpay' | 'mobile_money' | 'especes' | null
   paiement: PaiementCommande

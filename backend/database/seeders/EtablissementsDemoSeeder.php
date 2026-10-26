@@ -522,7 +522,9 @@ class EtablissementsDemoSeeder extends Seeder
             [$valeurColoris, $photo] = $nomColoris === 'Noir' ? [$noir, $photoNoir] : [$marron, $photoMarron];
             foreach ($parPointure as $libellePointure => $stock) {
                 $variantes->creerVariante($produit, [$pointures[$libellePointure], $valeurColoris], [
-                    'prix' => $libellePointure === '45' ? 19500 : null,
+                    // (string) : PHP fait de la clé '45' l'entier 45, et la comparaison
+                    // stricte échouait en silence, sans prix propre pour le 45.
+                    'prix' => (string) $libellePointure === '45' ? 19500 : null,
                     'quantite_stock' => $stock,
                     'media_id' => $photo->id,
                 ]);

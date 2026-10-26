@@ -55,6 +55,19 @@ class DonneesDemoTest extends TestCase
         $this->assertTrue($zones->contains(fn (array $zone) => $zone['frais'] > 0), 'une commune où elle est facturée');
     }
 
+    /**
+     * Le 45 coûte plus cher que les autres pointures : une variante à prix
+     * propre. Une comparaison stricte avec une clé de tableau devenue entière
+     * l'avait fait disparaître du seeding sans bruit.
+     */
+    public function test_le_45_des_sandales_a_son_prix_propre(): void
+    {
+        $this->seed();
+
+        $prix = VarianteProduit::pourTousEtablissements()->where('nom', 'like', '45 / %')->pluck('prix')->unique()->values()->all();
+        $this->assertSame([19500], $prix);
+    }
+
     public function test_wax_adjame_vend_en_stock_compte_et_couvre_les_cas_du_catalogue(): void
     {
         $this->seed();

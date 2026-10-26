@@ -29,6 +29,8 @@ class Commande extends Model
 
     protected $fillable = [
         'client_id',
+        'cree_par',
+        'reference_whatsapp_id',
         'numero',
         'statut',
         'source',
@@ -91,6 +93,15 @@ class Commande extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    /**
+     * Qui a saisi la commande au back-office ; null pour la vitrine, où
+     * c'est le client lui-même.
+     */
+    public function creePar(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cree_par');
     }
 
     public function zoneLivraison(): BelongsTo

@@ -155,6 +155,16 @@ class Etablissement extends Model
             ->get();
     }
 
+    /**
+     * La zone qui facture une commune, ou null : livraison non facturée, ou
+     * « Autre commune » (saisie libre, à convenir). Lue par la vitrine et
+     * par la saisie manuelle, pour que les deux facturent pareil.
+     */
+    public function zoneLivraisonPour(string $commune, bool $autreCommune): ?ZoneLivraison
+    {
+        return $autreCommune ? null : $this->zonesLivraisonProposees()->firstWhere('nom', $commune);
+    }
+
     public function commandes(): HasMany
     {
         return $this->hasMany(Commande::class);
