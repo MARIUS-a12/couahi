@@ -15,7 +15,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Moi } from '../api/auth'
 import { routes } from '../routes'
 import { BarreLaterale } from './BarreLaterale'
@@ -25,11 +25,19 @@ vi.mock('../hooks/useStatistiquesCommandes', () => ({
   useStatistiquesCommandes: () => ({ data: undefined }),
 }))
 
+// Le nombre de demandes WhatsApp nouvelles (lot D), réglé par chaque test.
+let demandesNouvelles: number | undefined
+vi.mock('../hooks/useCompteDemandesWhatsapp', () => ({
+  useCompteDemandesWhatsapp: (actif: boolean) => ({ data: actif ? demandesNouvelles : undefined }),
+}))
+
 const PERMISSIONS_ADMIN_ETABLISSEMENT = [
   'voir_catalogue',
   'gerer_catalogue',
   'voir_commandes',
   'gerer_commandes',
+  'creer_commandes',
+  'gerer_demandes_whatsapp',
   'gerer_clients',
   'voir_statistiques',
   'gerer_parametres',
@@ -37,7 +45,7 @@ const PERMISSIONS_ADMIN_ETABLISSEMENT = [
   'gerer_stock',
   'gerer_equipe',
 ]
-const PERMISSIONS_OPERATEUR = ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'gerer_clients']
+const PERMISSIONS_OPERATEUR = ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients']
 
 function moiAvec(role: string, permissions: string[]): Moi {
   return {
@@ -120,17 +128,40 @@ function routeDeclaree(chemin: string): string | undefined {
 }
 
 describe('navigation du back-office selon les permissions renvoyées par /api/moi', () => {
+  beforeEach(() => {
+    demandesNouvelles = undefined
+  })
+
+  it('la pastille de « Demandes WhatsApp » est le nombre de demandes nouvelles', () => {
+    demandesNouvelles = 3
+    afficherNavigation(moiAvec('operateur', PERMISSIONS_OPERATEUR))
+
+    expect(screen.getByRole('link', { name: /Demandes WhatsApp/ })).toHaveTextContent('Demandes WhatsApp3')
+  })
+
+  it('aucune demande nouvelle : pas de pastille ; sans la permission : pas d’entrée', () => {
+    demandesNouvelles = 0
+    afficherNavigation(moiAvec('operateur', PERMISSIONS_OPERATEUR))
+    expect(screen.getByRole('link', { name: /Demandes WhatsApp/ })).toHaveTextContent(/^Demandes WhatsApp$/)
+  })
+
+  it('le gestionnaire de stock ne voit pas les demandes WhatsApp', () => {
+    demandesNouvelles = 3
+    afficherNavigation(moiAvec('gestionnaire_stock', ['voir_catalogue', 'gerer_stock', 'voir_commandes']))
+    expect(screen.queryByRole('link', { name: /Demandes WhatsApp/ })).not.toBeInTheDocument()
+  })
+
   it("un administrateur d'établissement voit Mon compte, Identité de la boutique, Paiement, Livraison, Abonnement, et Équipe dans la barre", () => {
     afficherNavigation(moiAvec('admin_etablissement', PERMISSIONS_ADMIN_ETABLISSEMENT))
 
-    expect(libellesDeLaBarre()).toEqual(['Produits', 'Commandes', 'Catégories', 'Équipe'])
+    expect(libellesDeLaBarre()).toEqual(['Produits', 'Commandes', 'Demandes WhatsApp', 'Catégories', 'Équipe'])
     expect(libellesDuMenu()).toEqual(['Mon compte', 'Identité de la boutique', 'Paiement', 'Livraison', 'Abonnement'])
   })
 
   it('un opérateur ne voit que Mon compte dans le menu, et pas Équipe dans la barre', () => {
     afficherNavigation(moiAvec('operateur', PERMISSIONS_OPERATEUR))
 
-    expect(libellesDeLaBarre()).toEqual(['Produits', 'Commandes', 'Catégories'])
+    expect(libellesDeLaBarre()).toEqual(['Produits', 'Commandes', 'Demandes WhatsApp', 'Catégories'])
     expect(libellesDuMenu()).toEqual(['Mon compte'])
   })
 

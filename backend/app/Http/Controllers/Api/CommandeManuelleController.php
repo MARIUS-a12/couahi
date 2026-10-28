@@ -6,6 +6,7 @@ use App\Enums\Canal;
 use App\Enums\StatutProduit;
 use App\Enums\StatutVariante;
 use App\Exceptions\ArticleIndisponibleException;
+use App\Exceptions\DemandeDejaTransformeeException;
 use App\Exceptions\DoublonPossibleException;
 use App\Exceptions\SelectionVarianteInvalideException;
 use App\Http\Controllers\Controller;
@@ -147,6 +148,12 @@ class CommandeManuelleController extends Controller
                     'total' => $commande->total,
                     'created_at' => $commande->created_at,
                 ])->all(),
+            ], 409);
+        } catch (DemandeDejaTransformeeException $exception) {
+            // Pas un avertissement qu'on confirme : un refus, avec la commande.
+            return response()->json([
+                'message' => $exception->getMessage(),
+                'deja_transformee' => ['id' => $exception->commande->id, 'numero' => $exception->commande->numero],
             ], 409);
         } catch (ArticleIndisponibleException $exception) {
             return response()->json(['message' => $this->messageStock($exception)], 422);

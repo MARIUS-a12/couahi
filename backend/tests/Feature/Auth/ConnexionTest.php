@@ -6,6 +6,7 @@ use App\Models\Etablissement;
 use App\Models\EtablissementUtilisateur;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -35,8 +36,9 @@ class ConnexionTest extends TestCase
 
     // Étape 10 : admin_etablissement a reçu gerer_stock et gerer_equipe en
     // plus de ses 8 permissions d'origine (voir RolesEtPermissionsSeeder),
-    // puis creer_commandes au lot C — 11 désormais.
-    public function test_1_connexion_reussie_et_moi_renvoie_role_et_ses_11_permissions(): void
+    // puis creer_commandes au lot C et gerer_demandes_whatsapp au lot D —
+    // 12 désormais.
+    public function test_1_connexion_reussie_et_moi_renvoie_role_et_ses_12_permissions(): void
     {
         $this->seed();
 
@@ -49,7 +51,8 @@ class ConnexionTest extends TestCase
         $moi = $this->depuis('chez-awa.localhost')->getJson('http://chez-awa.localhost:8000/api/moi');
         $moi->assertStatus(200);
         $moi->assertJsonPath('role', 'admin_etablissement');
-        $this->assertCount(11, $moi->json('permissions'));
+        $this->assertCount(12, $moi->json('permissions'));
+        $this->assertContains('gerer_demandes_whatsapp', $moi->json('permissions'));
         $this->assertContains('creer_commandes', $moi->json('permissions'));
     }
 
@@ -223,7 +226,7 @@ class ConnexionTest extends TestCase
         $this->assertCount(1, array_unique($corps), 'les 4 causes doivent produire exactement le même corps de réponse');
     }
 
-    private function tenter(string $email, string $motDePasse): \Illuminate\Testing\TestResponse
+    private function tenter(string $email, string $motDePasse): TestResponse
     {
         return $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/connexion', [
             'email' => $email,

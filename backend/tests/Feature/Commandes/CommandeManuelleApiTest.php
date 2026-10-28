@@ -270,7 +270,7 @@ class CommandeManuelleApiTest extends TestCase
         $this->assertSame(0, Commande::pourTousEtablissements()->count());
     }
 
-    public function test_doublon_par_reference_whatsapp(): void
+    public function test_une_reference_deja_transformee_est_refusee_meme_confirmee(): void
     {
         $this->connecte();
         app(ContexteEtablissement::class)->definir($this->wax);
@@ -280,10 +280,15 @@ class CommandeManuelleApiTest extends TestCase
         $premiere = $this->commande($this->saisirAuTelephone(['reference' => 'Bonjour, je veux ça [REF:AB12CD34]'])->assertCreated());
         $this->assertSame($reference->id, $premiere->reference_whatsapp_id);
 
-        // Un autre numéro, mais le même message : déjà une commande.
-        $this->saisirAuTelephone(['client' => ['telephone' => '0505050505', 'nom' => 'Autre'], 'reference' => 'AB12CD34'])
-            ->assertStatus(409)
-            ->assertJsonPath('doublons.0.numero', $premiere->numero);
+        // Lot D : un autre numéro, le même message — un refus, pas un
+        // avertissement qu'on confirme, même en forçant confirmer_doublon.
+        foreach ([false, true] as $confirmer) {
+            $this->saisirAuTelephone(['client' => ['telephone' => '0505050505', 'nom' => 'Autre'], 'reference' => 'AB12CD34', 'confirmer_doublon' => $confirmer])
+                ->assertStatus(409)
+                ->assertJsonPath('deja_transformee.numero', $premiere->numero)
+                ->assertJsonMissingPath('doublons');
+        }
+        $this->assertSame(1, Commande::pourTousEtablissements()->where('reference_whatsapp_id', $reference->id)->count());
     }
 
     public function test_une_reference_inconnue_est_refusee(): void

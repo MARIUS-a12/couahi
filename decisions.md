@@ -800,3 +800,44 @@ il ne s'affiche pas : on ne saurait pas quelle variante est en promotion.
 Sur la fiche, il apparaît dès que le choix est complet, et jamais pour une
 variante plus chère que lui. Le panier et la commande n'en tiennent aucun
 compte : le prix payé est toujours celui de la base.
+
+## 2026-10-28 — Une demande WhatsApp n'est pas une commande
+
+Un clic sur « Commander sur WhatsApp » crée une référence, que le
+commerçant voit désormais comme une demande (nouvelle, traitée, ignorée).
+Elle ne réserve aucun stock, n'a pas de numéro, n'a aucune ligne dans
+commandes et ne compte dans aucun chiffre ; un test vérifie que toutes les
+statistiques restent strictement identiques. Les demandes vivent dans
+references_whatsapp (statut, date du changement), sans table nouvelle : la
+référence EST la demande. Alternative écartée : créer une commande « en
+attente » au clic. Écartée parce qu'on ne sait rien du client au clic
+(wa.me ne renvoie rien), et qu'une commande fantôme réserverait du stock et
+gonflerait les chiffres pour un client qui n'écrira peut-être jamais.
+
+## 2026-10-28 — Au clic, on ne sait rien du client : la page ne l'invente pas
+
+La page « Demandes WhatsApp » ne montre que le produit, la variante, l'heure
+du clic, la référence et le statut. Aucune colonne nom ni téléphone : elles
+resteraient vides pour toujours et passeraient pour un bug. Le client se
+saisit au moment de transformer la demande en commande.
+
+## 2026-10-28 — Une demande ne devient qu'une seule commande
+
+Transformer une demande passe par la saisie manuelle du lot C, déjà
+remplie (canal WhatsApp, produit, variante, référence). Dans la même
+transaction, la demande passe « traitée » ; si la création échoue, elle
+reste comme elle était. Une demande déjà transformée est REFUSÉE (409, avec
+la commande), même par requête forgée : sa ligne est verrouillée le temps
+de la transaction, et un index unique sur commandes.reference_whatsapp_id
+tient même en cas de course. Cela remplace la règle du lot C, où une
+référence déjà utilisée n'était qu'un avertissement qu'on pouvait
+confirmer. La même saisie rejouée (même clé d'idempotence) retrouve sa
+commande. Une demande devenue commande reste « traitée » : l'ignorer
+contredirait la commande.
+
+## 2026-10-28 — Gérer les demandes WhatsApp est une permission à part
+
+gerer_demandes_whatsapp, distincte des permissions des commandes :
+répondre à des clients et toucher au stock ne sont pas le même droit.
+L'administrateur, l'opérateur et le caissier l'ont ; le gestionnaire de
+stock non. Transformer une demande demande en plus creer_commandes.

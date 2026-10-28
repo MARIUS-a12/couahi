@@ -17,15 +17,18 @@
  * Le libellé d'espace ("Espace Administrateur"...) vient lui aussi de la
  * base (moi.role_libelle_espace), jamais d'une liste ici.
  */
-import { FolderTree, Package, ShoppingCart, Store, Users } from 'lucide-react'
+import { FolderTree, MessageCircle, Package, ShoppingCart, Store, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import type { Moi } from '../api/auth'
+import { useCompteDemandesWhatsapp } from '../hooks/useCompteDemandesWhatsapp'
 import { useStatistiquesCommandes } from '../hooks/useStatistiquesCommandes'
 
 const ENTREES = [
   { vers: '/admin/produits', libelle: 'Produits', icone: Package, permissions: ['voir_catalogue', 'gerer_catalogue'] },
   { vers: '/admin/commandes', libelle: 'Commandes', icone: ShoppingCart, permissions: ['voir_commandes', 'gerer_commandes'] },
+  // Lot D : la pastille est le NOMBRE de demandes nouvelles, jamais un point décoratif.
+  { vers: '/admin/demandes-whatsapp', libelle: 'Demandes WhatsApp', icone: MessageCircle, permissions: ['gerer_demandes_whatsapp'] },
   { vers: '/admin/categories', libelle: 'Catégories', icone: FolderTree, permissions: ['voir_catalogue', 'gerer_catalogue'] },
   // Étape 10 : réservée à gerer_equipe (en pratique le seul admin_etablissement).
   { vers: '/admin/equipe', libelle: 'Équipe', icone: Users, permissions: ['gerer_equipe'] },
@@ -42,6 +45,7 @@ export function BarreLaterale({
 }) {
   const peutVoirCommandes = moi.permissions.includes('voir_commandes') || moi.permissions.includes('gerer_commandes')
   const { data: statistiquesCommandes } = useStatistiquesCommandes(peutVoirCommandes)
+  const { data: demandesNouvelles } = useCompteDemandesWhatsapp(moi.permissions.includes('gerer_demandes_whatsapp'))
 
   useEffect(() => {
     if (!ouvertMobile) {
@@ -91,7 +95,12 @@ export function BarreLaterale({
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {ENTREES.filter((entree) => entree.permissions.some((permission) => moi.permissions.includes(permission))).map(
             (entree) => {
-              const pastille = entree.vers === '/admin/commandes' ? statistiquesCommandes?.en_attente : undefined
+              const pastille =
+                entree.vers === '/admin/commandes'
+                  ? statistiquesCommandes?.en_attente
+                  : entree.vers === '/admin/demandes-whatsapp'
+                    ? demandesNouvelles
+                    : undefined
 
               return (
                 <NavLink

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CommandeController;
 use App\Http\Controllers\Api\CommandeManuelleController;
 use App\Http\Controllers\Api\CompteController;
 use App\Http\Controllers\Api\ConsultationPlateformeController;
+use App\Http\Controllers\Api\DemandeWhatsappController;
 use App\Http\Controllers\Api\EtablissementController;
 use App\Http\Controllers\Api\IdentiteEtablissementController;
 use App\Http\Controllers\Api\LivraisonController;
@@ -188,6 +189,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/commandes/manuelles/client', [CommandeManuelleController::class, 'client']);
         Route::get('/commandes/manuelles/zones', [CommandeManuelleController::class, 'zones']);
         Route::post('/commandes/manuelles', [CommandeManuelleController::class, 'store']);
+
+        // Lot D — les demandes WhatsApp : « gerer_demandes_whatsapp », voir
+        // DemandeWhatsappController. « compte » avant « {demande ».
+        Route::get('/demandes-whatsapp', [DemandeWhatsappController::class, 'index']);
+        Route::get('/demandes-whatsapp/compte', [DemandeWhatsappController::class, 'compte']);
+        Route::patch('/demandes-whatsapp/{demande}', [DemandeWhatsappController::class, 'update']);
 
         Route::get('/commandes', [CommandeController::class, 'index']);
         Route::get('/commandes/statistiques', [CommandeController::class, 'statistiques']);

@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 27 octobre 2026, petit lot de l'écran des variantes et du prix barré.
+Dernière mise à jour : 28 octobre 2026, lot D (demandes WhatsApp).
 
 ## Ce qui existe et fonctionne
 
@@ -42,6 +42,8 @@ Dernière mise à jour : 27 octobre 2026, petit lot de l'écran des variantes et
 - Au téléphone et sur WhatsApp : le numéro d'abord ; un client connu préremplit son nom, sa commune et son quartier. Mêmes communes et mêmes frais que la vitrine, « Autre commune » comprise. La commande est confirmée, non payée, et n'expire jamais.
 - Recherche dans tout le catalogue de la boutique (brouillons compris, archivés exclus) avec variante, prix et stock disponible ; on ne dépasse pas le stock, le total suit en direct. Une référence WhatsApp se colle derrière un lien.
 - Les prix viennent toujours de la base, sans remise. Un stock insuffisant est expliqué au back-office (article, demandé, disponible). Un doublon possible (même numéro avec une commande en cours de moins de 24 heures, ou référence déjà utilisée) avertit, avec le lien, sans bloquer.
+- Demandes WhatsApp : chaque clic sur « Commander sur WhatsApp » de la vitrine apparaît dans la page « Demandes WhatsApp », avec le produit, la variante et sa photo, l'heure du clic (« il y a 12 min », la date exacte au toucher), la référence à copier et son statut. Rien sur le client : au clic, on ne sait rien de lui. Une référence de plus de 7 jours est signalée « expirée ». Le menu affiche le nombre de demandes nouvelles.
+- Une demande se marque traitée ou ignorée, ou se transforme en commande : la saisie manuelle s'ouvre déjà remplie (canal WhatsApp, produit, variante, référence), le commerçant saisit le client, et la demande passe traitée avec le lien vers sa commande. Une demande ne devient qu'une seule commande. Une demande ne réserve rien et ne compte dans aucun chiffre.
 - Chaque commande saisie garde qui l'a créée, par quel canal et quand ; chaque paiement garde qui l'a reçu. Saisir une commande demande la permission « Saisir des commandes » : administrateur, opérateur et caissier l'ont, le gestionnaire de stock non.
 - Paiements : paiement partiel enregistré tel quel, remboursement constaté à la main.
 - Tableau de bord avec les chiffres des commandes.
@@ -63,20 +65,18 @@ Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de 
 
 - **Photos envoyées depuis un ordinateur** : elles ne passent pas par la réduction du navigateur ; sans l'extension exif sur le serveur (voir la liste de mise en ligne), un portrait peut apparaître couché.
 - **CinetPay** : un commerce peut enregistrer ses identifiants, gardés chiffrés, mais aucun paiement CinetPay n'est encore possible. Le bouton « Payer maintenant » reste donc caché.
-- **Demandes WhatsApp** : chaque clic sur « Commander sur WhatsApp » laisse une trace que le serveur sait relire, mais aucun écran ne les montre encore au commerçant (lot D).
 - **Restaurants** : ils fonctionnent comme une boutique. Une commande de restaurant expire 15 minutes après sa création, souvent avant d'avoir été vue ; ce bug est connu et reporté avec le lot restauration.
 - **Produits à trois dimensions** (taille, coloris, longueur) : enregistrables, mais ni la grille du back-office ni le sélecteur de la vitrine n'ont été vérifiés sur téléphone dans ce cas.
 
 ## Ce qui n'existe pas encore
 
-1. **Lot D, prochain lot** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
-2. **Après le lot D, décidé, rien de codé :**
+1. **Prochain : ce qui a été décidé pour après le lot D, rien de codé encore :**
    - **Rôles cumulables** : une personne peut avoir plusieurs rôles, et ses droits s'additionnent. Une phrase en direct explique ce qu'elle pourra faire, avec une case « voit les chiffres ». Au moins un rôle par personne, et toujours un administrateur actif.
    - **Tableau de bord** : vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
    - **Paiements** : paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
    - **Équipe** : l'écran d'activation n'affiche qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien complet et un bouton pour l'envoyer par WhatsApp.
-3. **Lot E** : les tests de non-régression de la vitrine.
-4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+2. **Lot E** : les tests de non-régression de la vitrine.
+3. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 

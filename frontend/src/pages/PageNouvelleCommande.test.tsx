@@ -178,6 +178,33 @@ describe('saisie manuelle', () => {
     expect(await screen.findByText(message)).toBeInTheDocument()
   })
 
+  it('depuis une demande WhatsApp : canal, article et référence déjà posés, le client à saisir', async () => {
+    vi.mocked(rechercherArticles).mockResolvedValue([sandale45])
+    afficher('/admin/commandes/nouvelle?canal=whatsapp&produit=20&variante=45&reference=AB12CD34')
+
+    expect(await screen.findByRole('list', { name: 'Commande' })).toHaveTextContent('45 / Noir')
+    expect(canal('WhatsApp')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText(/^Référence WhatsApp/)).toHaveValue('AB12CD34')
+    expect(screen.getByLabelText(/^Téléphone/)).toHaveValue('')
+  })
+
+  it('une demande déjà transformée : un refus avec la commande, rien à confirmer', async () => {
+    vi.mocked(saisirCommande).mockRejectedValue(new AxiosError('409', '409', undefined, undefined, {
+      status: 409,
+      data: { message: 'Cette demande est déjà devenue la commande CMD-000007.', deja_transformee: { id: 7, numero: 'CMD-000007' } },
+      statusText: '',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+    }))
+    afficher('/admin/commandes/nouvelle?canal=comptoir&produit=7&reference=AB12CD34')
+    await screen.findByRole('list', { name: 'Commande' })
+    fireEvent.click(screen.getByRole('button', { name: /Encaisser/ }))
+
+    expect(await screen.findByRole('link', { name: 'CMD-000007' })).toHaveAttribute('href', '/admin/commandes/7')
+    expect(screen.getByRole('alert')).toHaveTextContent("Une demande ne devient qu'une seule commande.")
+    expect(screen.queryByRole('button', { name: 'Créer quand même' })).not.toBeInTheDocument()
+  })
+
   it('« Coller une référence » est caché derrière un lien', async () => {
     afficher()
     expect(screen.queryByLabelText(/^Référence WhatsApp/)).not.toBeInTheDocument()

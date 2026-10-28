@@ -22,6 +22,10 @@ class RolesEtPermissionsSeeder extends Seeder
         // WhatsApp). Distincte de gerer_commandes : un gestionnaire de stock
         // ne vend pas.
         'creer_commandes' => 'Saisir des commandes',
+        // Lot D : voir et traiter les demandes WhatsApp. Distincte des
+        // commandes : répondre à des clients et toucher au stock ne sont
+        // pas le même droit.
+        'gerer_demandes_whatsapp' => 'Gérer les demandes WhatsApp',
         'gerer_clients' => 'Gérer les clients',
         'voir_statistiques' => 'Voir les statistiques',
         'gerer_parametres' => 'Gérer les paramètres',
@@ -65,16 +69,16 @@ class RolesEtPermissionsSeeder extends Seeder
      */
     private const ATTRIBUTIONS = [
         'super_admin' => [
-            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_clients',
+            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients',
             'voir_statistiques', 'gerer_parametres', 'gerer_integrations', 'gerer_equipe',
         ],
         'admin_etablissement' => [
-            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_clients',
+            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients',
             'voir_statistiques', 'gerer_parametres', 'gerer_integrations', 'gerer_equipe',
         ],
-        'operateur' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_clients'],
+        'operateur' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients'],
         // Encaisse et traite les commandes, ne touche pas au catalogue.
-        'caissier' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_clients'],
+        'caissier' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients'],
         // Ajuste les quantités, ne crée ni ne modifie les produits eux-mêmes.
         'gestionnaire_stock' => ['voir_catalogue', 'gerer_stock', 'voir_commandes'],
     ];

@@ -48,6 +48,7 @@ import { PageListeEtablissements } from './pages/PageListeEtablissements'
 import { PageListeProduits } from './pages/PageListeProduits'
 import { PageLivraison } from './pages/PageLivraison'
 import { PageNouvelleCommande } from './pages/PageNouvelleCommande'
+import { PageDemandesWhatsapp } from './pages/PageDemandesWhatsapp'
 import { PagePaiement } from './pages/PagePaiement'
 import { PagePaiementSuperAdmin } from './pages/PagePaiementSuperAdmin'
 import { PagePanier } from './pages/PagePanier'
@@ -102,6 +103,7 @@ export const routes = [
       { path: '/admin/categories', element: <PageCategories /> },
       { path: '/admin/commandes', element: <PageListeCommandes /> },
       { path: '/admin/commandes/nouvelle', element: <PageNouvelleCommande /> },
+      { path: '/admin/demandes-whatsapp', element: <PageDemandesWhatsapp /> },
       { path: '/admin/commandes/:id', element: <PageDetailCommande /> },
       { path: '/admin/equipe', element: <PageEquipe /> },
       { path: '/admin/identite', element: <PageIdentiteEtablissement /> },

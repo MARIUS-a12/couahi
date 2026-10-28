@@ -58,8 +58,14 @@ export function PageNouvelleCommande() {
   const [parametres] = useSearchParams()
   const produitDemande = parametres.get('produit') ? Number(parametres.get('produit')) : null
   const varianteDemandee = parametres.get('variante') ? Number(parametres.get('variante')) : null
+  // Lot D : « Transformer en commande » arrive avec le canal WhatsApp et la
+  // référence de la demande déjà posés.
+  const canalDemande = parametres.get('canal')
+  const referenceDemandee = parametres.get('reference') ?? ''
 
-  const [canal, setCanal] = useState<CanalManuel | null>(null)
+  const [canal, setCanal] = useState<CanalManuel | null>(
+    canalDemande === 'comptoir' || canalDemande === 'whatsapp' || canalDemande === 'telephone' ? canalDemande : null,
+  )
   const [recherche, setRecherche] = useState('')
   const [rechercheDiffusee, setRechercheDiffusee] = useState('')
   const [lignes, setLignes] = useState<Ligne[]>([])
@@ -69,11 +75,12 @@ export function PageNouvelleCommande() {
   const [autreCommune, setAutreCommune] = useState(false)
   const [quartier, setQuartier] = useState('')
   const [identifierClient, setIdentifierClient] = useState(false)
-  const [afficherReference, setAfficherReference] = useState(false)
-  const [reference, setReference] = useState('')
+  const [afficherReference, setAfficherReference] = useState(referenceDemandee !== '')
+  const [reference, setReference] = useState(referenceDemandee)
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
   const [erreurGenerale, setErreurGenerale] = useState<string | null>(null)
   const [doublons, setDoublons] = useState<DoublonPossible[] | null>(null)
+  const [dejaTransformee, setDejaTransformee] = useState<{ id: number; numero: string } | null>(null)
   const [succes, setSucces] = useState<CommandeManuelleCreee | null>(null)
   const [cleIdempotence, setCleIdempotence] = useState(() => crypto.randomUUID())
   const [prerempli, setPrerempli] = useState(false)
@@ -180,6 +187,8 @@ export function PageNouvelleCommande() {
     onSuccess: (commande) => {
       queryClient.invalidateQueries({ queryKey: ['articles-vendables'] })
       queryClient.invalidateQueries({ queryKey: ['commandes'] })
+      queryClient.invalidateQueries({ queryKey: ['demandes-whatsapp'] })
+      queryClient.invalidateQueries({ queryKey: ['demandes-whatsapp-compte'] })
       if (comptoir) {
         setSucces(commande)
         setLignes([])
@@ -197,6 +206,11 @@ export function PageNouvelleCommande() {
     },
     onError: (erreur) => {
       if (axios.isAxiosError(erreur) && erreur.response?.status === 409) {
+        // Une demande WhatsApp déjà transformée : un refus, rien à confirmer.
+        if (erreur.response.data.deja_transformee) {
+          setDejaTransformee(erreur.response.data.deja_transformee as { id: number; numero: string })
+          return
+        }
         setDoublons(erreur.response.data.doublons as DoublonPossible[])
         return
       }
@@ -211,6 +225,7 @@ export function PageNouvelleCommande() {
     setErreurs({})
     setErreurGenerale(null)
     setDoublons(null)
+    setDejaTransformee(null)
     creation.mutate(confirmerDoublon)
   }
 
@@ -433,6 +448,15 @@ export function PageNouvelleCommande() {
         </div>
       )}
 
+      {dejaTransformee && (
+        <p role="alert" className="rounded border border-danger bg-danger/5 p-3 text-corps text-danger">
+          Cette demande WhatsApp est déjà devenue la commande{' '}
+          <Link to={`/admin/commandes/${dejaTransformee.id}`} className="font-semibold underline">
+            {dejaTransformee.numero}
+          </Link>
+          . Une demande ne devient qu'une seule commande.
+        </p>
+      )}
       {erreurGenerale && <p role="alert" className="text-corps text-danger">{erreurGenerale}</p>}
 
       <div className="fixed inset-x-0 bottom-0 z-10 border-t border-bordure bg-surface p-3 sm:static sm:border-0 sm:bg-transparent sm:p-0">

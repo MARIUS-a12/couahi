@@ -73,13 +73,16 @@ class CreerCommande
                 $auteur,
                 $referenceWhatsapp,
             ));
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $exception) {
             // Une commande portant la même clé a été insérée entre notre
             // lecture initiale et notre propre INSERT (double appel
             // concurrent, ex. double clic client). La nôtre n'a rien réservé
             // — sa transaction est retombée en rollback — donc c'est celle de
             // l'autre appel qui fait foi.
-            return $etablissement->commandes()->pourTousEtablissements()->where('cle_idempotence', $cleIdempotence)->firstOrFail();
+            // Une autre contrainte unique (une demande WhatsApp déjà
+            // transformée, voir SaisirCommandeManuelle) remonte telle quelle.
+            return $etablissement->commandes()->pourTousEtablissements()->where('cle_idempotence', $cleIdempotence)->first()
+                ?? throw $exception;
         }
     }
 
