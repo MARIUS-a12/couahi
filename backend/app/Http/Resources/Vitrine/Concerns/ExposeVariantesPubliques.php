@@ -23,6 +23,17 @@ use Illuminate\Support\Collection;
 trait ExposeVariantesPubliques
 {
     /**
+     * Le prix barré, seulement s'il dépasse le prix du produit : un prix
+     * « barré » égal ou inférieur annoncerait une promotion qui n'existe
+     * pas. Une variante à son propre prix se compare côté écran, au prix
+     * exact une fois le choix complet (voir prixAnnonce).
+     */
+    protected function prixBarrePublic(): ?int
+    {
+        return $this->prix_barre !== null && $this->prix_barre > $this->prix ? $this->prix_barre : null;
+    }
+
+    /**
      * $avecCombinaison : la fiche seule en a besoin (sélecteur par
      * dimension, photo du coloris) ; la grille s'en passe, et ne charge
      * donc ni les valeurs ni les options.

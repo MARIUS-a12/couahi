@@ -13,11 +13,12 @@ import { Link } from 'react-router-dom'
 import type { ProduitVitrine } from '../api/vitrine'
 import { ImageAvecFondu } from './ImageAvecFondu'
 import { formaterMontant } from '../lib/formatage'
-import { prixAnnonce } from '../lib/prixVitrine'
+import { prixAnnonce, prixBarreAffiche } from '../lib/prixVitrine'
 
 export function CarteProduitVitrine({ produit }: { produit: ProduitVitrine }) {
   const { photo } = produit
   const prix = prixAnnonce(produit.prix, produit.variantes)
+  const barre = prixBarreAffiche(produit.prix_barre, prix)
 
   return (
     <Link
@@ -62,7 +63,15 @@ export function CarteProduitVitrine({ produit }: { produit: ProduitVitrine }) {
             les cartes : à côté du montant, elle ne tiendrait pas dans une
             carte de 390 px, et une carte plus haute que ses voisines
             désalignerait les prix de la rangée. */}
-        <p className="min-h-[1lh] text-petit text-texte-secondaire">{prix.aPartirDe ? 'À partir de' : ''}</p>
+        <p className="min-h-[1lh] text-petit text-texte-secondaire">
+          {prix.aPartirDe && 'À partir de'}
+          {barre !== null && (
+            <>
+              <span className="sr-only">Au lieu de </span>
+              <s className="tabular-nums">{formaterMontant(barre)}</s>
+            </>
+          )}
+        </p>
         <p className="tabular-nums text-titre-section font-bold text-texte">{formaterMontant(prix.montant)}</p>
       </div>
     </Link>

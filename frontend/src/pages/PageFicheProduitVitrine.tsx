@@ -21,7 +21,7 @@ import { SelecteurVariantes } from '../components/SelecteurVariantes'
 import { useEtablissementVitrine } from '../hooks/useEtablissementVitrine'
 import { useProduitVitrine } from '../hooks/useProduitVitrine'
 import { formaterMontant } from '../lib/formatage'
-import { prixAnnonce } from '../lib/prixVitrine'
+import { prixAnnonce, prixBarreAffiche } from '../lib/prixVitrine'
 import type { SelectionVariante } from '../lib/selectionVariantes'
 import { basculerValeur, photoDeSelection, varianteDeSelection, variantesCompatibles } from '../lib/selectionVariantes'
 
@@ -108,6 +108,7 @@ export function PageFicheProduitVitrine() {
   const annonce = prixAnnonce(produit.prix, variantesCompatibles(produit.variantes, selection))
   const prixAffiche = annonce.montant
   const aPartirDe = annonce.aPartirDe
+  const barre = prixBarreAffiche(produit.prix_barre, annonce)
   const disponibleAffiche = varianteChoisie ? varianteChoisie.disponible : produit.disponible
 
   return (
@@ -180,6 +181,12 @@ export function PageFicheProduitVitrine() {
               {aPartirDe && <span className="text-corps font-medium text-texte-secondaire">À partir de </span>}
               {formaterMontant(prixAffiche)}
             </span>
+            {barre !== null && (
+              <span className="text-corps tabular-nums text-texte-secondaire">
+                <span className="sr-only">Au lieu de </span>
+                <s>{formaterMontant(barre)}</s>
+              </span>
+            )}
             {!disponibleAffiche && (
               <span className="rounded-md bg-texte px-2 py-1 text-petit font-medium text-surface">Épuisé</span>
             )}

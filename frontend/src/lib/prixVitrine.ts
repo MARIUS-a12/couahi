@@ -26,3 +26,13 @@ export function prixAnnonce(prixProduit: number, variantes: VarianteVitrine[]): 
 
   return { montant: Math.min(...prix), aPartirDe: tousLesPrix.size > 1 }
 }
+
+/**
+ * Le prix barré ne se compare qu'à un prix exact : à côté de « À partir
+ * de », on ne saurait pas quelle variante est en promotion. Sur la fiche,
+ * il revient dès que le choix est complet. Jamais s'il ne dépasse pas le
+ * prix affiché (une variante plus chère que le prix barré, par exemple).
+ */
+export function prixBarreAffiche(prixBarre: number | null, annonce: PrixAnnonce): number | null {
+  return prixBarre !== null && !annonce.aPartirDe && prixBarre > annonce.montant ? prixBarre : null
+}

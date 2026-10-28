@@ -29,6 +29,7 @@ class ProduitVitrineResource extends JsonResource
             'nom' => $this->nom,
             'description' => $this->description ? Str::limit($this->description, 160) : null,
             'prix' => $this->prix,
+            'prix_barre' => $this->prixBarrePublic(),
             'categorie' => $this->categorie ? ['id' => $this->categorie->id, 'nom' => $this->categorie->nom] : null,
             'disponible' => $this->estDisponibleEnQuantite(),
             'photo' => $photoPrincipale ? [

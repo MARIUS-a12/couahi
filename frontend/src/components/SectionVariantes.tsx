@@ -12,7 +12,7 @@
  * formulaire) : cette section ne lui montre qu'une invitation.
  */
 import { Archive, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Media } from '../api/medias'
 import {
@@ -31,6 +31,7 @@ import type { OptionProduit, StructureVariantes, Suggestion, ValeurOption } from
 import { useVariantes } from '../hooks/useVariantes'
 import { sansEntree } from '../lib/clavier'
 import { optionNumerique, valeursDePlage } from '../lib/plage'
+import { separerValeurs } from '../lib/valeursOption'
 import { Bouton } from './Bouton'
 import { EtatChargement } from './EtatChargement'
 import { GrilleCombinaisons } from './GrilleCombinaisons'
@@ -42,15 +43,30 @@ const NOMS_COURANTS = ['Taille', 'Couleur', 'Pointure', 'Contenance']
 
 type Ecrire = ReturnType<typeof useVariantes>['ecrire']
 
+/** Un texte tapé mais pas encore ajouté, par champ : il n'est pas enregistré. */
+type TexteEnAttente = (cle: string, texte: string) => void
+
+/** « Taille et Couleur », « Taille, Couleur et Longueur ». */
+function enumerer(noms: string[]): string {
+  return noms.length < 2 ? (noms[0] ?? '') : `${noms.slice(0, -1).join(', ')} et ${noms[noms.length - 1]}`
+}
+
 export function SectionVariantes({
   produitId,
   photos,
   onEcrituresEnCours,
+  onNonEnregistre,
 }: {
   produitId: number
   photos: Media[]
   /** Pour que le formulaire empêche de quitter tant qu'un envoi est en cours. */
   onEcrituresEnCours?: (nombre: number) => void
+  /**
+   * Ce qui est saisi mais pas enregistré (texte non ajouté, cases cochées
+   * non créées), ou null : le bouton du produit ne doit pas laisser croire
+   * que tout l'est.
+   */
+  onNonEnregistre?: (message: string | null) => void
 }) {
   const { requete, suggestions, ecrire, enCours, enAttente, erreur, effacerErreur } = useVariantes(produitId)
   const [ajoutOuvert, setAjoutOuvert] = useState(false)
@@ -63,11 +79,40 @@ export function SectionVariantes({
   }
   const aEcrit = maxVu > 0
 
-  const [brouillonGrille, setBrouillonGrille] = useState(0)
+  const [brouillonGrille, setBrouillonGrille] = useState<{ nombre: number; resume: string | null }>({ nombre: 0, resume: null })
+  const changerBrouillonGrille = useCallback((nombre: number, resume: string | null) => setBrouillonGrille({ nombre, resume }), [])
+  const [textes, setTextes] = useState<Record<string, string>>({})
+  const changerTexte = useCallback<TexteEnAttente>(
+    (cle, texte) => setTextes((actuels) => (actuels[cle] === texte.trim() ? actuels : { ...actuels, [cle]: texte.trim() })),
+    [],
+  )
+  const structureChargee = requete.data
+
+  // Un texte tapé mais pas ajouté n'est pas enregistré : le bandeau le dit,
+  // au lieu de « Tout est enregistré » (le même mensonge que celui du stock
+  // corrigé en B2).
+  const nonEnregistres = [
+    ...Object.entries(textes)
+      .filter(([, texte]) => texte !== '')
+      .map(([cle, texte]) => {
+        if (cle === 'nouvelle-option') {
+          return `L'option « ${texte} » n'est pas encore ajoutée : touchez « Ajouter l'option ».`
+        }
+        const option = structureChargee?.options.find((candidate) => String(candidate.id) === cle)
+        return `« ${texte} » n'est pas encore ajouté${option ? ` à ${option.nom}` : ''} : touchez « Ajouter ».`
+      }),
+    ...(brouillonGrille.resume ? [brouillonGrille.resume] : []),
+  ]
+  const messageNonEnregistre = nonEnregistres.length > 0 ? nonEnregistres.join(' ') : null
+  const textesEnAttente = Object.values(textes).filter((texte) => texte !== '').length
 
   useEffect(() => {
-    onEcrituresEnCours?.(enAttente + brouillonGrille)
-  }, [enAttente, brouillonGrille, onEcrituresEnCours])
+    onEcrituresEnCours?.(enAttente + brouillonGrille.nombre + textesEnAttente)
+  }, [enAttente, brouillonGrille, textesEnAttente, onEcrituresEnCours])
+
+  useEffect(() => {
+    onNonEnregistre?.(messageNonEnregistre)
+  }, [messageNonEnregistre, onNonEnregistre])
 
   if (requete.isPending) {
     return <EtatChargement />
@@ -79,6 +124,13 @@ export function SectionVariantes({
 
   const structure = requete.data
   const sansOption = structure.options.length === 0
+  // Options et valeurs prêtes, aucune variante : la vitrine montre alors un
+  // produit simple, sans choix, et rien ne disait pourquoi.
+  const aucuneVarianteCreee =
+    !sansOption &&
+    structure.options.every((option) => option.valeurs.some((valeur) => !valeur.archivee)) &&
+    !structure.variantes.some((variante) => variante.active) &&
+    brouillonGrille.nombre === 0
 
   return (
     <section aria-labelledby="titre-variantes" className="space-y-4">
@@ -93,9 +145,28 @@ export function SectionVariantes({
         </p>
       </div>
 
-      {aEcrit && (
-        <p role="status" className={`rounded px-3 py-2 text-petit font-medium ${enAttente > 0 ? 'bg-surface-alt text-texte' : 'bg-succes/10 text-succes'}`}>
-          {enAttente > 0 ? 'Enregistrement…' : 'Tout est enregistré.'}
+      {enAttente > 0 ? (
+        <p role="status" className="rounded bg-surface-alt px-3 py-2 text-petit font-medium text-texte">
+          Enregistrement…
+        </p>
+      ) : messageNonEnregistre ? (
+        <div role="status" className="rounded border border-alerte bg-alerte/10 px-3 py-2 text-petit text-texte">
+          <p className="font-semibold">Pas encore enregistré</p>
+          {nonEnregistres.map((message) => (
+            <p key={message}>{message}</p>
+          ))}
+        </div>
+      ) : (
+        aEcrit && (
+          <p role="status" className="rounded bg-succes/10 px-3 py-2 text-petit font-medium text-succes">
+            Tout est enregistré.
+          </p>
+        )
+      )}
+
+      {aucuneVarianteCreee && (
+        <p className="rounded border border-alerte bg-alerte/10 px-3 py-2 text-petit font-medium text-texte">
+          Vous avez défini {enumerer(structure.options.map((option) => option.nom))}, mais aucune variante n'est créée : cochez les combinaisons ci-dessous. En attendant, la boutique montre ce produit sans choix.
         </p>
       )}
 
@@ -109,7 +180,7 @@ export function SectionVariantes({
       )}
 
       {structure.options.map((option) => (
-        <CarteOption key={option.id} produitId={produitId} option={option} suggestions={suggestions} ecrire={ecrire} enCours={enCours} />
+        <CarteOption key={option.id} produitId={produitId} option={option} suggestions={suggestions} ecrire={ecrire} enCours={enCours} onTexteEnAttente={changerTexte} />
       ))}
 
       {structure.options.length >= 2 && <OrdreOptions produitId={produitId} structure={structure} ecrire={ecrire} enCours={enCours} />}
@@ -121,7 +192,11 @@ export function SectionVariantes({
           suggestions={suggestions}
           ecrire={ecrire}
           enCours={enCours}
-          onFermer={() => setAjoutOuvert(false)}
+          onTexteEnAttente={changerTexte}
+          onFermer={() => {
+            changerTexte('nouvelle-option', '')
+            setAjoutOuvert(false)
+          }}
         />
       ) : (
         <Bouton type="button" variante="secondaire" icone={<Plus aria-hidden="true" className="h-4 w-4" />} onClick={() => setAjoutOuvert(true)}>
@@ -131,7 +206,7 @@ export function SectionVariantes({
 
       {!sansOption && (
         <>
-          <GrilleCombinaisons produitId={produitId} structure={structure} ecrire={ecrire} enCours={enCours} onBrouillon={setBrouillonGrille} />
+          <GrilleCombinaisons produitId={produitId} structure={structure} ecrire={ecrire} enCours={enCours} onBrouillon={changerBrouillonGrille} />
           {structure.variantes.length > 0 && (
             <ListeVariantes produitId={produitId} structure={structure} photos={photos} ecrire={ecrire} enCours={enCours} />
           )}
@@ -147,6 +222,7 @@ function AjoutOption({
   suggestions,
   ecrire,
   enCours,
+  onTexteEnAttente,
   onFermer,
 }: {
   produitId: number
@@ -154,9 +230,14 @@ function AjoutOption({
   suggestions: Suggestion[]
   ecrire: Ecrire
   enCours: boolean
+  onTexteEnAttente: TexteEnAttente
   onFermer: () => void
 }) {
-  const [nom, setNom] = useState('')
+  const [nom, setNomLocal] = useState('')
+  const setNom = (valeur: string) => {
+    setNomLocal(valeur)
+    onTexteEnAttente('nouvelle-option', valeur)
+  }
   const [valeurExistantes, setValeurExistantes] = useState('')
   const nombreVariantes = structure.variantes.length
   const dejaPrises = structure.options.map((option) => option.nom.toLowerCase())
@@ -251,14 +332,21 @@ function CarteOption({
   suggestions,
   ecrire,
   enCours,
+  onTexteEnAttente,
 }: {
   produitId: number
   option: OptionProduit
   suggestions: Suggestion[]
   ecrire: Ecrire
   enCours: boolean
+  onTexteEnAttente: TexteEnAttente
 }) {
-  const [nouvelleValeur, setNouvelleValeur] = useState('')
+  const [nouvelleValeur, setNouvelleValeurLocale] = useState('')
+  const setNouvelleValeur = (valeur: string) => {
+    setNouvelleValeurLocale(valeur)
+    onTexteEnAttente(String(option.id), valeur)
+  }
+  const tapees = separerValeurs(nouvelleValeur)
   const [renommage, setRenommage] = useState<string | null>(null)
   const actives = option.valeurs.filter((valeur) => !valeur.archivee)
   const archivees = option.valeurs.filter((valeur) => valeur.archivee)
@@ -272,7 +360,8 @@ function CarteOption({
   const plageProposee = optionNumerique(actives.map((valeur) => valeur.libelle))
 
   async function ajouter(libelles: string[]) {
-    const propres = libelles.map((libelle) => libelle.trim()).filter((libelle) => libelle !== '')
+    // « blanc, noir » : deux valeurs, pas une seule nommée « blanc, noir ».
+    const propres = libelles.flatMap(separerValeurs)
 
     if (propres.length === 0) {
       return
@@ -369,16 +458,21 @@ function CarteOption({
         <input
           aria-label={`Nouvelle valeur de ${option.nom}`}
           value={nouvelleValeur}
-          maxLength={60}
+          maxLength={600}
           onChange={(evenement) => setNouvelleValeur(evenement.target.value)}
           onKeyDown={(evenement) => sansEntree(evenement, () => ajouter([nouvelleValeur]))}
           placeholder={`Ajouter : ${option.nom === 'Pointure' ? '39' : option.nom === 'Couleur' ? 'Bleu' : 'M'}…`}
           className="h-11 min-w-0 flex-1 rounded border border-bordure bg-surface px-3 text-corps text-texte focus:border-primaire focus:outline focus:outline-2 focus:outline-primaire focus:outline-offset-1"
         />
-        <Bouton type="button" variante="secondaire" onClick={() => ajouter([nouvelleValeur])} disabled={nouvelleValeur.trim() === '' || enCours}>
-          Ajouter
+        <Bouton type="button" variante="secondaire" onClick={() => ajouter([nouvelleValeur])} disabled={tapees.length === 0 || enCours}>
+          {tapees.length > 1 ? `Ajouter les ${tapees.length}` : 'Ajouter'}
         </Bouton>
       </div>
+      {tapees.length > 1 && (
+        <p className="-mt-1 text-petit text-texte-secondaire">
+          {tapees.length} valeurs : {tapees.join(', ')}.
+        </p>
+      )}
 
       {plageProposee &&
         (plage === null ? (

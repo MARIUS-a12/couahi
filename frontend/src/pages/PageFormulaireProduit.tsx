@@ -178,6 +178,12 @@ function FormulaireProduit({
   // Les variantes s'enregistrent seules, champ par champ : tant qu'un envoi
   // est en cours, quitter la page le perdrait.
   const [variantesEnCours, setVariantesEnCours] = useState(0)
+  // Ce que l'écran des variantes a de saisi sans l'avoir enregistré (cases
+  // cochées, texte non ajouté). Le bouton du produit n'enregistre pas les
+  // variantes : tant qu'il en reste, il ne doit pas avoir l'air de tout
+  // enregistrer, ni quitter la page en perdant la grille.
+  const [variantesNonEnregistrees, setVariantesNonEnregistrees] = useState<string | null>(null)
+  const [rappelVariantes, setRappelVariantes] = useState(false)
   const { permettreProchaineNavigation } = useProtectionPerteTravail(estModifie || variantesEnCours > 0)
 
   function marquerModifie() {
@@ -249,6 +255,11 @@ function FormulaireProduit({
   function soumettre(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault()
     setErreurGenerique(null)
+    if (variantesNonEnregistrees !== null) {
+      setRappelVariantes(true)
+      document.getElementById('titre-variantes')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     enregistrement.mutate(construirePayload())
   }
 
@@ -382,7 +393,7 @@ function FormulaireProduit({
         )}
 
         {estModification && peutGererCatalogue && (
-          <SectionVariantes produitId={produitId as number} photos={produitExistant?.medias ?? []} onEcrituresEnCours={setVariantesEnCours} />
+          <SectionVariantes produitId={produitId as number} photos={produitExistant?.medias ?? []} onEcrituresEnCours={setVariantesEnCours} onNonEnregistre={setVariantesNonEnregistrees} />
         )}
 
         <BlocStock
@@ -439,11 +450,21 @@ function FormulaireProduit({
           </button>
         )}
 
-        <div className="sticky bottom-0 -mx-4 flex gap-3 border-t border-bordure bg-surface px-4 py-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:px-0 md:py-0">
+        <div className="sticky bottom-0 -mx-4 space-y-2 border-t border-bordure bg-surface px-4 py-3 md:static md:mx-0 md:border-t-0 md:bg-transparent md:px-0 md:py-0">
+          {variantesNonEnregistrees !== null && (
+            <p role={rappelVariantes ? 'alert' : undefined} className="rounded border border-alerte bg-alerte/10 px-3 py-2 text-petit text-texte">
+              <span className="font-semibold">Variantes pas encore enregistrées : ce bouton ne les enregistre pas. </span>
+              {variantesNonEnregistrees}
+            </p>
+          )}
           <button
             type="submit"
             disabled={enregistrement.isPending}
-            className="h-11 flex-1 cursor-pointer rounded bg-primaire text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] active:bg-primaire-fonce focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+            className={`flex h-11 w-full cursor-pointer items-center justify-center rounded text-corps font-medium transition-[background-color,transform] active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 ${
+              variantesNonEnregistrees !== null
+                ? 'border border-bordure-forte bg-surface text-texte'
+                : 'bg-primaire text-surface hover:bg-primaire-fonce active:bg-primaire-fonce'
+            }`}
           >
             <EtatBouton chargement={enregistrement.isPending}>
               {estModification ? 'Enregistrer les modifications' : 'Créer le produit'}

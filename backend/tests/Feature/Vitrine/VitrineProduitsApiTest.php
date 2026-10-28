@@ -91,6 +91,22 @@ class VitrineProduitsApiTest extends TestCase
         }
     }
 
+    public function test_3b_le_prix_barre_nest_expose_que_sil_depasse_le_prix(): void
+    {
+        $this->seed();
+        $promo = Produit::factory()->for($this->chezAwa())->publie()->create(['nom' => 'Promo', 'prix' => 15000, 'prix_barre' => 20000]);
+        $faux = Produit::factory()->for($this->chezAwa())->publie()->create(['nom' => 'Faux', 'prix' => 15000, 'prix_barre' => 15000]);
+        $sans = Produit::factory()->for($this->chezAwa())->publie()->create(['nom' => 'Sans', 'prix' => 15000, 'prix_barre' => null]);
+
+        $liste = collect($this->depuis('chez-awa.localhost')->getJson('http://chez-awa.localhost:8000/api/vitrine/produits?par_page=100')->assertStatus(200)->json('data'))->keyBy('id');
+        $this->assertSame(20000, $liste[$promo->id]['prix_barre']);
+        $this->assertNull($liste[$faux->id]['prix_barre'], 'égal au prix : aucune promotion à annoncer');
+        $this->assertNull($liste[$sans->id]['prix_barre']);
+
+        $this->depuis('chez-awa.localhost')->getJson("http://chez-awa.localhost:8000/api/vitrine/produits/{$promo->id}")->assertJsonPath('data.prix_barre', 20000);
+        $this->depuis('chez-awa.localhost')->getJson("http://chez-awa.localhost:8000/api/vitrine/produits/{$faux->id}")->assertJsonPath('data.prix_barre', null);
+    }
+
     public function test_4_aucune_route_vitrine_nexige_authentification(): void
     {
         $this->seed();

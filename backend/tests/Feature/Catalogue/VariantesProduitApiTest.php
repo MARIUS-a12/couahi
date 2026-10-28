@@ -295,6 +295,26 @@ class VariantesProduitApiTest extends TestCase
      * dans l'ordre, sans doublon, une valeur déjà là sautée — et une valeur
      * archivée refuse TOUT, sans rien écrire.
      */
+    public function test_une_virgule_separe_des_valeurs(): void
+    {
+        $this->seed();
+        $this->connecte('fatou@wax-adjame.test');
+        $id = $this->nouveauProduit();
+        $this->postJson(self::HOTE."/api/produits/{$id}/options", ['nom' => 'Couleur'])->assertStatus(201);
+        $couleur = $this->option($this->structure($id), 'Couleur')['id'];
+        $valeurs = fn () => collect($this->option($this->structure($id), 'Couleur')['valeurs'])->pluck('libelle')->all();
+
+        $this->postJson(self::HOTE."/api/produits/{$id}/options/{$couleur}/valeurs", ['libelle' => 'blanc, noir'])->assertStatus(201);
+        $this->assertSame(['blanc', 'noir'], $valeurs(), 'deux valeurs, jamais une seule « blanc, noir »');
+
+        $this->postJson(self::HOTE."/api/produits/{$id}/options/{$couleur}/valeurs", ['libelle' => ' , '])->assertStatus(422)->assertJsonValidationErrors('libelle');
+        $this->postJson(self::HOTE."/api/produits/{$id}/options/{$couleur}/valeurs", ['libelle' => 'rouge, '.str_repeat('x', 61)])->assertStatus(422);
+        $this->assertSame(['blanc', 'noir'], $valeurs(), 'rien n\'est écrit');
+
+        $this->postJson(self::HOTE."/api/produits/{$id}/options/{$couleur}/valeurs", ['libelle' => 'Gris chiné'])->assertStatus(201);
+        $this->assertSame(['blanc', 'noir', 'Gris chiné'], $valeurs());
+    }
+
     public function test_plusieurs_valeurs_en_une_requete_tout_ou_rien(): void
     {
         $this->seed();

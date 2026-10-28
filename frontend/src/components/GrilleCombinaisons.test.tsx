@@ -67,7 +67,7 @@ describe('GrilleCombinaisons', () => {
     expect(screen.getByRole('checkbox', { name: '39 / Marron' })).toHaveAttribute('aria-checked', 'true')
     expect(screen.getByRole('checkbox', { name: '40 / Marron' })).toHaveAttribute('aria-checked', 'true')
     expect(creerVariantes).not.toHaveBeenCalled()
-    await waitFor(() => expect(onBrouillon).toHaveBeenLastCalledWith(2))
+    await waitFor(() => expect(onBrouillon).toHaveBeenLastCalledWith(2, '2 combinaisons cochées ne sont pas encore créées : touchez « Créer les 2 variantes ».'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Créer les 2 variantes' }))
 

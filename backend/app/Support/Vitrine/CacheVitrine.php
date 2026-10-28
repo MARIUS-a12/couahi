@@ -22,9 +22,10 @@ class CacheVitrine
      * La forme des réponses mises en cache. À incrémenter dès qu'une
      * resource de la vitrine gagne ou perd un champ : sans ça, pendant 60 s
      * après une mise en ligne, la nouvelle interface recevrait l'ancienne
-     * forme (B3 : une fiche sans « options » faisait tomber la page).
+     * forme (B3 : une fiche sans « options » faisait tomber la page ;
+     * 3 : « prix_barre »).
      */
-    private const FORMAT = 2;
+    private const FORMAT = 3;
 
     public static function invalider(int $etablissementId): void
     {

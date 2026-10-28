@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 26 octobre 2026, lot C (saisie manuelle des commandes).
+Dernière mise à jour : 27 octobre 2026, petit lot de l'écran des variantes et du prix barré.
 
 ## Ce qui existe et fonctionne
 
@@ -15,6 +15,7 @@ Dernière mise à jour : 26 octobre 2026, lot C (saisie manuelle des commandes).
 - Une combinaison qui n'existe pas est grisée sans être cachée, et une phrase l'explique (« 39, 45 : n'existent pas en Marron »). Une combinaison épuisée reste visible et le dit.
 - La photo principale devient celle du coloris choisi, et une petite vignette de ce coloris s'affiche à côté de « Coloris : Gris chiné », pour que le client la voie changer même quand la grande photo est hors de l'écran.
 - Le prix s'affiche « À partir de » tant que le choix n'est pas complet, puis devient le prix exact.
+- Le prix barré saisi par le commerçant s'affiche à côté d'un prix exact, sur la carte et sur la fiche, seulement s'il est plus élevé ; jamais à côté de « À partir de ».
 - Un produit sans variante s'affiche simplement, sans sélecteur.
 - Le panier est gardé sur le téléphone du client. Avant la commande, les prix et le stock sont revérifiés, et un article devenu indisponible est signalé.
 - Le client commande avec son nom, son téléphone, sa commune et son quartier, puis reçoit une page de confirmation avec le numéro de sa commande.
@@ -31,6 +32,7 @@ Dernière mise à jour : 26 octobre 2026, lot C (saisie manuelle des commandes).
 - Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale. Au téléphone, le bouton propose la galerie ou l'appareil photo.
 - Une photo prise au téléphone (12 mégapixels, plusieurs Mo) est réduite sur le téléphone avant l'envoi, autour de 150 à 400 Ko, pour épargner la data mobile ; le logo aussi. Une photo trop grande pour le serveur (au-delà de 16 mégapixels, depuis un ordinateur) est refusée avec un message qui dit quoi faire.
 - Variantes : dimensions et valeurs dans un ordre réglable, grille des combinaisons au doigt, plage de pointures en un geste (de 39 à 45), prix et stock propres à chaque variante, photo par coloris.
+- « blanc, noir » tapé dans le champ d'une option crée deux valeurs. Le bandeau dit « Pas encore enregistré » tant qu'un texte tapé ou des cases cochées ne le sont pas ; le bouton « Enregistrer les modifications » cesse alors d'être vert, dit qu'il n'enregistre pas les variantes, et ne quitte pas la page. Des options sans aucune variante créée sont signalées.
 - Stock compté à l'unité, ou simple interrupteur « Disponible » ; le mode se change tant qu'aucune commande en cours n'en dépend.
 - Une commande réserve son stock. Une commande de la vitrine non traitée expire au bout de 24 heures (15 minutes pour un restaurant), et son stock est alors rendu.
 - Catégories sur deux niveaux (Chaussures › Sandales).
@@ -67,19 +69,14 @@ Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de 
 
 ## Ce qui n'existe pas encore
 
-1. **Prochain : le petit lot de l'écran des variantes, avant le lot D.** Un commerçant qui crée à la main un produit à variantes (« pantalon homme ») se fait piéger quatre fois :
-   - Il tape « blanc, noir » dans le champ des valeurs : la virgule n'est pas comprise. Une liste séparée par des virgules doit donner deux valeurs, Blanc et Noir.
-   - Le bandeau affiche « Tout est enregistré » alors que le champ contient encore un texte non ajouté. Un texte saisi mais non validé n'est pas enregistré, et le bandeau doit le dire (le même mensonge que celui des stocks, corrigé en B2).
-   - Deux boutons verts sur le même écran, « Créer les N variantes » dans la grille et « Enregistrer les modifications » en bas, qui n'enregistrent pas la même chose. Le commerçant appuie sur le plus gros, croit avoir tout enregistré, et perd sa grille.
-   - Tailles et couleurs définies, aucune variante créée, et rien ne le signale : la fiche vitrine reste un produit simple sans qu'il comprenne pourquoi. Le back-office doit dire : « Tailles et couleurs définies, aucune variante créée : cochez les combinaisons ci-dessous. »
-2. **Lot D** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
-3. **Après le lot D, décidé, rien de codé :**
+1. **Lot D, prochain lot** : la liste des demandes WhatsApp, pour que le commerçant voie qui a demandé quoi.
+2. **Après le lot D, décidé, rien de codé :**
    - **Rôles cumulables** : une personne peut avoir plusieurs rôles, et ses droits s'additionnent. Une phrase en direct explique ce qu'elle pourra faire, avec une case « voit les chiffres ». Au moins un rôle par personne, et toujours un administrateur actif.
    - **Tableau de bord** : vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
    - **Paiements** : paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
    - **Équipe** : l'écran d'activation n'affiche qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien complet et un bouton pour l'envoyer par WhatsApp.
-4. **Lot E** : les tests de non-régression de la vitrine.
-5. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+3. **Lot E** : les tests de non-régression de la vitrine.
+4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 

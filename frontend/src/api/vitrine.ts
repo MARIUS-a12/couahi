@@ -62,6 +62,8 @@ export type ProduitVitrine = {
   nom: string
   description: string | null
   prix: number
+  /** Null, ou supérieur au prix du produit (voir ExposeVariantesPubliques). */
+  prix_barre: number | null
   categorie: CategorieReferencee | null
   disponible: boolean
   photo: PhotoPrincipale | null
@@ -73,6 +75,7 @@ export type ProduitVitrineDetail = {
   nom: string
   description: string | null
   prix: number
+  prix_barre: number | null
   categorie: CategorieReferencee | null
   disponible: boolean
   photos: PhotoVitrine[]

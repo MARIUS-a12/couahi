@@ -755,3 +755,48 @@ l'opérateur et le caissier l'ont, le gestionnaire de stock non. Le
 message de stock insuffisant du back-office nomme l'article, la quantité
 demandée et la quantité disponible ; celui de la vitrine ne change pas et
 ne révèle pas le stock exact.
+
+## 2026-10-27 — Une virgule sépare des valeurs d'option
+
+« blanc, noir » tapé dans le champ d'une option crée deux valeurs. Un
+commerçant écrit naturellement une liste ; il se retrouvait avec une seule
+valeur nommée « blanc, noir ». L'écran découpe et l'annonce (« 2 valeurs :
+blanc, noir »), et le serveur découpe aussi, pour qu'aucun écran ne puisse
+recréer le piège. La casse tapée est gardée : « xl » ne doit pas devenir
+« Xl ». Alternative écartée : refuser la virgule. Écartée parce qu'elle
+oblige à recommencer, alors que l'intention est claire.
+
+## 2026-10-27 — Rien n'est « enregistré » tant qu'un texte saisi ne l'est pas
+
+Le bandeau de l'écran des variantes disait « Tout est enregistré » alors
+qu'un champ contenait encore une valeur tapée et non ajoutée, ou que des
+cases cochées n'étaient pas créées. Il dit maintenant « Pas encore
+enregistré », avec quoi et quel bouton toucher. Le même principe que pour
+le stock en B2 : un écran ne rassure jamais sur ce qu'il n'a pas écrit.
+
+## 2026-10-27 — Le bouton du produit n'a pas l'air d'enregistrer les variantes
+
+« Enregistrer les modifications » n'enregistre que le produit. Tant que la
+grille a des cases cochées non créées, ou qu'un texte d'option n'est pas
+ajouté, il cesse d'être vert, une phrase au-dessus dit qu'il n'enregistre
+pas les variantes, et le toucher ramène à la grille au lieu de quitter la
+page (ce qui perdait la grille). Alternative écartée : que ce bouton crée
+aussi les variantes cochées. Écartée parce que la grille demande un stock
+de départ et une confirmation avant de retirer une variante vendue : les
+faire passer en silence par le bouton du produit cacherait ces choix.
+
+## 2026-10-27 — Des options sans variante sont signalées
+
+Options et valeurs définies, aucune variante créée : la vitrine montre un
+produit simple, sans choix, et rien ne disait pourquoi. L'écran le dit :
+« Vous avez défini Taille et Couleur, mais aucune variante n'est créée :
+cochez les combinaisons ci-dessous. »
+
+## 2026-10-27 — Le prix barré ne se compare qu'à un prix exact
+
+Le prix barré, déjà saisi au back-office, s'affiche maintenant sur la
+vitrine, seulement s'il dépasse le prix affiché. À côté de « À partir de »,
+il ne s'affiche pas : on ne saurait pas quelle variante est en promotion.
+Sur la fiche, il apparaît dès que le choix est complet, et jamais pour une
+variante plus chère que lui. Le panier et la commande n'en tiennent aucun
+compte : le prix payé est toujours celui de la base.

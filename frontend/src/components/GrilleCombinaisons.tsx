@@ -41,8 +41,11 @@ export function GrilleCombinaisons({
   structure: StructureVariantes
   ecrire: Ecrire
   enCours: boolean
-  /** Cases changées mais pas encore appliquées : quitter la page les perdrait. */
-  onBrouillon?: (nombre: number) => void
+  /**
+   * Cases changées mais pas encore appliquées : quitter la page les
+   * perdrait. Le résumé dit quoi, et quel bouton toucher.
+   */
+  onBrouillon?: (nombre: number, resume: string | null) => void
 }) {
   const [brouillon, setBrouillon] = useState<Map<string, boolean>>(new Map())
   const refDefilement = useBalayageRetenu<HTMLDivElement>()
@@ -79,10 +82,20 @@ export function GrilleCombinaisons({
   const aRetirer = toutes.map((c) => parCle.get(cle(c.map((v) => v.id)))).filter((v): v is Variante => v !== undefined && v.active && !coche(v.valeur_ids))
   const nombreCochees = toutes.filter((c) => coche(c.map((v) => v.id))).length
   const changements = aCreer.length + aReactiver.length + aRetirer.length
+  const libelleBouton =
+    aReactiver.length === 0 && aRetirer.length === 0
+      ? `Créer ${aCreer.length === 1 ? 'la variante' : `les ${aCreer.length} variantes`}`
+      : 'Appliquer ces changements'
+  const resume =
+    changements === 0
+      ? null
+      : aReactiver.length === 0 && aRetirer.length === 0
+        ? `${aCreer.length} combinaison${aCreer.length > 1 ? 's cochées ne sont' : ' cochée n’est'} pas encore créée${aCreer.length > 1 ? 's' : ''} : touchez « ${libelleBouton} ».`
+        : `${changements} changement${changements > 1 ? 's' : ''} dans la grille pas encore appliqué${changements > 1 ? 's' : ''} : touchez « ${libelleBouton} ».`
 
   useEffect(() => {
-    onBrouillon?.(changements)
-  }, [changements, onBrouillon])
+    onBrouillon?.(changements, resume)
+  }, [changements, resume, onBrouillon])
 
   if (actives.some((valeurs) => valeurs.length === 0)) {
     return (
@@ -238,10 +251,10 @@ export function GrilleCombinaisons({
           <div className="flex gap-2">
             {/* Pas « Enregistrer » : la barre du produit porte déjà ce mot, et
                 la toucher à la place de celui-ci perdrait les cases cochées. */}
-            <Bouton type="button" onClick={enregistrer} chargement={enCours}>
-              {aReactiver.length === 0 && aRetirer.length === 0
-                ? `Créer ${aCreer.length === 1 ? 'la variante' : `les ${aCreer.length} variantes`}`
-                : 'Appliquer ces changements'}
+            {/* Le seul bouton vert de l'écran tant que la grille attend : celui du
+                produit s'efface (voir PageFormulaireProduit). */}
+            <Bouton type="button" variante="principal" onClick={enregistrer} chargement={enCours}>
+              {libelleBouton}
             </Bouton>
             <Bouton type="button" variante="tertiaire" onClick={() => setBrouillon(new Map())}>
               Annuler

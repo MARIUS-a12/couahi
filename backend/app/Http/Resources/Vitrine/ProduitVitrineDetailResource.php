@@ -26,6 +26,7 @@ class ProduitVitrineDetailResource extends JsonResource
             'nom' => $this->nom,
             'description' => $this->description,
             'prix' => $this->prix,
+            'prix_barre' => $this->prixBarrePublic(),
             'categorie' => $this->categorie ? ['id' => $this->categorie->id, 'nom' => $this->categorie->nom] : null,
             'disponible' => $this->estDisponibleEnQuantite(),
             'photos' => MediaResource::collection($this->medias),

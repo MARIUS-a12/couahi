@@ -43,6 +43,7 @@ function sandales(): ProduitVitrineDetail {
     nom: 'Sandales en cuir tressé',
     description: null,
     prix: 18000,
+    prix_barre: null,
     categorie: null,
     disponible: true,
     photos: [photo(7), photo(8)],
@@ -156,6 +157,39 @@ describe('fiche d’un produit à variantes', () => {
     fireEvent.click(valeur('Coloris', 'Noir'))
 
     expect(screen.getByText('Choisissez d’abord ci-dessus : pointure.')).toBeInTheDocument()
+  })
+})
+
+describe('prix barré', () => {
+  const barre = () => document.querySelector('s')
+
+  it('jamais à côté de « À partir de », affiché dès le choix complet', () => {
+    produitAffiche = { ...sandales(), prix_barre: 19000 }
+    afficher()
+    expect(barre()).toBeNull()
+
+    fireEvent.click(valeur('Coloris', 'Noir'))
+    fireEvent.click(valeur('Pointure', '40'))
+
+    expect(barre()).toHaveTextContent(/19\s000\sFCFA/)
+    expect(screen.getByText('Au lieu de')).toBeInTheDocument()
+  })
+
+  it('pas pour une variante plus chère que le prix barré', () => {
+    produitAffiche = { ...sandales(), prix_barre: 19000 }
+    afficher()
+    fireEvent.click(valeur('Coloris', 'Noir'))
+    fireEvent.click(valeur('Pointure', '45'))
+
+    expect(screen.getByText(/19\s500\sFCFA/)).toBeInTheDocument()
+    expect(barre()).toBeNull()
+  })
+
+  it('un produit sans option : à côté de son prix', () => {
+    produitAffiche = { ...sandales(), nom: 'Kita tissé main', prix: 45000, prix_barre: 50000, options: [], variantes: [] }
+    afficher()
+
+    expect(barre()).toHaveTextContent(/50\s000\sFCFA/)
   })
 })
 

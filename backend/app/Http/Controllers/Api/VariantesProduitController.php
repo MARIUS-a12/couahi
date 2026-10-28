@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * L'écran des variantes d'un produit (B2). Ce contrôleur ne compose
@@ -108,13 +109,33 @@ class VariantesProduitController extends Controller
         return $this->structure($produit);
     }
 
+    /**
+     * « blanc, noir » tapé dans le champ, ce sont deux valeurs : une
+     * virgule sépare toujours des valeurs, jamais une seule nommée
+     * « blanc, noir ». Plusieurs valeurs passent par ajouterValeurs (tout
+     * ou rien, doublons sautés).
+     */
     public function ajouterValeur(Request $request, Produit $produit, OptionProduit $option): JsonResponse
     {
         Gate::authorize('update', $produit);
         $this->exigerAppartenance($produit, $option->produit_id);
-        $donnees = $request->validate(['libelle' => ['required', 'string', 'max:60']], ['libelle.required' => 'Saisissez une valeur (39, M, 100 ml…).']);
+        $donnees = $request->validate(['libelle' => ['required', 'string', 'max:600']], ['libelle.required' => 'Saisissez une valeur (39, M, 100 ml…).']);
 
-        $this->variantes->ajouterValeur($option, $donnees['libelle']);
+        $libelles = array_values(array_filter(array_map('trim', explode(',', $donnees['libelle'])), fn (string $libelle) => $libelle !== ''));
+
+        if ($libelles === []) {
+            throw ValidationException::withMessages(['libelle' => ['Saisissez une valeur (39, M, 100 ml…).']]);
+        }
+
+        foreach ($libelles as $libelle) {
+            if (mb_strlen($libelle) > 60) {
+                throw ValidationException::withMessages(['libelle' => ["« {$libelle} » est trop long : 60 caractères au plus par valeur."]]);
+            }
+        }
+
+        count($libelles) === 1
+            ? $this->variantes->ajouterValeur($option, $libelles[0])
+            : $this->variantes->ajouterValeurs($option, $libelles);
 
         return $this->structure($produit, 201);
     }
