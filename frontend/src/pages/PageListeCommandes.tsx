@@ -149,7 +149,7 @@ export function PageListeCommandes() {
                       <SignalLigne commande={commande} />
                     </td>
                     <td className="border-b border-bordure px-4 py-3">
-                      <div className="text-corps text-texte">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? '—')}</div>
+                      <div className="text-corps text-texte">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? 'Sans nom')}</div>
                       <div className="text-petit tabular-nums text-texte-secondaire">{commande.client?.telephone}</div>
                     </td>
                     <td className="border-b border-bordure px-4 py-3 tabular-nums text-corps text-texte">
@@ -214,7 +214,7 @@ function CarteCommande({ commande, onClick }: { commande: Commande; onClick: () 
       <div className="flex items-start justify-between gap-3">
         <div>
           <span className="block text-corps font-bold tabular-nums text-texte">{commande.numero}</span>
-          <span className="text-petit text-texte-secondaire">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? '—')}</span>
+          <span className="text-petit text-texte-secondaire">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? 'Sans nom')}</span>
         </div>
         <BadgeStatutCommande statut={commande.statut} />
       </div>

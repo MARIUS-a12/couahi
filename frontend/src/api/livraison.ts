@@ -15,6 +15,8 @@ export type ZoneLivraison = {
 export type Livraison = {
   par_commune: boolean
   zones: ZoneLivraison[]
+  /** Frais fixes de toute commune hors liste ; null : à convenir. */
+  autre_commune: { frais: number } | null
 }
 
 export type ZoneLivraisonPayload = { nom: string; frais: number }
@@ -26,6 +28,12 @@ export async function recupererLivraison(): Promise<Livraison> {
 
 export async function choisirFacturation(parCommune: boolean): Promise<Livraison> {
   const { data } = await client.put<{ data: Livraison }>('/api/parametres/livraison', { par_commune: parCommune })
+  return data.data
+}
+
+/** null : « Autre commune » redevient à convenir. */
+export async function definirAutreCommune(frais: number | null): Promise<Livraison> {
+  const { data } = await client.put<{ data: Livraison }>('/api/parametres/livraison/autre-commune', { frais })
   return data.data
 }
 

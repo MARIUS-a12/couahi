@@ -841,3 +841,34 @@ gerer_demandes_whatsapp, distincte des permissions des commandes :
 répondre à des clients et toucher au stock ne sont pas le même droit.
 L'administrateur, l'opérateur et le caissier l'ont ; le gestionnaire de
 stock non. Transformer une demande demande en plus creer_commandes.
+
+## 2026-10-28 — Au téléphone et sur WhatsApp, seuls le numéro et la commune sont obligatoires
+
+Sans numéro on ne livre pas, et la commune fixe les frais. Le nom et le
+quartier, le commerçant ne les a pas toujours (un message WhatsApp n'en
+dit souvent rien) : les exiger le pousserait à inventer. Un client peut
+donc exister sans nom (clients.nom devient facultatif) ; la commande
+l'affiche « Sans nom », jamais un faux nom. Un nom laissé vide n'efface pas
+celui d'un client connu. La vitrine exige toujours le nom, et au comptoir
+un habitué qu'on identifie aussi.
+
+## 2026-10-28 — Une référence collée fait comme « Transformer en commande »
+
+Le geste naturel du commerçant est de recopier le message WhatsApp reçu.
+Collée dans une saisie neuve, la référence ajoute l'article de la demande
+(sauf s'il est épuisé, retiré, ou si la demande ne dit pas quelle variante)
+et une demande déjà devenue commande est refusée dès le collage, pas
+seulement à l'enregistrement. Le refus serveur reste la seule garantie.
+
+## 2026-10-29 — « Autre commune » peut avoir des frais fixes
+
+Le commerçant peut fixer un montant pour toute commune absente de sa
+liste. Sans montant, « Autre commune » reste à convenir, comme avant.
+C'est une zone de livraison comme les autres, marquée autre_commune (une
+seule active par boutique), plutôt qu'un réglage à part : une commande
+garde ainsi le lien vers la zone qui l'a facturée et sa copie des frais,
+et retirer ces frais archive la zone si une commande l'a déjà utilisée.
+Elle n'apparaît jamais dans la liste des communes, et ne se renomme ni ne
+se retire par les routes des communes. Une commune de la liste tapée en
+« Autre » reste refusée. Sans aucune commune listée, ces frais valent pour
+toutes : c'est un forfait de livraison.

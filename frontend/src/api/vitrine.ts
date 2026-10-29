@@ -223,10 +223,16 @@ export type ZoneLivraisonVitrine = {
   delai_estime: string | null
 }
 
-export async function recupererZonesLivraison(): Promise<ZoneLivraisonVitrine[]> {
-  const { data } = await client.get<{ data: ZoneLivraisonVitrine[] }>('/api/vitrine/zones-livraison')
+export type ZonesLivraisonVitrine = {
+  zones: ZoneLivraisonVitrine[]
+  /** Frais fixes de toute commune hors liste ; null : à convenir. */
+  autreCommune: { frais: number } | null
+}
 
-  return data.data
+export async function recupererZonesLivraison(): Promise<ZonesLivraisonVitrine> {
+  const { data } = await client.get<{ data: ZoneLivraisonVitrine[]; autre_commune: { frais: number } | null }>('/api/vitrine/zones-livraison')
+
+  return { zones: data.data, autreCommune: data.autre_commune }
 }
 
 export type NouvelleCommandePayload = {

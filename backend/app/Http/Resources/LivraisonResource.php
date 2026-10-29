@@ -8,8 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * L'écran « Livraison » du back-office : le choix de facturer ou non, et
- * les zones actives (les archivées n'existent plus pour le commerçant).
+ * L'écran « Livraison » du back-office : le choix de facturer ou non, les
+ * zones actives (les archivées n'existent plus pour le commerçant) et les
+ * frais fixes de « Autre commune » (null : à convenir).
  *
  * @mixin Etablissement
  */
@@ -22,10 +23,17 @@ class LivraisonResource extends JsonResource
             'zones' => $this->zonesLivraison()
                 ->pourTousEtablissements()
                 ->where('statut', StatutZoneLivraison::Actif)
+                ->where('autre_commune', false)
                 ->orderBy('nom')
                 ->get()
                 ->map(fn ($zone) => ['id' => $zone->id, 'nom' => $zone->nom, 'frais' => $zone->frais])
                 ->all(),
+            'autre_commune' => $this->zonesLivraison()
+                ->pourTousEtablissements()
+                ->where('statut', StatutZoneLivraison::Actif)
+                ->where('autre_commune', true)
+                ->first(['frais'])
+                ?->only('frais'),
         ];
     }
 }

@@ -18,6 +18,10 @@ use Illuminate\Validation\ValidationException;
  * par une commande n'est pas effacée mais archivée, pour que la commande
  * garde le lien vers la zone qui l'a facturée ; une zone jamais utilisée
  * (une faute de frappe) s'efface pour de bon.
+ *
+ * « Autre commune » à frais fixes est une zone comme les autres, marquée
+ * autre_commune : elle facture toute commune absente de la liste. Sans
+ * elle, « Autre commune » reste à convenir.
  */
 class GererZonesLivraison
 {
@@ -42,6 +46,38 @@ class GererZonesLivraison
             $zone->update(['nom' => $nom, 'frais' => $frais]);
 
             return $zone;
+        });
+    }
+
+    /**
+     * Fixe les frais de toute commune absente de la liste, ou les retire
+     * (null) : « Autre commune » redevient à convenir.
+     */
+    public function definirAutreCommune(Etablissement $etablissement, ?int $frais): void
+    {
+        DB::transaction(function () use ($etablissement, $frais) {
+            $zone = $etablissement->zonesLivraison()
+                ->pourTousEtablissements()
+                ->where('statut', StatutZoneLivraison::Actif)
+                ->where('autre_commune', true)
+                ->lockForUpdate()
+                ->first();
+
+            if ($frais === null) {
+                if ($zone !== null) {
+                    $this->retirer($zone);
+                }
+
+                return;
+            }
+
+            if ($zone === null) {
+                $etablissement->zonesLivraison()->create(['nom' => 'Autre commune', 'autre_commune' => true, 'frais' => $frais]);
+
+                return;
+            }
+
+            $zone->update(['frais' => $frais]);
         });
     }
 
@@ -71,6 +107,7 @@ class GererZonesLivraison
         $existe = $etablissement->zonesLivraison()
             ->pourTousEtablissements()
             ->where('statut', StatutZoneLivraison::Actif)
+            ->where('autre_commune', false)
             ->whereRaw('lower(nom) = ?', [mb_strtolower(trim($nom))])
             ->when($sauf, fn ($requete) => $requete->whereKeyNot($sauf->id))
             ->exists();

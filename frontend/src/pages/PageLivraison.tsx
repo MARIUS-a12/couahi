@@ -1,7 +1,8 @@
 /**
  * Écran /admin/livraison : le commerçant choisit de facturer la livraison
  * selon la commune, ou de ne pas la facturer sur le site, et tient la liste
- * de ses communes avec leurs frais. N'apparaît dans le menu utilisateur que
+ * de ses communes avec leurs frais, plus des frais fixes facultatifs pour
+ * toute autre commune (sans eux : à convenir). N'apparaît dans le menu utilisateur que
  * pour qui a gerer_parametres (voir MenuUtilisateur).
  *
  * Chaque geste s'enregistre seul (choix, ajout, modification, retrait),
@@ -12,7 +13,7 @@ import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, Pencil, Trash2 } from 'lucide-react'
 import type { Livraison, ZoneLivraison } from '../api/livraison'
-import { ajouterZone, choisirFacturation, modifierZone, recupererLivraison, retirerZone } from '../api/livraison'
+import { ajouterZone, choisirFacturation, definirAutreCommune, modifierZone, recupererLivraison, retirerZone } from '../api/livraison'
 import { Bouton } from '../components/Bouton'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampPrix } from '../components/ChampPrix'
@@ -66,6 +67,7 @@ export function PageLivraison() {
       </fieldset>
 
       {data.par_commune && <ListeZones zones={data.zones} onChangement={remplacer} />}
+      {data.par_commune && <SectionAutreCommune autre={data.autre_commune} onChangement={remplacer} />}
     </div>
   )
 }
@@ -236,5 +238,58 @@ function FormulaireZone({
         )}
       </div>
     </form>
+  )
+}
+
+/**
+ * Toute commune absente de la liste : des frais fixes, ou à convenir avec
+ * le client (rien n'est ajouté au total). Le client la choisit sous
+ * « Autre commune » ; sans aucune commune listée, ces frais valent pour
+ * toutes.
+ */
+function SectionAutreCommune({ autre, onChangement }: { autre: Livraison['autre_commune']; onChangement: (livraison: Livraison) => void }) {
+  const [frais, setFrais] = useState<number | null>(autre?.frais ?? null)
+  const [erreur, setErreur] = useState<string | undefined>()
+  const mutation = useMutation({
+    mutationFn: (valeur: number | null) => definirAutreCommune(valeur),
+    onSuccess: (livraison) => {
+      setErreur(undefined)
+      setFrais(livraison.autre_commune?.frais ?? null)
+      onChangement(livraison)
+    },
+    onError: (e) => setErreur(extraireErreursChamps(e).frais ?? 'Impossible d’enregistrer. Réessayez.'),
+  })
+
+  function soumettre(evenement: FormEvent) {
+    evenement.preventDefault()
+    if (frais === null) {
+      setErreur('Indiquez les frais (0 si la livraison est offerte).')
+      return
+    }
+    mutation.mutate(frais)
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-titre-section font-semibold text-texte">Toute autre commune</h2>
+      <p className="text-petit text-texte-secondaire">
+        {autre
+          ? `Un client dont la commune n’est pas dans votre liste paie ${autre.frais === 0 ? 'une livraison offerte' : libelleFrais(autre.frais)}.`
+          : 'Un client dont la commune n’est pas dans votre liste choisit « Autre commune » : la livraison est à convenir avec lui, rien n’est ajouté au total.'}
+      </p>
+      <form onSubmit={soumettre} noValidate className="space-y-3 rounded-lg border border-bordure p-4">
+        <ChampPrix id="autre-commune-frais" label="Frais fixes pour toute autre commune (0 si offerte)" valeur={frais} onChange={setFrais} erreur={erreur} />
+        <div className="flex flex-wrap gap-2">
+          <Bouton type="submit" variante="principal" chargement={mutation.isPending && mutation.variables !== null}>
+            {autre ? 'Enregistrer' : 'Fixer ces frais'}
+          </Bouton>
+          {autre && (
+            <Bouton type="button" variante="tertiaire" chargement={mutation.isPending && mutation.variables === null} onClick={() => mutation.mutate(null)}>
+              Revenir à « à convenir »
+            </Bouton>
+          )}
+        </div>
+      </form>
+    </section>
   )
 }

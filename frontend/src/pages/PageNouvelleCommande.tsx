@@ -8,7 +8,8 @@
  *   enchaîne les ventes.
  * - WhatsApp et Téléphone : le numéro d'abord (sans lui on ne livre pas),
  *   qui préremplit nom, commune et quartier d'un client connu ; puis la
- *   commune avec les règles de la vitrine, « Autre commune » compris.
+ *   commune avec les règles de la vitrine, « Autre commune » compris. Nom
+ *   et quartier sont facultatifs : seuls le numéro et la commune comptent.
  *
  * Aucun champ prix, aucune remise : les prix affichés sont ceux de la base,
  * et le serveur les relit de toute façon. « Vendre » depuis un produit
@@ -21,14 +22,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { MessageCircle, Minus, Phone, Plus, Search, Store, Trash2 } from 'lucide-react'
 import type { ArticleVendable, CanalManuel, CommandeManuelleCreee, DoublonPossible } from '../api/commandesManuelles'
-import { rechercherArticles, recupererZonesProposees, saisirCommande, trouverClient } from '../api/commandesManuelles'
+import { codeReference, reconnaitreReference, rechercherArticles, recupererZonesProposees, saisirCommande, trouverClient } from '../api/commandesManuelles'
 import { BandeauSucces } from '../components/BandeauSucces'
 import { Bouton } from '../components/Bouton'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampTexte } from '../components/ChampTexte'
 import { extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
-import { libelleFrais } from '../lib/livraison'
+import { fraisDeLivraison, libelleFrais, libelleOptionAutreCommune } from '../lib/livraison'
 
 type Ligne = { article: ArticleVendable; quantite: number }
 
@@ -84,6 +85,9 @@ export function PageNouvelleCommande() {
   const [succes, setSucces] = useState<CommandeManuelleCreee | null>(null)
   const [cleIdempotence, setCleIdempotence] = useState(() => crypto.randomUUID())
   const [prerempli, setPrerempli] = useState(false)
+  // La référence venue de « Transformer en commande » est déjà appliquée.
+  const [referenceAppliquee, setReferenceAppliquee] = useState<string | null>(() => codeReference(referenceDemandee))
+  const [aideReference, setAideReference] = useState<{ erreur: boolean; texte: string } | null>(null)
   const [clientConnu, setClientConnu] = useState(false)
 
   const comptoir = canal === 'comptoir'
@@ -115,6 +119,43 @@ export function PageNouvelleCommande() {
     }
   }
 
+  // Une référence collée dans une saisie neuve fait comme « Transformer en
+  // commande » : l'article de la demande est ajouté, et une demande déjà
+  // devenue commande est refusée avant même la saisie du client.
+  const codeColle = codeReference(reference)
+  const referenceReconnue = useQuery({
+    queryKey: ['reference-whatsapp', codeColle],
+    queryFn: () => reconnaitreReference(codeColle as string),
+    enabled: codeColle !== null && codeColle !== referenceAppliquee,
+    retry: false,
+  })
+
+  if (codeColle === null && referenceAppliquee !== null) {
+    setReferenceAppliquee(null)
+    setDejaTransformee(null)
+    setAideReference(null)
+  }
+
+  if (codeColle !== null && codeColle !== referenceAppliquee && referenceReconnue.isSuccess) {
+    const reconnue = referenceReconnue.data
+    setReferenceAppliquee(codeColle)
+    setDejaTransformee(reconnue?.commande ?? null)
+    if (reconnue === null) {
+      setAideReference({ erreur: true, texte: 'Cette référence n’existe pas dans votre boutique.' })
+    } else if (reconnue.commande) {
+      setAideReference(null)
+    } else if (reconnue.article === null) {
+      setAideReference({ erreur: false, texte: 'Choisissez l’article dans la liste : la demande ne dit pas lequel, ou il n’est plus en vente.' })
+    } else if (stockAffiche(reconnue.article).epuise) {
+      setAideReference({ erreur: true, texte: `L’article de la demande est épuisé : ${reconnue.article.nom}.` })
+    } else {
+      const article = reconnue.article
+      const nomArticle = article.variante ? `${article.nom} — ${article.variante}` : article.nom
+      setAideReference({ erreur: false, texte: `Article de la demande ajouté : ${nomArticle}.` })
+      setLignes((actuelles) => (actuelles.some((ligne) => cleArticle(ligne.article) === cleArticle(article)) ? actuelles : [...actuelles, { article, quantite: 1 }]))
+    }
+  }
+
   /**
    * Un numéro connu préremplit nom, commune et quartier, sans écraser ce
    * que le commerçant a déjà tapé. Cherché quand le numéro est complet.
@@ -132,7 +173,7 @@ export function PageNouvelleCommande() {
           return
         }
         setClientConnu(true)
-        setNom((actuel) => actuel || connu.nom)
+        setNom((actuel) => actuel || connu.nom || '')
         if (avecLivraison) {
           setCommune((actuelle) => actuelle || connu.commune || '')
           setQuartier((actuel) => actuel || connu.quartier || '')
@@ -141,13 +182,14 @@ export function PageNouvelleCommande() {
       .catch(() => undefined)
   }
 
-  const listeZones = zones.data ?? []
+  const listeZones = zones.data?.zones ?? []
+  const autreCommuneFixe = zones.data?.autreCommune ?? null
   const zonesExistent = listeZones.length > 0
   const communeHorsListe = zonesExistent && commune !== '' && !autreCommune && !listeZones.some((zone) => zone.nom === commune)
-  const zoneChoisie = autreCommune ? null : (listeZones.find((zone) => zone.nom === commune) ?? null)
+  const fraisCommune = fraisDeLivraison(listeZones, autreCommuneFixe, commune, autreCommune)
   const sousTotal = lignes.reduce((total, ligne) => total + ligne.article.prix * ligne.quantite, 0)
-  const frais = avecLivraison && zoneChoisie ? zoneChoisie.frais : 0
-  const livraisonAConvenir = avecLivraison && (!zonesExistent || autreCommune)
+  const frais = avecLivraison ? (fraisCommune ?? 0) : 0
+  const livraisonAConvenir = avecLivraison && fraisCommune === null
   const total = sousTotal + frais
 
   const dejaAjoutes = useMemo(() => new Set(lignes.map((ligne) => cleArticle(ligne.article))), [lignes])
@@ -199,6 +241,8 @@ export function PageNouvelleCommande() {
         setIdentifierClient(false)
         setReference('')
         setAfficherReference(false)
+        setReferenceAppliquee(null)
+        setAideReference(null)
         setCleIdempotence(crypto.randomUUID())
         return
       }
@@ -281,7 +325,7 @@ export function PageNouvelleCommande() {
         <section className="space-y-3">
           <ChampTexte id="client.telephone" label="Téléphone" type="tel" requis valeur={telephone} onChange={changerTelephone} erreur={erreurs['client.telephone']} placeholder="07 01 02 03 04" />
           {clientConnu && <p className="-mt-2 text-petit text-succes">Client connu : nom et adresse repris de sa dernière commande.</p>}
-          <ChampTexte id="client.nom" label="Nom" requis valeur={nom} onChange={setNom} erreur={erreurs['client.nom']} maxLength={255} />
+          <ChampTexte id="client.nom" label="Nom (facultatif)" valeur={nom} onChange={setNom} erreur={erreurs['client.nom']} maxLength={255} />
           {zonesExistent ? (
             <div>
               <label htmlFor="commune" className="mb-1 block text-petit font-medium text-texte">
@@ -305,7 +349,7 @@ export function PageNouvelleCommande() {
                     {zone.nom} — {libelleFrais(zone.frais)}
                   </option>
                 ))}
-                <option value={AUTRE_COMMUNE}>Autre commune — livraison à convenir</option>
+                <option value={AUTRE_COMMUNE}>{libelleOptionAutreCommune(autreCommuneFixe)}</option>
               </select>
               {!autreCommune && erreurs.commune && <p className="mt-1 text-petit text-danger">{erreurs.commune}</p>}
               {autreCommune && (
@@ -317,7 +361,7 @@ export function PageNouvelleCommande() {
           ) : (
             <ChampTexte id="commune" label="Commune" requis valeur={commune} onChange={setCommune} erreur={erreurs.commune} maxLength={100} />
           )}
-          <ChampTexte id="quartier" label="Quartier" requis valeur={quartier} onChange={setQuartier} erreur={erreurs.quartier} maxLength={150} />
+          <ChampTexte id="quartier" label="Quartier (facultatif)" valeur={quartier} onChange={setQuartier} erreur={erreurs.quartier} maxLength={150} />
         </section>
       )}
 
@@ -416,7 +460,14 @@ export function PageNouvelleCommande() {
 
       <div>
         {afficherReference ? (
-          <ChampTexte id="reference" label="Référence WhatsApp (ou le message entier)" multiligne valeur={reference} onChange={setReference} erreur={erreurs.reference} />
+          <>
+            <ChampTexte id="reference" label="Référence WhatsApp (ou le message entier)" multiligne valeur={reference} onChange={setReference} erreur={erreurs.reference} />
+            {aideReference && codeColle === referenceAppliquee && !erreurs.reference && (
+              <p role="status" className={`mt-1 text-petit ${aideReference.erreur ? 'text-danger' : 'text-texte-secondaire'}`}>
+                {aideReference.texte}
+              </p>
+            )}
+          </>
         ) : (
           <button type="button" onClick={() => setAfficherReference(true)} className="cursor-pointer text-petit text-texte-secondaire underline underline-offset-2">
             Coller une référence WhatsApp
@@ -463,13 +514,18 @@ export function PageNouvelleCommande() {
         <div className="mx-auto max-w-2xl space-y-2">
           <div className="flex items-baseline justify-between text-corps text-texte-secondaire">
             <span>
-              {avecLivraison ? `Livraison : ${livraisonAConvenir ? 'à convenir' : zoneChoisie ? libelleFrais(zoneChoisie.frais) : 'selon la commune'}` : `${lignes.length} article(s)`}
+              {avecLivraison ? `Livraison : ${livraisonAConvenir ? 'à convenir' : fraisCommune != null ? libelleFrais(fraisCommune) : 'selon la commune'}` : `${lignes.length} article(s)`}
             </span>
             <span className="text-titre-section font-semibold tabular-nums text-texte">{formaterMontant(total)}</span>
           </div>
-          <Bouton type="submit" variante="principal" className="w-full" chargement={creation.isPending} disabled={lignes.length === 0}>
+          <Bouton type="submit" variante="principal" className="w-full" chargement={creation.isPending} disabled={lignes.length === 0} aria-describedby={lignes.length === 0 ? 'aide-enregistrer' : undefined}>
             {comptoir ? `Encaisser ${formaterMontant(total)}` : 'Enregistrer la commande'}
           </Bouton>
+          {lignes.length === 0 && (
+            <p id="aide-enregistrer" className="text-center text-petit text-texte-secondaire">
+              Ajoutez au moins un article pour enregistrer.
+            </p>
+          )}
         </div>
       </div>
     </form>

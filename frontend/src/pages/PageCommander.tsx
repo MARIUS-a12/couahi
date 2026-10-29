@@ -15,9 +15,10 @@
  * la même chose.
  *
  * « Autre commune » : quand la boutique facture par commune, un client dont
- * la commune n'est pas dans la liste la saisit librement. La livraison est
- * alors à convenir, le total n'en inclut pas, et la boutique l'appelle.
- * Perdre un client de Bingerville coûte plus qu'un total sans frais.
+ * la commune n'est pas dans la liste la saisit librement. Il paie les frais
+ * fixes que la boutique a pu fixer pour toute autre commune ; sinon la
+ * livraison est à convenir, le total n'en inclut pas, et la boutique
+ * l'appelle. Perdre un client de Bingerville coûte plus qu'un total sans frais.
  *
  * Étape 13 : quand l'établissement propose le Mobile Money, la commande est
  * passée dans ce mode — le client reçoit le numéro à payer sur la page de
@@ -38,7 +39,7 @@ import { useVerifierPanier } from '../hooks/useVerifierPanier'
 import { creerCommandeVitrine, recupererZonesLivraison } from '../api/vitrine'
 import { allerAuPremierChampEnErreur, extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
-import { libelleFrais } from '../lib/livraison'
+import { fraisDeLivraison, libelleFrais, libelleOptionAutreCommune } from '../lib/livraison'
 import { IconeMobileMoney } from '../components/IconeMobileMoney'
 
 const ORDRE_CHAMPS = ['client.nom', 'client.telephone', 'commune', 'quartier']
@@ -124,13 +125,15 @@ export function PageCommander() {
     })
   }
 
-  const zonesExistent = (requeteZones.data?.length ?? 0) > 0
-  const zoneChoisie = autreCommune ? null : (requeteZones.data?.find((zone) => zone.nom === commune) ?? null)
-  // La boutique ne facture pas, ou le client a pris « Autre commune » : la
+  const zones = requeteZones.data?.zones ?? []
+  const autreCommuneFixe = requeteZones.data?.autreCommune ?? null
+  const zonesExistent = zones.length > 0
+  const frais = fraisDeLivraison(zones, autreCommuneFixe, commune, autreCommune)
+  // La boutique ne facture pas, ou « Autre commune » sans frais fixes : la
   // livraison se convient avec elle, et le total le dit.
-  const livraisonAConvenir = !zonesExistent || autreCommune
+  const livraisonAConvenir = frais === null
   const sousTotal = requeteVerification.data?.sous_total ?? 0
-  const fraisLivraison = zoneChoisie?.frais ?? 0
+  const fraisLivraison = frais ?? 0
   const total = sousTotal + fraisLivraison
   const uneLigneIndisponible = requeteVerification.data?.lignes.some(
     (ligne) => ligne.statut === 'epuise' || ligne.statut === 'retire',
@@ -195,12 +198,12 @@ export function PageCommander() {
                   <option value="" disabled>
                     Choisissez votre commune
                   </option>
-                  {requeteZones.data?.map((zone) => (
+                  {zones.map((zone) => (
                     <option key={zone.id} value={zone.nom}>
                       {zone.nom} — {libelleFrais(zone.frais)}
                     </option>
                   ))}
-                  <option value={AUTRE_COMMUNE}>Autre commune — livraison à convenir</option>
+                  <option value={AUTRE_COMMUNE}>{libelleOptionAutreCommune(autreCommuneFixe)}</option>
                 </select>
                 {!autreCommune && erreurs.commune && (
                   <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurs.commune}</p>
@@ -295,7 +298,7 @@ export function PageCommander() {
             <div className="flex justify-between text-texte-secondaire">
               <span>Livraison</span>
               <span className="tabular-nums">
-                {livraisonAConvenir ? 'À convenir avec la boutique' : zoneChoisie ? libelleFrais(zoneChoisie.frais) : 'Selon la commune'}
+                {livraisonAConvenir ? 'À convenir avec la boutique' : frais !== undefined ? libelleFrais(frais) : 'Selon la commune'}
               </span>
             </div>
             <div className="flex justify-between text-titre-section font-semibold text-texte">

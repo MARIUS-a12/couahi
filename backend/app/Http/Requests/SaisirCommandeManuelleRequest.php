@@ -17,8 +17,9 @@ use Illuminate\Validation\Rule;
  *
  * Le canal décide du reste. Comptoir : des articles seulement, un client
  * facultatif (un habitué qu'on identifie). Téléphone et WhatsApp : sans
- * numéro on ne livre pas, puis nom, commune et quartier, avec les mêmes
- * règles de commune que la vitrine (CommuneDeLivraison).
+ * numéro on ne livre pas, et la commune fixe les frais, avec les mêmes
+ * règles que la vitrine (CommuneDeLivraison). Le nom et le quartier sont
+ * facultatifs : le commerçant ne les a pas toujours.
  */
 class SaisirCommandeManuelleRequest extends FormRequest
 {
@@ -49,10 +50,10 @@ class SaisirCommandeManuelleRequest extends FormRequest
             'lignes.*.quantite' => ['required', 'integer', 'min:1', 'max:999'],
             'client' => ['nullable', 'array'],
             'client.telephone' => [$comptoir ? 'required_with:client' : 'required', 'nullable', 'string', new NumeroTelephoneIvoirien],
-            'client.nom' => [$comptoir ? 'required_with:client' : 'required', 'nullable', 'string', 'max:255'],
+            'client.nom' => $comptoir ? ['required_with:client', 'nullable', 'string', 'max:255'] : ['nullable', 'string', 'max:255'],
             'commune' => $comptoir ? ['prohibited'] : ['required', 'string', 'max:100', new CommuneDeLivraison($etablissement, $this->boolean('autre_commune'))],
             'autre_commune' => ['sometimes', 'boolean'],
-            'quartier' => $comptoir ? ['prohibited'] : ['required', 'string', 'max:150'],
+            'quartier' => $comptoir ? ['prohibited'] : ['nullable', 'string', 'max:150'],
             'reference' => ['nullable', 'string', 'max:2000'],
             'cle_idempotence' => ['required', 'string', 'max:100'],
             'confirmer_doublon' => ['sometimes', 'boolean'],

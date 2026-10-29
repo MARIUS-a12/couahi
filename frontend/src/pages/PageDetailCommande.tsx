@@ -154,7 +154,7 @@ export function PageDetailCommande() {
         <h2 className="text-titre-section font-semibold text-texte">Client</h2>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-corps font-medium text-texte">{commande.client === null ? 'Client de passage' : commande.client?.nom}</p>
+            <p className="text-corps font-medium text-texte">{commande.client === null ? 'Client de passage' : (commande.client?.nom ?? 'Sans nom')}</p>
             <p className="tabular-nums text-corps text-texte-secondaire">{commande.client?.telephone}</p>
             {commande.cree_par && (
               <p className="mt-1 text-petit text-texte-secondaire">

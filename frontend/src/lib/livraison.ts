@@ -19,3 +19,30 @@ export function libelleFrais(frais: number): string {
 export function libelleLivraisonCommande(zone: { nom: string } | null, frais: number): string {
   return zone === null && frais === 0 ? 'À convenir avec la boutique' : libelleFrais(frais)
 }
+
+/** Les frais fixes de toute commune hors liste ; null : à convenir. */
+export type AutreCommune = { frais: number } | null
+
+/** L'option « Autre commune » annonce ses frais fixes, ou la livraison à convenir. */
+export function libelleOptionAutreCommune(autre: AutreCommune): string {
+  return `Autre commune — ${autre ? libelleFrais(autre.frais) : 'livraison à convenir'}`
+}
+
+/**
+ * Les frais de la livraison en cours de saisie, calculés comme le serveur
+ * (Etablissement::zoneLivraisonPour) : ceux de la commune de la liste,
+ * sinon « Autre commune » à frais fixes, choisie ou valant pour toute
+ * commune quand la liste est vide. null : à convenir ; undefined : commune
+ * pas encore choisie.
+ */
+export function fraisDeLivraison(
+  zones: { nom: string; frais: number }[],
+  autre: AutreCommune,
+  commune: string,
+  autreCommune: boolean,
+): number | null | undefined {
+  if (zones.length === 0 || autreCommune) {
+    return autre ? autre.frais : null
+  }
+  return zones.find((zone) => zone.nom === commune)?.frais
+}

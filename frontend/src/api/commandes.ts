@@ -9,7 +9,8 @@ export type StatutCommande = 'attente_paiement' | 'payee' | 'prete' | 'livree' |
 export type CanalCommande = 'web' | 'whatsapp' | 'comptoir' | 'telephone'
 
 export type ClientCommande = {
-  nom: string
+  /** Nul : une commande prise au téléphone ou sur WhatsApp sans le nom. */
+  nom: string | null
   telephone: string
 }
 

@@ -54,7 +54,7 @@ class SaisirCommandeManuelle
 
     /**
      * @param  LigneCommandeDemandee[]  $lignes
-     * @param  array{telephone: string, nom: string}|null  $client  téléphone déjà normalisé
+     * @param  array{telephone: string, nom: string|null}|null  $client  téléphone déjà normalisé
      *
      * @throws DoublonPossibleException tant que $confirmerDoublon est faux
      * @throws DemandeDejaTransformeeException
@@ -180,15 +180,16 @@ class SaisirCommandeManuelle
     /**
      * Le client retrouvé par son téléphone, ou créé. Le nom saisi par le
      * commerçant fait foi : il vient de parler au client, il corrige un nom
-     * mal orthographié ou incomplet.
+     * mal orthographié ou incomplet. Laissé vide (téléphone, WhatsApp), il
+     * n'efface pas le nom d'un client connu ; un nouveau client reste sans nom.
      *
-     * @param  array{telephone: string, nom: string}  $donnees
+     * @param  array{telephone: string, nom: string|null}  $donnees
      */
     private function client(Etablissement $etablissement, array $donnees): Client
     {
         $client = $this->trouverOuCreerClient->executer($etablissement, $donnees['nom'], $donnees['telephone'], null);
 
-        if ($client->nom !== $donnees['nom']) {
+        if ($donnees['nom'] !== null && $client->nom !== $donnees['nom']) {
             $client->update(['nom' => $donnees['nom']]);
         }
 

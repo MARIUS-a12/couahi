@@ -20,7 +20,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
  */
 class TrouverOuCreerClient
 {
-    public function executer(Etablissement $etablissement, string $nom, string $telephone, ?string $email): Client
+    public function executer(Etablissement $etablissement, ?string $nom, string $telephone, ?string $email): Client
     {
         $existant = $etablissement->clients()->where('telephone', $telephone)->first();
 

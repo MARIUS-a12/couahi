@@ -139,6 +139,7 @@ class LivraisonApiTest extends TestCase
 
         $this->getJson('http://maquis-du-port.localhost:8000/api/parametres/livraison')->assertForbidden();
         $this->postJson('http://maquis-du-port.localhost:8000/api/parametres/livraison/zones', ['nom' => 'Plateau', 'frais' => 1000])->assertForbidden();
+        $this->putJson('http://maquis-du-port.localhost:8000/api/parametres/livraison/autre-commune', ['frais' => 1000])->assertForbidden();
     }
 
     public function test_la_zone_dun_autre_etablissement_est_introuvable(): void
@@ -257,5 +258,123 @@ class LivraisonApiTest extends TestCase
 
         $this->assertStringContainsString('est dans la liste', $reponse->json('errors.commune.0'));
         $this->assertSame(0, $this->chezAwa()->commandes()->pourTousEtablissements()->count());
+    }
+
+    private function autreCommune(?int $frais): TestResponse
+    {
+        return $this->putJson(self::HOTE.'/api/parametres/livraison/autre-commune', ['frais' => $frais]);
+    }
+
+    private function derniereCommande()
+    {
+        return $this->chezAwa()->commandes()->pourTousEtablissements()->latest('id')->firstOrFail();
+    }
+
+    public function test_le_commercant_fixe_modifie_et_retire_les_frais_de_autre_commune(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Cocody', 1500);
+
+        $this->getJson(self::HOTE.'/api/parametres/livraison')->assertJsonPath('autre_commune', null);
+        $this->autreCommune(3000)->assertOk()->assertJsonPath('data.autre_commune', ['frais' => 3000])
+            ->assertJsonCount(1, 'data.zones')->assertJsonPath('data.zones.0.nom', 'Cocody');
+        $this->autreCommune(2500)->assertOk()->assertJsonPath('data.autre_commune', ['frais' => 2500]);
+        $this->assertSame(1, ZoneLivraison::pourTousEtablissements()->where('autre_commune', true)->count(), 'une seule zone « Autre commune »');
+
+        $this->autreCommune(null)->assertOk()->assertJsonPath('data.autre_commune', null);
+        $this->assertSame(0, ZoneLivraison::pourTousEtablissements()->where('autre_commune', true)->count(), 'jamais facturée : effacée');
+    }
+
+    public function test_des_frais_de_autre_commune_invalides_sont_refuses(): void
+    {
+        $this->connecte();
+
+        $this->autreCommune(-1)->assertStatus(422)->assertJsonValidationErrors('frais');
+        $this->putJson(self::HOTE.'/api/parametres/livraison/autre-commune', ['frais' => 12.5])->assertStatus(422);
+        $this->putJson(self::HOTE.'/api/parametres/livraison/autre-commune', [])->assertStatus(422);
+    }
+
+    public function test_une_commune_hors_liste_paie_les_frais_fixes_de_autre_commune(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Cocody', 1500);
+        $this->autreCommune(3000);
+
+        $this->getJson(self::HOTE.'/api/vitrine/zones-livraison')->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('autre_commune', ['frais' => 3000]);
+        $this->commanderSurLaVitrine('Bingerville', autreCommune: true)->assertCreated();
+
+        $commande = $this->derniereCommande();
+        $this->assertSame('Bingerville', $commande->commune);
+        $this->assertSame(3000, $commande->frais_livraison);
+        $this->assertSame($commande->sous_total + 3000, $commande->total);
+        $this->assertTrue(ZoneLivraison::pourTousEtablissements()->findOrFail($commande->zone_livraison_id)->autre_commune);
+
+        // Une commune de la liste garde ses propres frais, et reste refusée en « Autre ».
+        $this->commanderSurLaVitrine('Cocody')->assertCreated();
+        $this->assertSame(1500, $this->derniereCommande()->frais_livraison);
+        $this->commanderSurLaVitrine('cocody', autreCommune: true)->assertStatus(422);
+    }
+
+    public function test_changer_ou_retirer_autre_commune_ne_touche_aucune_commande_passee(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->ajouter('Cocody', 1500);
+        $this->autreCommune(3000);
+        $this->commanderSurLaVitrine('Bingerville', autreCommune: true)->assertCreated();
+        $passee = $this->derniereCommande();
+
+        $this->autreCommune(4000);
+        $this->assertSame(3000, $passee->fresh()->frais_livraison);
+
+        $this->autreCommune(null)->assertJsonPath('data.autre_commune', null);
+        $this->assertSame(StatutZoneLivraison::Inactif, ZoneLivraison::pourTousEtablissements()->findOrFail($passee->zone_livraison_id)->statut, 'déjà facturée : archivée, jamais effacée');
+        $this->commanderSurLaVitrine('Grand-Bassam', autreCommune: true)->assertCreated();
+        $this->assertSame(0, $this->derniereCommande()->frais_livraison, 'de nouveau à convenir');
+        $this->assertNull($this->derniereCommande()->zone_livraison_id);
+    }
+
+    public function test_sans_commune_listee_les_frais_fixes_valent_pour_toute_commune(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->autreCommune(2000);
+
+        $this->getJson(self::HOTE.'/api/vitrine/zones-livraison')->assertJsonCount(0, 'data')->assertJsonPath('autre_commune', ['frais' => 2000]);
+        $this->commanderSurLaVitrine('Marcory')->assertCreated();
+
+        $this->assertSame(2000, $this->derniereCommande()->frais_livraison);
+    }
+
+    public function test_sans_facturation_autre_commune_ne_facture_rien(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->autreCommune(2000);
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => false]);
+
+        $this->getJson(self::HOTE.'/api/vitrine/zones-livraison')->assertJsonPath('autre_commune', null);
+        $this->commanderSurLaVitrine('Marcory', autreCommune: true)->assertCreated();
+
+        $this->assertSame(0, $this->derniereCommande()->frais_livraison);
+        $this->getJson(self::HOTE.'/api/parametres/livraison')->assertJsonPath('data.autre_commune', ['frais' => 2000]);
+    }
+
+    public function test_la_zone_autre_commune_ne_se_modifie_ni_ne_se_retire_comme_une_commune(): void
+    {
+        $this->connecte();
+        $this->putJson(self::HOTE.'/api/parametres/livraison', ['par_commune' => true]);
+        $this->autreCommune(2000);
+        $zone = ZoneLivraison::pourTousEtablissements()->where('autre_commune', true)->firstOrFail();
+
+        $this->putJson(self::HOTE."/api/parametres/livraison/zones/{$zone->id}", ['nom' => 'Cocody', 'frais' => 0])->assertNotFound();
+        $this->deleteJson(self::HOTE."/api/parametres/livraison/zones/{$zone->id}")->assertNotFound();
+        $this->assertSame(2000, $zone->fresh()->frais);
+        // Une vraie commune nommée « Autre commune » ne la heurte pas.
+        $this->ajouter('Autre commune', 500)->assertOk();
     }
 }

@@ -11,7 +11,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
  * saisie manuelle (lot C) :
  * - la boutique ne facture pas la livraison : saisie libre ;
  * - elle facture par commune : une commune de sa liste, ou « Autre
- *   commune » saisie librement, livraison à convenir. Une commune de la
+ *   commune » saisie librement (frais fixes si le commerçant en a fixé,
+ *   sinon à convenir, voir Etablissement::zoneLivraisonPour). Une commune de la
  *   liste tapée en « Autre » est refusée, sinon « Autre » + « Cocody »
  *   suffirait à ne pas payer les frais de Cocody.
  */

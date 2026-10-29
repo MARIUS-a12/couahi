@@ -16,11 +16,13 @@ class ZoneLivraison extends Model
 
     protected $attributes = [
         'frais' => 0,
+        'autre_commune' => false,
         'statut' => 'actif',
     ];
 
     protected $fillable = [
         'nom',
+        'autre_commune',
         'frais',
         'delai_estime',
         'statut',
@@ -29,6 +31,7 @@ class ZoneLivraison extends Model
     protected function casts(): array
     {
         return [
+            'autre_commune' => 'boolean',
             'frais' => 'integer',
             'statut' => StatutZoneLivraison::class,
         ];

@@ -151,18 +151,41 @@ class Etablissement extends Model
         return $this->zonesLivraison()
             ->pourTousEtablissements()
             ->where('statut', StatutZoneLivraison::Actif)
+            ->where('autre_commune', false)
             ->orderBy('nom')
             ->get();
     }
 
     /**
-     * La zone qui facture une commune, ou null : livraison non facturée, ou
-     * « Autre commune » (saisie libre, à convenir). Lue par la vitrine et
-     * par la saisie manuelle, pour que les deux facturent pareil.
+     * La zone « Autre commune » à frais fixes, qui facture toute commune
+     * absente de la liste ; null quand le commerçant n'en a pas fixé (à
+     * convenir) ou ne facture pas la livraison.
+     */
+    public function zoneAutreCommune(): ?ZoneLivraison
+    {
+        if (! ($this->parametreSite()->pourTousEtablissements()->value('livraison_par_commune') ?? false)) {
+            return null;
+        }
+
+        return $this->zonesLivraison()
+            ->pourTousEtablissements()
+            ->where('statut', StatutZoneLivraison::Actif)
+            ->where('autre_commune', true)
+            ->first();
+    }
+
+    /**
+     * La zone qui facture une commune : celle de la liste, sinon « Autre
+     * commune » à frais fixes (choisie par le client, ou toute commune
+     * quand la liste est vide). Null : livraison non facturée, ou « Autre
+     * commune » à convenir. Lue par la vitrine et par la saisie manuelle,
+     * pour que les deux facturent pareil.
      */
     public function zoneLivraisonPour(string $commune, bool $autreCommune): ?ZoneLivraison
     {
-        return $autreCommune ? null : $this->zonesLivraisonProposees()->firstWhere('nom', $commune);
+        $listee = $autreCommune ? null : $this->zonesLivraisonProposees()->firstWhere('nom', $commune);
+
+        return $listee ?? $this->zoneAutreCommune();
     }
 
     public function commandes(): HasMany

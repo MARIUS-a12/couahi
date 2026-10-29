@@ -20,6 +20,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\VarianteProduit;
 use App\Services\Commandes\ConfirmerPaiementCommande;
+use App\Services\Livraison\GererZonesLivraison;
 use App\Services\Stock\LibererReservation;
 use App\Services\Utilisateurs\CreerRattachementUtilisateur;
 use App\Support\Tenancy\ContexteEtablissement;
@@ -170,6 +171,19 @@ class CommandeManuelleApiTest extends TestCase
         $this->assertSame('Bingerville', $commande->commune);
     }
 
+    public function test_autre_commune_au_telephone_paie_les_frais_fixes_comme_la_vitrine(): void
+    {
+        app(GererZonesLivraison::class)->definirAutreCommune($this->wax, 3000);
+        $this->connecte();
+
+        $this->getJson(self::HOTE.'/api/commandes/manuelles/zones')->assertOk()->assertJsonPath('autre_commune', ['frais' => 3000]);
+        $commande = $this->commande($this->saisirAuTelephone(['commune' => 'Bingerville', 'autre_commune' => true])->assertCreated());
+
+        $this->assertSame('Bingerville', $commande->commune);
+        $this->assertSame(3000, $commande->frais_livraison);
+        $this->assertSame(13000, $commande->total);
+    }
+
     public function test_au_telephone_le_numero_est_obligatoire(): void
     {
         $this->connecte();
@@ -298,6 +312,78 @@ class CommandeManuelleApiTest extends TestCase
         $this->saisirAuTelephone(['reference' => 'ZZZZZZZZ'])->assertStatus(422)->assertJsonValidationErrors('reference');
     }
 
+    public function test_au_telephone_seuls_le_numero_et_la_commune_sont_obligatoires(): void
+    {
+        $this->connecte();
+
+        $commande = $this->commande($this->saisirAuTelephone(['client' => ['telephone' => '0708091011', 'nom' => '  '], 'quartier' => ''])->assertCreated());
+
+        $this->assertNull($commande->client->nom, 'un client sans nom, jamais un nom inventé');
+        $this->assertNull($commande->quartier);
+        $this->assertSame('Cocody', $commande->commune);
+        $this->getJson(self::HOTE.'/api/commandes/'.$commande->id)->assertOk()->assertJsonPath('data.client.nom', null);
+
+        $this->saisirAuTelephone(['commune' => null, 'confirmer_doublon' => true])->assertStatus(422)->assertJsonValidationErrors('commune');
+    }
+
+    public function test_un_nom_laisse_vide_nefface_pas_celui_dun_client_connu(): void
+    {
+        $this->connecte();
+        $this->saisirAuTelephone()->assertCreated();
+
+        $commande = $this->commande($this->saisirAuTelephone(['client' => ['telephone' => '07 01 02 03 04'], 'confirmer_doublon' => true])->assertCreated());
+
+        $this->assertSame('Mariam Koné', $commande->client->nom);
+    }
+
+    public function test_au_comptoir_un_habitue_identifie_garde_son_nom_obligatoire(): void
+    {
+        $this->connecte();
+
+        $this->saisir(['client' => ['telephone' => '0701020304', 'nom' => ' ']])->assertStatus(422)->assertJsonValidationErrors('client.nom');
+    }
+
+    public function test_une_reference_collee_donne_son_article_et_sa_commande(): void
+    {
+        $this->connecte();
+        $variante = VarianteProduit::pourTousEtablissements()->where('nom', '45 / Noir')->firstOrFail();
+        app(ContexteEtablissement::class)->definir($this->wax);
+        ReferenceWhatsapp::create(['code' => 'SANSVAR1', 'produit_id' => $this->pagne->id, 'expire_le' => now()->addDays(7)]);
+        ReferenceWhatsapp::create(['code' => 'AVECVAR1', 'produit_id' => $variante->produit_id, 'variante_id' => $variante->id, 'expire_le' => now()->addDays(7)]);
+        ReferenceWhatsapp::create(['code' => 'SANSCHX1', 'produit_id' => $variante->produit_id, 'expire_le' => now()->addDays(7)]);
+        app(ContexteEtablissement::class)->definir(null);
+        $url = self::HOTE.'/api/commandes/manuelles/reference?reference=';
+
+        $this->getJson($url.urlencode('Bonjour [REF:SANSVAR1]'))->assertOk()
+            ->assertJsonPath('data.article.produit_id', $this->pagne->id)
+            ->assertJsonPath('data.article.variante_id', null)
+            ->assertJsonPath('data.article.prix', 5000)
+            ->assertJsonPath('data.commande', null);
+        $this->getJson($url.'AVECVAR1')->assertOk()
+            ->assertJsonPath('data.article.variante_id', $variante->id)
+            ->assertJsonPath('data.article.variante', '45 / Noir');
+        $this->getJson($url.'SANSCHX1')->assertOk()->assertJsonPath('data.article', null);
+        $this->getJson($url.'ZZZZZZZZ')->assertNotFound()->assertJsonPath('message', 'Cette référence n’existe pas dans votre boutique.');
+
+        $variante->update(['statut' => StatutVariante::Inactif]);
+        $this->getJson($url.'AVECVAR1')->assertOk()->assertJsonPath('data.article', null);
+
+        $commande = $this->commande($this->saisirAuTelephone(['reference' => 'SANSVAR1'])->assertCreated());
+        $this->getJson($url.'SANSVAR1')->assertOk()->assertJsonPath('data.commande', ['id' => $commande->id, 'numero' => $commande->numero]);
+    }
+
+    public function test_une_reference_dune_autre_boutique_est_inconnue(): void
+    {
+        $autre = Etablissement::where('slug', '!=', 'wax-adjame')->firstOrFail();
+        app(ContexteEtablissement::class)->definir($autre);
+        $produit = Produit::factory()->for($autre)->publie()->create();
+        ReferenceWhatsapp::create(['code' => 'AILLEURS', 'produit_id' => $produit->id, 'expire_le' => now()->addDays(7)]);
+        app(ContexteEtablissement::class)->definir(null);
+
+        $this->connecte();
+        $this->getJson(self::HOTE.'/api/commandes/manuelles/reference?reference=AILLEURS')->assertNotFound();
+    }
+
     public function test_sans_la_permission_creer_commandes_tout_est_refuse(): void
     {
         app(ContexteEtablissement::class)->definir($this->wax);
@@ -310,6 +396,7 @@ class CommandeManuelleApiTest extends TestCase
         $this->getJson(self::HOTE.'/api/commandes/manuelles/articles')->assertForbidden();
         $this->getJson(self::HOTE.'/api/commandes/manuelles/client?telephone=0701020304')->assertForbidden();
         $this->getJson(self::HOTE.'/api/commandes/manuelles/zones')->assertForbidden();
+        $this->getJson(self::HOTE.'/api/commandes/manuelles/reference?reference=AB12CD34')->assertForbidden();
         $this->assertSame(0, Commande::pourTousEtablissements()->where('source', 'back_office')->count());
     }
 

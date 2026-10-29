@@ -11,8 +11,12 @@ class VitrineZoneLivraisonController extends Controller
 {
     public function index(): JsonResponse
     {
-        $zones = app(ContexteEtablissement::class)->obtenir()->zonesLivraisonProposees();
+        $etablissement = app(ContexteEtablissement::class)->obtenir();
 
-        return response()->json(['data' => ZoneLivraisonVitrineResource::collection($zones)]);
+        return response()->json([
+            'data' => ZoneLivraisonVitrineResource::collection($etablissement->zonesLivraisonProposees()),
+            // Frais fixes de toute commune hors liste ; null : à convenir.
+            'autre_commune' => $etablissement->zoneAutreCommune()?->only('frais'),
+        ]);
     }
 }

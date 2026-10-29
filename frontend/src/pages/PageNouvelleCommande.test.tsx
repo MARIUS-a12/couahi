@@ -9,10 +9,12 @@ import { AxiosError, AxiosHeaders } from 'axios'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ArticleVendable } from '../api/commandesManuelles'
-import { rechercherArticles, recupererZonesProposees, saisirCommande, trouverClient } from '../api/commandesManuelles'
+import { reconnaitreReference, rechercherArticles, recupererZonesProposees, saisirCommande, trouverClient } from '../api/commandesManuelles'
 import { PageNouvelleCommande } from './PageNouvelleCommande'
 
-vi.mock('../api/commandesManuelles', () => ({
+vi.mock('../api/commandesManuelles', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/commandesManuelles')>()),
+  reconnaitreReference: vi.fn(),
   rechercherArticles: vi.fn(),
   recupererZonesProposees: vi.fn(),
   trouverClient: vi.fn(),
@@ -40,8 +42,9 @@ const canal = (nom: string) => screen.getByRole('button', { name: nom })
 describe('saisie manuelle', () => {
   beforeEach(() => {
     vi.mocked(rechercherArticles).mockReset().mockResolvedValue([pagne, sandale45])
-    vi.mocked(recupererZonesProposees).mockReset().mockResolvedValue([{ id: 1, nom: 'Cocody', frais: 1500 }])
+    vi.mocked(recupererZonesProposees).mockReset().mockResolvedValue({ zones: [{ id: 1, nom: 'Cocody', frais: 1500 }], autreCommune: null })
     vi.mocked(trouverClient).mockReset().mockResolvedValue(null)
+    vi.mocked(reconnaitreReference).mockReset().mockResolvedValue(null)
     vi.mocked(saisirCommande).mockReset().mockResolvedValue({ id: 12, numero: 'CMD-000012', statut: 'livree', total: 5000 })
   })
 
@@ -210,5 +213,95 @@ describe('saisie manuelle', () => {
     expect(screen.queryByLabelText(/^Référence WhatsApp/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Coller une référence WhatsApp' }))
     expect(screen.getByLabelText(/^Référence WhatsApp/)).toBeInTheDocument()
+  })
+
+  it('un bouton grisé dit pourquoi : aucun article', async () => {
+    afficher()
+    fireEvent.click(canal('WhatsApp'))
+
+    const bouton = screen.getByRole('button', { name: 'Enregistrer la commande' })
+    expect(bouton).toBeDisabled()
+    expect(bouton).toHaveAccessibleDescription('Ajoutez au moins un article pour enregistrer.')
+    fireEvent.click(await within(screen.getByRole('list', { name: 'Résultats' })).findByText('Pagne wax'))
+    expect(screen.queryByText('Ajoutez au moins un article pour enregistrer.')).not.toBeInTheDocument()
+  })
+
+  it('WhatsApp et téléphone : seuls le numéro et la commune sont obligatoires', async () => {
+    afficher('/admin/commandes/nouvelle?produit=7')
+    await screen.findByRole('list', { name: 'Commande' })
+    fireEvent.click(canal('Téléphone'))
+
+    expect(screen.getByLabelText(/^Téléphone/)).toBeRequired()
+    expect(screen.getByLabelText(/^Commune/)).toBeRequired()
+    expect(screen.getByLabelText(/^Nom/)).not.toBeRequired()
+    expect(screen.getByLabelText(/^Quartier/)).not.toBeRequired()
+    expect(screen.getByLabelText(/^Nom/)).toHaveAccessibleName('Nom (facultatif)')
+  })
+
+  it('une référence collée ajoute l’article de la demande, une seule fois', async () => {
+    vi.mocked(reconnaitreReference).mockResolvedValue({ code: 'AB12CD34', article: sandale45, commande: null })
+    afficher()
+    fireEvent.click(canal('WhatsApp'))
+    fireEvent.click(screen.getByRole('button', { name: 'Coller une référence WhatsApp' }))
+    fireEvent.change(screen.getByLabelText(/^Référence WhatsApp/), { target: { value: 'Bonjour, je veux ça [REF:AB12CD34]' } })
+
+    expect(await screen.findByRole('list', { name: 'Commande' })).toHaveTextContent('45 / Noir')
+    expect(reconnaitreReference).toHaveBeenCalledWith('AB12CD34')
+    expect(screen.getByText('Article de la demande ajouté : Sandales — 45 / Noir.')).toBeInTheDocument()
+  })
+
+  it('une référence collée n’ajoute pas un article déjà dans la commande', async () => {
+    vi.mocked(reconnaitreReference).mockResolvedValue({ code: 'AB12CD34', article: sandale45, commande: null })
+    afficher()
+    fireEvent.click(canal('WhatsApp'))
+    fireEvent.click(await within(screen.getByRole('list', { name: 'Résultats' })).findByText('Sandales'))
+    fireEvent.click(screen.getByRole('button', { name: 'Coller une référence WhatsApp' }))
+    fireEvent.change(screen.getByLabelText(/^Référence WhatsApp/), { target: { value: '[REF:AB12CD34]' } })
+
+    expect(await screen.findByText(/Article de la demande ajouté/)).toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'Commande' })).getAllByRole('listitem')).toHaveLength(1)
+  })
+
+  it('une référence collée déjà devenue commande : le refus tout de suite, sans article', async () => {
+    vi.mocked(reconnaitreReference).mockResolvedValue({ code: 'AB12CD34', article: sandale45, commande: { id: 7, numero: 'CMD-000007' } })
+    afficher()
+    fireEvent.click(screen.getByRole('button', { name: 'Coller une référence WhatsApp' }))
+    fireEvent.change(screen.getByLabelText(/^Référence WhatsApp/), { target: { value: 'AB12CD34' } })
+
+    expect(await screen.findByRole('link', { name: 'CMD-000007' })).toHaveAttribute('href', '/admin/commandes/7')
+    expect(screen.queryByRole('list', { name: 'Commande' })).not.toBeInTheDocument()
+  })
+
+  it('une référence inconnue, ou sans article vendable, le dit sous le champ', async () => {
+    afficher()
+    fireEvent.click(screen.getByRole('button', { name: 'Coller une référence WhatsApp' }))
+    fireEvent.change(screen.getByLabelText(/^Référence WhatsApp/), { target: { value: 'ZZZZZZZZ' } })
+    expect(await screen.findByText('Cette référence n’existe pas dans votre boutique.')).toBeInTheDocument()
+
+    vi.mocked(reconnaitreReference).mockResolvedValue({ code: 'AB12CD34', article: null, commande: null })
+    fireEvent.change(screen.getByLabelText(/^Référence WhatsApp/), { target: { value: 'AB12CD34' } })
+    expect(await screen.findByText(/Choisissez l’article dans la liste/)).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Commande' })).not.toBeInTheDocument()
+  })
+
+  it('depuis « Transformer en commande », la référence n’est pas redemandée', async () => {
+    vi.mocked(rechercherArticles).mockResolvedValue([sandale45])
+    afficher('/admin/commandes/nouvelle?canal=whatsapp&produit=20&variante=45&reference=AB12CD34')
+    await screen.findByRole('list', { name: 'Commande' })
+
+    expect(reconnaitreReference).not.toHaveBeenCalled()
+  })
+
+  it('« Autre commune » à frais fixes : l’option et le total les comptent, comme la vitrine', async () => {
+    vi.mocked(recupererZonesProposees).mockResolvedValue({ zones: [{ id: 1, nom: 'Cocody', frais: 1500 }], autreCommune: { frais: 3000 } })
+    afficher('/admin/commandes/nouvelle?produit=7')
+    await screen.findByRole('list', { name: 'Commande' })
+    fireEvent.click(canal('Téléphone'))
+
+    expect(await screen.findByRole('option', { name: /^Autre commune — 3\s000\sFCFA$/ })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Commune/), { target: { value: '__autre__' } })
+
+    expect(screen.getByText(/^Livraison : 3\s000\sFCFA$/)).toBeInTheDocument()
+    expect(screen.getByText(/^8\s000\sFCFA$/)).toBeInTheDocument()
   })
 })

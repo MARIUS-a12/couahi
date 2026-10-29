@@ -188,6 +188,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/commandes/manuelles/articles', [CommandeManuelleController::class, 'articles']);
         Route::get('/commandes/manuelles/client', [CommandeManuelleController::class, 'client']);
         Route::get('/commandes/manuelles/zones', [CommandeManuelleController::class, 'zones']);
+        Route::get('/commandes/manuelles/reference', [CommandeManuelleController::class, 'reference']);
         Route::post('/commandes/manuelles', [CommandeManuelleController::class, 'store']);
 
         // Lot D — les demandes WhatsApp : « gerer_demandes_whatsapp », voir
@@ -237,6 +238,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/parametres/livraison', [LivraisonController::class, 'show']);
         Route::put('/parametres/livraison', [LivraisonController::class, 'choisirFacturation']);
         Route::post('/parametres/livraison/zones', [LivraisonController::class, 'ajouterZone']);
+        Route::put('/parametres/livraison/autre-commune', [LivraisonController::class, 'definirAutreCommune']);
         Route::put('/parametres/livraison/zones/{zone}', [LivraisonController::class, 'modifierZone']);
         Route::delete('/parametres/livraison/zones/{zone}', [LivraisonController::class, 'retirerZone']);
 

@@ -47,9 +47,26 @@ class LivraisonController extends Controller
         return new LivraisonResource($etablissement);
     }
 
+    public function definirAutreCommune(Request $request): LivraisonResource
+    {
+        $etablissement = $this->etablissement();
+        $donnees = $request->validate(
+            ['frais' => ['present', 'nullable', 'integer', 'min:0', 'max:100000']],
+            [
+                'frais.integer' => 'Les frais sont un nombre entier de francs CFA.',
+                'frais.min' => 'Les frais ne peuvent pas être négatifs.',
+                'frais.max' => 'Les frais ne peuvent pas dépasser 100 000 FCFA.',
+            ],
+        );
+        $this->service->definirAutreCommune($etablissement, $donnees['frais'] === null ? null : (int) $donnees['frais']);
+
+        return new LivraisonResource($etablissement);
+    }
+
     public function modifierZone(ZoneLivraisonRequest $request, ZoneLivraison $zone): LivraisonResource
     {
         $etablissement = $this->etablissement();
+        abort_if($zone->autre_commune, 404);
         $this->service->modifier($zone, $request->validated('nom'), (int) $request->validated('frais'));
 
         return new LivraisonResource($etablissement);
@@ -58,6 +75,7 @@ class LivraisonController extends Controller
     public function retirerZone(ZoneLivraison $zone): LivraisonResource
     {
         $etablissement = $this->etablissement();
+        abort_if($zone->autre_commune, 404);
         $this->service->retirer($zone);
 
         return new LivraisonResource($etablissement);

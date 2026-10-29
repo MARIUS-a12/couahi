@@ -30,6 +30,8 @@ use Illuminate\Validation\ValidationException;
  */
 class CommandeManuelleController extends Controller
 {
+    private const REFERENCE_INCONNUE = 'Cette référence n’existe pas dans votre boutique.';
+
     public function __construct(
         private readonly SaisirCommandeManuelle $saisir,
     ) {}
@@ -83,9 +85,14 @@ class CommandeManuelleController extends Controller
     {
         $this->autoriser($request);
 
-        return response()->json(['data' => app(ContexteEtablissement::class)->obtenir()->zonesLivraisonProposees()
-            ->map(fn ($zone) => ['id' => $zone->id, 'nom' => $zone->nom, 'frais' => $zone->frais])
-            ->values()]);
+        $etablissement = app(ContexteEtablissement::class)->obtenir();
+
+        return response()->json([
+            'data' => $etablissement->zonesLivraisonProposees()
+                ->map(fn ($zone) => ['id' => $zone->id, 'nom' => $zone->nom, 'frais' => $zone->frais])
+                ->values(),
+            'autre_commune' => $etablissement->zoneAutreCommune()?->only('frais'),
+        ]);
     }
 
     /**
@@ -112,6 +119,36 @@ class CommandeManuelleController extends Controller
         ]]);
     }
 
+    /**
+     * Une référence collée dans une saisie neuve : l'article de la demande,
+     * que le formulaire ajoute comme le fait « Transformer en commande », et
+     * la commande qu'elle est déjà devenue, pour refuser avant la saisie.
+     * L'article est nul si le produit est archivé, la variante retirée, ou si
+     * la demande ne dit pas quelle variante d'un produit qui en a.
+     */
+    public function reference(Request $request): JsonResponse
+    {
+        $this->autoriser($request);
+        $reference = $this->trouverReference((string) $request->query('reference', ''));
+
+        if ($reference === null) {
+            return response()->json(['message' => self::REFERENCE_INCONNUE], 404);
+        }
+
+        $reference->load(['produit.variantes', 'produit.medias' => fn ($requete) => $requete->orderByPivot('ordre'), 'variante', 'commande']);
+        $produit = $reference->produit;
+        $variante = $reference->variante;
+        $vendable = $produit !== null
+            && $produit->statut !== StatutProduit::Archive
+            && ($variante === null ? $produit->variantes->isEmpty() : $variante->statut === StatutVariante::Actif);
+
+        return response()->json(['data' => [
+            'code' => $reference->code,
+            'article' => $vendable ? $this->article($produit, $variante, $produit->medias->first()?->urlVariante('vignette', 'jpg')) : null,
+            'commande' => $reference->commande === null ? null : ['id' => $reference->commande->id, 'numero' => $reference->commande->numero],
+        ]]);
+    }
+
     public function store(SaisirCommandeManuelleRequest $request): JsonResponse
     {
         $etablissement = app(ContexteEtablissement::class)->obtenir();
@@ -127,12 +164,12 @@ class CommandeManuelleController extends Controller
                 ),
                 client: empty($donneesClient['telephone']) ? null : [
                     'telephone' => NormaliseurTelephone::normaliser($donneesClient['telephone']),
-                    'nom' => trim($donneesClient['nom']),
+                    'nom' => $donneesClient['nom'] ?? null,
                 ],
                 commune: $request->validated('commune'),
                 autreCommune: $request->boolean('autre_commune'),
                 quartier: $request->validated('quartier'),
-                referenceWhatsapp: $this->reference($request->validated('reference')),
+                referenceWhatsapp: $this->referenceCollee($request->validated('reference')),
                 cleIdempotence: $request->validated('cle_idempotence'),
                 confirmerDoublon: $request->boolean('confirmer_doublon'),
                 auteur: $request->user(),
@@ -195,20 +232,21 @@ class CommandeManuelleController extends Controller
      * autres) ; expirée, elle reste reconnaissable, pour ne pas créer deux
      * fois la commande d'un même message.
      */
-    private function reference(?string $collee): ?ReferenceWhatsapp
+    private function referenceCollee(?string $collee): ?ReferenceWhatsapp
     {
         if ($collee === null || $collee === '') {
             return null;
         }
 
-        $code = preg_match('/\[REF:([A-Za-z0-9]{8})\]/', $collee, $correspondance) ? $correspondance[1] : $collee;
-        $reference = ReferenceWhatsapp::where('code', $code)->first();
+        return $this->trouverReference($collee)
+            ?? throw ValidationException::withMessages(['reference' => [self::REFERENCE_INCONNUE]]);
+    }
 
-        if ($reference === null) {
-            throw ValidationException::withMessages(['reference' => ['Cette référence n’existe pas dans votre boutique.']]);
-        }
+    private function trouverReference(string $collee): ?ReferenceWhatsapp
+    {
+        $code = preg_match('/\[REF:([A-Za-z0-9]{8})\]/', $collee, $correspondance) ? $correspondance[1] : trim($collee);
 
-        return $reference;
+        return ReferenceWhatsapp::where('code', $code)->first();
     }
 
     /**
