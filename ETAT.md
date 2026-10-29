@@ -68,15 +68,26 @@ Plus rien de bloquant pour la mise en ligne parmi ce qui existe : les photos de 
 - **Restaurants** : ils fonctionnent comme une boutique. Une commande de restaurant expire 15 minutes après sa création, souvent avant d'avoir été vue ; ce bug est connu et reporté avec le lot restauration.
 - **Produits à trois dimensions** (taille, coloris, longueur) : enregistrables, mais ni la grille du back-office ni le sélecteur de la vitrine n'ont été vérifiés sur téléphone dans ce cas.
 
+## Pas de lot E
+
+Il n'y a pas eu de lot E à part, et il n'y en aura pas. Les tests de non-régression de la vitrine existaient en partie avant (étapes 6 à B3) et ont été complétés au fil des lots C et D et du petit lot des variantes. Chaque lot a fini avec la suite complète verte. Ce qui couvre la vitrine :
+
+- **Vitrine en général** (backend/tests/Feature/Vitrine) : `VitrineProduitsApiTest` (catalogue, fiche, prix barré exposé seulement s'il dépasse le prix : `test_3b_…`), `SelecteurVariantesApiTest`, `PanierVerificationApiTest`, `CommandeVitrineApiTest`, `LivraisonCommandeApiTest`, `ConfirmationCommandeApiTest`, `RequetesForgeesTest`, `PartageVitrineTest`, `CookiesNeutresTest`. Côté écran : `CarteProduitVitrine.test.tsx`, `PageFicheProduitVitrine.test.tsx`, `BoutonsAchatVitrine.test.tsx`, `PageLivraison.test.tsx` (ce que le client voit en face de « Livraison »).
+- **La vitrine ne change pas avec la saisie manuelle** (lot C, `CommandeManuelleApiTest`) : `test_la_vitrine_commande_exactement_comme_avant`, `test_le_message_de_stock_de_la_vitrine_ne_change_pas`.
+- **Le bouton « Commander sur WhatsApp »** : `LienWhatsappApiTest` (numéro, référence de 8 caractères, variante, produit non publié refusé, expiration), `ResolutionReferenceWhatsappTest` (seul le prix de la base fait foi), et depuis le lot D, `DemandesWhatsappApiTest::test_le_bouton_de_la_vitrine_necrit_quune_reference_nouvelle` et `test_une_demande_nest_pas_une_commande_aucun_chiffre_ne_bouge`.
+- **La déduplication** : `LienWhatsappDeduplicationTest` (deux clics identiques en moins de 10 minutes donnent une seule référence, autre produit, après 10 minutes, autre visiteur, plafond de 60 par heure) et `Postgres/Vitrine/GenerationLienWhatsappConcurrenteTest` (appels simultanés du même visiteur).
+
 ## Ce qui n'existe pas encore
 
-1. **Prochain : ce qui a été décidé pour après le lot D, rien de codé encore :**
-   - **Rôles cumulables** : une personne peut avoir plusieurs rôles, et ses droits s'additionnent. Une phrase en direct explique ce qu'elle pourra faire, avec une case « voit les chiffres ». Au moins un rôle par personne, et toujours un administrateur actif.
-   - **Tableau de bord** : vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
-   - **Paiements** : paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
-   - **Équipe** : l'écran d'activation n'affiche qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien complet et un bouton pour l'envoyer par WhatsApp.
-2. **Lot E** : les tests de non-régression de la vitrine.
-3. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+Ordre décidé : **F, puis G, puis H**. Les paiements passent avant le tableau de bord, parce que « encaissé » et « reste à encaisser » dépendent du paiement à la livraison : un tableau de bord construit avant compterait faux, puis serait à refaire.
+
+1. **Lot F, prochain : rôles cumulables et lien d'activation.**
+   - **Rôles cumulables** : un membre peut avoir plusieurs rôles, et ses droits s'additionnent. Des cases à cocher remplacent la liste déroulante ; cocher Administrateur grise les autres. Une phrase en direct, générée depuis les vraies permissions, dit ce qu'il pourra et ne pourra pas faire. Au moins un rôle par membre, et toujours un administrateur actif, même en cas de course. Un changement de rôles s'applique dès la requête suivante.
+   - **Lien d'activation** : l'écran n'affiche aujourd'hui qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien entier, avec le sous-domaine de la boutique, et un bouton « Envoyer par WhatsApp » : nom de la boutique, lien, code et validité de 48 heures dans le texte du message, jamais le code dans l'adresse.
+   - La case « voit les chiffres de la boutique » n'est PAS dans ce lot : elle arrive avec le tableau de bord (lot H), qui est le seul écran qu'elle commande.
+2. **Lot G : paiements.** Paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
+3. **Lot H : tableau de bord.** Vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
+4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 
