@@ -15,14 +15,42 @@ fichier, ce fichier l'emporte. Divergences connues :
 - Boost fait lancer les tests les plus étroits ; ici, la suite complète se
   lance avant chaque commit.
 
+Règles de sécurité : @.claude/claude-security-guidance.md
+
 Fin de lot : suivre le skill fin-de-lot (.claude/skills/fin-de-lot/SKILL.md).
 
-## Fichiers interdits
+## Fichiers et secrets interdits
 Ne jamais lire, ouvrir, modifier ni afficher un fichier .env, où qu'il soit
-(backend/.env, frontend/.env, .env.local, .env.production…). Un hook le
-bloque. .env.example, sans secret, se lit et se modifie pour documenter une
-variable nouvelle ; la valeur réelle, l'utilisateur la met lui-même dans son
-.env.
+(backend/.env, frontend/.env, .env.local, .env.production…). .env.example se
+lit et se modifie pour documenter une variable nouvelle, mais ne contient
+JAMAIS une vraie valeur : des clés vides ou des exemples évidents (null,
+exemple-…). La valeur réelle, l'utilisateur la met lui-même dans son .env.
+
+Aucune commande n'affiche jamais la valeur d'un mot de passe, d'une clé ou
+d'un jeton : ni variables d'environnement (printenv, env), ni phpinfo, ni
+config:show sur un groupe qui en contient un, ni tinker qui affiche env(),
+config() ou une colonne password, ni un test, un journal ou un rapport. Un
+secret dont une commande a besoin passe de la configuration à la commande
+sans s'afficher (exemple : la sauvegarde du skill fin-de-lot). Pour vérifier
+un mot de passe, Hash::check, et n'afficher que OK ou FAUX.
+
+Le hook .claude/hooks/bloquer-env.mjs bloque la lecture et la modification
+des fichiers .env et ces détours évidents ; s'il tombe en panne, il bloque
+tout. Il ne lit que le texte d'une commande, il ne sait pas ce qu'elle fera.
+Il n'empêchera jamais :
+- un nom de fichier construit ou masqué (cat .e?v, base64, concaténation) ;
+- un programme qui lit le secret lui-même et l'affiche : un script écrit
+  puis lancé, un test qui fait echo, un secret rangé dans une variable puis
+  affiché sous un autre nom ;
+- une page d'erreur en mode debug, un journal (storage/logs), une réponse
+  HTTP qui contiendrait un secret ;
+- un secret recopié ailleurs que dans .env (un fichier quelconque, le
+  presse-papiers, un message) ;
+- les outils MCP (Boost, dans une session lancée depuis backend/), qu'il ne
+  surveille pas ;
+- une session lancée ailleurs qu'à la racine, où il n'est pas chargé.
+La règle reste donc la vraie protection, le hook rattrape l'inattention.
+
 Ne pas explorer vendor/, node_modules/ ni backend/storage/logs/.
 
 ## Invariant d'isolation

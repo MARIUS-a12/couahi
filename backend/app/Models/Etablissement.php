@@ -140,6 +140,10 @@ class Etablissement extends Model
      * cachée par l'écran ne doit pas pouvoir être facturée par une requête
      * forgée.
      *
+     * pourTousEtablissements() ici et dans zoneAutreCommune() : toujours
+     * chaîné sur une relation de cet établissement, que la clé étrangère
+     * borne (même exception que LivraisonResource, decisions.md, 31/10).
+     *
      * @return Collection<int, ZoneLivraison>
      */
     public function zonesLivraisonProposees(): Collection

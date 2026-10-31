@@ -22,6 +22,9 @@ class TransitionnerStatutCommande
         ?int $utilisateurId,
     ): bool {
         return DB::transaction(function () use ($commande, $statutAttendu, $statutCible, $utilisateurId) {
+            // pourTousEtablissements() : $commande est déjà résolue dans la
+            // portée par l'appelant (route, ou saisie manuelle qui vient de
+            // la créer) ; l'UPDATE ne vise que son id.
             $affectee = Commande::pourTousEtablissements()
                 ->whereKey($commande->id)
                 ->where('statut', $statutAttendu)

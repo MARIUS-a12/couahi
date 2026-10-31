@@ -29,6 +29,8 @@ class ConfirmerPaiementCommande
         return DB::transaction(function () use ($commande, $montantRecu, $reference, $utilisateur, $adresseIp) {
             $maintenant = now();
 
+            // pourTousEtablissements() : $commande est déjà résolue dans la
+            // portée par la route ; l'UPDATE ne vise que son id.
             $affectee = Commande::pourTousEtablissements()
                 ->whereKey($commande->id)
                 ->whereNull('paiement_confirme_le')

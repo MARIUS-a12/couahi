@@ -67,6 +67,8 @@ class ConsommerReservation
 
     private function consommerUneReservation(ReservationStock $reservation): void
     {
+        // pourTousEtablissements() : borné par l'id d'une réservation de la
+        // commande déjà résolue (voir executer()).
         $affectee = ReservationStock::pourTousEtablissements()
             ->whereKey($reservation->id)
             ->where('statut', StatutReservation::Active)

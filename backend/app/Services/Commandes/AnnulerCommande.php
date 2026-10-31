@@ -98,6 +98,9 @@ class AnnulerCommande
      * payee|prete → annulee (Étape 9). $statutActuel porte le WHERE : au
      * plus une des deux itérations de la boucle appelante affecte une ligne,
      * une commande n'ayant qu'un seul statut à la fois.
+     *
+     * pourTousEtablissements() : comme dans executer(), tout est borné par
+     * l'id de $commande, déjà résolue dans la portée.
      */
     private function annulerConfirmee(Commande $commande, StatutCommande $statutActuel, ?string $motif, ?int $utilisateurId, bool $seulementNonPayee): bool
     {

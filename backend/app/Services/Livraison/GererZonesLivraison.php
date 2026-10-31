@@ -22,6 +22,10 @@ use Illuminate\Validation\ValidationException;
  * « Autre commune » à frais fixes est une zone comme les autres, marquée
  * autre_commune : elle facture toute commune absente de la liste. Sans
  * elle, « Autre commune » reste à convenir.
+ *
+ * pourTousEtablissements() partout ici : toujours chaîné sur une relation
+ * de l'établissement reçu en paramètre ($etablissement->zonesLivraison(),
+ * ->parametreSite(), ->commandes()), que la clé étrangère borne.
  */
 class GererZonesLivraison
 {

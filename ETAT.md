@@ -104,3 +104,4 @@ Ce qui doit être réglé sur le serveur ou autour, en plus du code. On y ajoute
 
 - Installer l'extension PHP exif : sans elle, une photo envoyée depuis un ordinateur peut apparaître couchée.
 - Déclarer l'IP fixe du serveur dans les IP autorisées de CinetPay.
+- Mode debug coupé en production (APP_DEBUG=false) : en mode debug, une page d'erreur peut afficher des secrets à n'importe quel visiteur. À vérifier avant chaque déploiement, sur le serveur, avec `php artisan config:show app.debug`, qui doit répondre `false`.

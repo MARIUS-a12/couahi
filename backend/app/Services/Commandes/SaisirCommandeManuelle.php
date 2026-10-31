@@ -77,6 +77,9 @@ class SaisirCommandeManuelle
         // commande ; une demande déjà transformée est refusée ; seulement
         // ensuite vient l'avertissement de doublon, qui ne doit masquer ni
         // l'un ni l'autre.
+        // pourTousEtablissements() dans ce service : chaîné sur une relation
+        // de $etablissement, ou par l'id d'une référence déjà résolue dans
+        // sa portée, comme CreerCommande.
         $dejaSaisie = $etablissement->commandes()->pourTousEtablissements()->where('cle_idempotence', $cleIdempotence)->first();
 
         if ($dejaSaisie !== null) {

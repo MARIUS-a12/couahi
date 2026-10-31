@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|NotebookEdit|Grep|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bloquer-env.mjs\"; code=$?; [ \"$code\" -eq 0 ] && exit 0; [ \"$code\" -eq 2 ] || echo \"Hook bloquer-env en panne (code $code : Node absent ou script en erreur) : appel refusé par prudence.\" >&2; exit 2",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

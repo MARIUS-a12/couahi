@@ -24,6 +24,8 @@ class EnregistrerRemboursementCommande
     public function executer(Commande $commande, int $montant, ?string $reference, User $utilisateur, ?string $adresseIp): bool
     {
         return DB::transaction(function () use ($commande, $montant, $reference, $utilisateur, $adresseIp) {
+            // pourTousEtablissements() : $commande est déjà résolue dans la
+            // portée par la route ; l'UPDATE ne vise que son id.
             $affectee = Commande::pourTousEtablissements()
                 ->whereKey($commande->id)
                 ->whereNotNull('paiement_confirme_le')

@@ -31,6 +31,11 @@ use Illuminate\Validation\ValidationException;
  *   valeurs dans l'ordre des options, recalculé ici à chaque changement ;
  * - le libellé recopié sur une ligne de commande, gelé pour toujours :
  *   c'est un document comptable. Ce service n'y touche jamais.
+ *
+ * pourTousEtablissements() partout ici : chaque requête est bornée par le
+ * produit_id, l'option_id ou l'id d'une instance que la route a déjà
+ * résolue dans la portée de l'établissement (exception nommée dans
+ * decisions.md, 31/10 ; ExceptionsPorteeEtablissementTest).
  */
 class GererVariantes
 {

@@ -24,6 +24,8 @@ class RestaurerReservation
     public function executer(ReservationStock $reservation): void
     {
         DB::transaction(function () use ($reservation) {
+            // pourTousEtablissements() : $reservation est déjà une instance
+            // chargée par l'appelant ; l'UPDATE ne vise que son id.
             $affectee = ReservationStock::pourTousEtablissements()
                 ->whereKey($reservation->id)
                 ->where('statut', StatutReservation::Consommee)

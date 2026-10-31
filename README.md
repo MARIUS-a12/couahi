@@ -112,3 +112,47 @@ accessible : les contraintes, les verrous et les courses entre processus
 n'y sont vérifiés que contre un vrai PostgreSQL. La suite se lance en
 entier avant chaque commit ; au-delà de 8 minutes réelles, on traite la
 lenteur avant d'ouvrir un nouveau lot (voir `CLAUDE.md`).
+
+## Travailler avec Claude Code
+
+Lancer Claude Code depuis la racine du dépôt : c'est là que sont les
+règles (`CLAUDE.md`), les réglages (`.claude/settings.json`), les règles de
+sécurité et le skill de fin de lot.
+
+`.claude/settings.json` branche un verrou, `.claude/hooks/bloquer-env.mjs`,
+qui empêche Claude de lire ou de modifier un fichier `.env` et d'afficher
+un secret. Il échoue fermé : s'il tombe en panne, il refuse tout.
+
+### Si le verrou bloque tout
+
+Signe : chaque lecture, modification ou commande de Claude est refusée
+avec « Hook bloquer-env en panne (code …) ». Claude ne peut pas réparer
+lui-même : le verrou bloque aussi ses propres corrections.
+
+1. Dans un terminal, vérifier Node : `node --version`. S'il manque, le
+   réinstaller (Node 22) : c'est la cause la plus probable, et le verrou
+   repart seul, sans rien d'autre à faire.
+2. Sinon, tester le script à la main, depuis la racine :
+
+   ```bash
+   echo '{"tool_name":"Read","tool_input":{"file_path":"README.md"}}' | node .claude/hooks/bloquer-env.mjs; echo "code $?"
+   ```
+
+   « code 0 » : le script va bien. Autre chose : l'erreur affichée dit
+   quoi. `git diff .claude/hooks/bloquer-env.mjs` montre s'il a été modifié.
+3. Pour débloquer Claude le temps de réparer, ouvrir `.claude/settings.json`
+   dans un éditeur et retirer tout le bloc `"PreToolUse": [ … ]`, du
+   crochet ouvrant au crochet fermant correspondant. S'il ne reste rien
+   d'autre dans `"hooks"`, remplacer tout le fichier par `{}`. Enregistrer :
+   Claude Code relit le fichier sans redémarrer. Pendant ce temps, rien ne
+   protège plus les secrets : ne pas demander à Claude de toucher à la
+   configuration.
+4. Une fois la cause réparée, remettre le verrou : `git checkout --
+   .claude/settings.json` (s'il n'y avait pas d'autre changement dans ce
+   fichier), puis demander à Claude de lire un faux fichier `.env` placé
+   hors du dépôt : la lecture doit être refusée.
+
+Autre effet du verrou, normal : il lit le texte des commandes, et refuse
+aussi une commande qui ne fait que citer un fichier `.env` (par exemple un
+message de commit qui en parle). Claude passe alors par un autre moyen
+(l'outil d'édition, un message de commit tapé dans un fichier).

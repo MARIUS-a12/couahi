@@ -1,0 +1,37 @@
+{
+  "patterns": [
+    {
+      "rule_name": "couahi-portee-etablissement-contournee",
+      "regex": "pourTousEtablissements\\(|withoutGlobalScopes?\\(",
+      "exclude_paths": ["*/database/seeders/*", "*/database/factories/*", "*/tests/*"],
+      "reminder": "Portée d'établissement contournée. Hors des routes web (commande artisan, job, migration), un commentaire juste au-dessus dit pourquoi tous les établissements sont nécessaires. Sur une route web : seulement les exceptions nommées dans decisions.md (31/10) ; toute nouvelle exception demande l'accord écrit de l'utilisateur."
+    },
+    {
+      "rule_name": "couahi-db-table-hors-migration",
+      "regex": "DB::table\\(",
+      "exclude_paths": ["*/database/migrations/*"],
+      "reminder": "DB::table() contourne la portée d'établissement et les événements Eloquent (CLAUDE.md, « Invariant d'isolation »). Sur une table métier : interdit hors migration sans validation explicite. Admis : la table sessions, et dans un test une lecture ou écriture brute qui prouve un chiffrement ou une contrainte de la base."
+    },
+    {
+      "rule_name": "couahi-html-brut",
+      "regex": "dangerouslySetInnerHTML|\\.innerHTML\\s*=|insertAdjacentHTML|\\{!!",
+      "reminder": "HTML brut. Les textes saisis par un commerçant s'affichent échappés sur la vitrine : JSX ordinaire, jamais de HTML brut. Le HTML posé par le serveur passe par echapper()."
+    },
+    {
+      "rule_name": "couahi-cle-en-dur",
+      "regex": "(?i)(api[_-]?key|apikey|cle[_-]?api|secret|token|site[_-]?id)['\"]?\\s*(=>|=|:)\\s*['\"][A-Za-z0-9_.-]{16,}['\"]",
+      "reminder": "Ressemble à une clé écrite en dur. Aucune clé ni secret dans le code, les tests ou les seeders : l'environnement pour la plateforme, la base chiffrée pour un établissement. Dans un test, une valeur manifestement fictive."
+    },
+    {
+      "rule_name": "couahi-format-de-cle-connu",
+      "regex": "sk_(live|test)_[A-Za-z0-9]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}",
+      "reminder": "Format de clé réelle (Stripe, AWS, clé privée, jeton JWT). Ne jamais l'écrire dans le dépôt : la retirer, et la faire changer chez le prestataire si elle était vraie."
+    },
+    {
+      "rule_name": "couahi-env-example-valeur-reelle",
+      "regex": "(?im)^[ \\t]*[A-Z0-9_]*(KEY|SECRET|PASSWORD|TOKEN|SITE_ID|CLE_API)[A-Z0-9_]*[ \\t]*=[ \\t]*[\"']?(?!null\\b|exemple|example|changeme|xxx)[^\\s\"'#]{8,}",
+      "paths": ["*.env.example"],
+      "reminder": ".env.example est commité : il ne contient JAMAIS une vraie valeur, seulement des clés vides ou des exemples évidents (null, exemple-…). La vraie valeur va dans le .env de l'utilisateur, qu'il remplit lui-même."
+    }
+  ]
+}

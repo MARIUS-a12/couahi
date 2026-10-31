@@ -18,6 +18,10 @@ class LivraisonResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // pourTousEtablissements() toujours chaîné sur une relation de
+        // l'établissement présenté ($this) : la clé étrangère borne la
+        // lecture à lui seul, contexte posé ou non (exception nommée dans
+        // decisions.md, 31/10 ; ExceptionsPorteeEtablissementTest).
         return [
             'par_commune' => (bool) $this->parametreSite()->pourTousEtablissements()->value('livraison_par_commune'),
             'zones' => $this->zonesLivraison()

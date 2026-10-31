@@ -123,6 +123,10 @@ class GenerateurLienWhatsapp
      * La boucle ne s'exécute plus d'une fois en pratique : l'espace de
      * 62^8 rend une collision quasi impossible, mais la contrainte unique
      * sur la colonne existe et doit être respectée si jamais.
+     *
+     * pourTousEtablissements() : l'unicité du code est globale (contrainte
+     * sur toute la table), et la requête ne renvoie qu'un booléen, aucune
+     * ligne d'un autre établissement.
      */
     private function codeUnique(): string
     {

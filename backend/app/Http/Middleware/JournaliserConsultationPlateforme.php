@@ -45,6 +45,9 @@ class JournaliserConsultationPlateforme
         $utilisateur = $request->user();
 
         if ($utilisateur?->estSuperAdmin() && $response->isSuccessful()) {
+            // pourTousEtablissements() borné par where('etablissement_id') :
+            // l'établissement cible, relevé avant la requête, et non le
+            // contexte, que la suite de la requête a pu changer.
             $dejaTrace = ConsultationPlateforme::pourTousEtablissements()
                 ->where('etablissement_id', $etablissementId)
                 ->where('utilisateur_id', $utilisateur->id)

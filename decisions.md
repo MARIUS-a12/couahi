@@ -943,3 +943,68 @@ boutique, le lien, l'email, le code et sa validité de 48 heures dans le
 texte du message. Jamais le code dans l'adresse : une adresse se retrouve
 dans l'historique du navigateur, les aperçus de lien et les journaux des
 serveurs.
+
+## 2026-10-31 — pourTousEtablissements() sur une route web : quatre exceptions nommées, aucune autre sans accord écrit
+
+Sur une route web, la portée d'établissement ne se contourne jamais pour
+atteindre des lignes que rien ne borne à l'établissement courant. Les
+exceptions admises sont nommées ci-dessous. Chacune garde son commentaire
+dans le code, et un test prouve qu'une requête faite depuis une boutique ne
+lit ni ne touche rien d'une autre.
+1. La liste des établissements du super-admin (EtablissementController,
+   index). Raison : elle montre tous les établissements, une ligne chacun ;
+   aucun n'est la cible sur laquelle poser le contexte. Borne : le comptage
+   des produits et l'abonnement sont joints sur l'id de chaque ligne. Test :
+   ExceptionsPorteeEtablissementTest, liste du super-admin.
+2. LivraisonResource, avec Etablissement::zonesLivraisonProposees(),
+   zoneAutreCommune() et GererZonesLivraison. Raison : ils lisent les
+   réglages de livraison d'un établissement passé explicitement, même là où
+   le contexte n'est pas posé. Borne : toujours chaînés sur une relation de
+   cet établissement, donc sa clé étrangère. Tests :
+   ExceptionsPorteeEtablissementTest (paramètres de livraison et zones de la
+   saisie manuelle), LivraisonCommandeApiTest (zone d'un autre
+   établissement refusée à la commande).
+3. CreerCommande et les services de stock et de commande
+   (ConsommerReservation, LibererReservation, RestaurerReservation,
+   AnnulerCommande, ConfirmerPaiementCommande, TransitionnerStatutCommande,
+   EnregistrerRemboursementCommande, SaisirCommandeManuelle, et les
+   méthodes atomiques de stock de Produit et VarianteProduit). Raison : ils
+   doivent rester justes sans contexte (job d'expiration, processus des
+   tests de concurrence) et ne se fient qu'à l'établissement ou à
+   l'instance qu'on leur passe. Borne : une relation de l'établissement
+   reçu, ou l'id d'une ligne que la route a déjà résolue dans la portée.
+   Tests : RequetesForgeesTest (produit et variante d'un autre
+   établissement), CommandeManuelleApiTest (produit d'un autre
+   établissement), ExceptionsPorteeEtablissementTest (aucune action sur la
+   commande d'une autre boutique).
+4. GererVariantes. Raison : seul auteur des options, valeurs et variantes,
+   appelé avec des instances déjà résolues. Borne : le produit_id,
+   l'option_id ou l'id d'une instance résolue. Test :
+   ExceptionsPorteeEtablissementTest (options, valeurs et variantes d'une
+   autre boutique, directement ou glissées derrière un produit à soi).
+Deux usages plus étroits existaient déjà et relèvent du même principe sans
+lire les données d'une boutique : JournaliserConsultationPlateforme (borné
+par l'id de l'établissement cible) et le contrôle d'unicité du code de
+GenerateurLienWhatsapp (contrainte globale, ne renvoie qu'un booléen).
+Toute NOUVELLE exception sur une route web demande l'accord écrit de
+l'utilisateur, consigné ici. Le plugin security-guidance le rappelle à
+chaque modification qui contient un tel appel. Hors des routes web
+(commandes artisan, jobs, migrations), voir tous les établissements est
+légitime, avec un commentaire qui dit pourquoi.
+Alternative écartée : « aucune exception sur une route web ». Environ 85
+appels en place, qui servent des requêtes web sans rien laisser fuir,
+l'auraient enfreinte, et la liste du super-admin ne peut pas exister sans
+voir tous les établissements.
+
+## 2026-10-31 — Le verrou des fichiers .env échoue fermé
+
+Le hook qui empêche Claude de lire les fichiers .env et d'afficher un
+secret bloque tout s'il tombe en panne (Node absent, script en erreur).
+Alternative écartée : laisser passer en cas de panne, le comportement par
+défaut d'un hook. Écartée parce qu'un verrou qui s'ouvre quand il casse
+n'est pas un verrou, et que la panne passerait inaperçue. Le prix : un
+hook cassé bloque aussi sa propre réparation ; la marche à suivre est dans
+le README. Il ne lit que le texte des commandes, si bien qu'une commande
+qui cite un fichier .env sans le lire est refusée elle aussi. Ce qu'il ne
+peut pas empêcher est écrit dans CLAUDE.md : la règle reste la vraie
+protection.
