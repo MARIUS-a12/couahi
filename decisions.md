@@ -56,7 +56,8 @@ est un secret qu'une session compromise ou un accès non autorisé à
 l'interface peut exfiltrer — la seule opération sûre sur un secret existant
 est de le remplacer, jamais de le consulter
 
-Lenteur des requêtes en développement (octobre 2026)
+## 2026-10-07 — Lenteur des requêtes en développement : ne rien corriger
+
 Décision : ne rien corriger.
 Constat : 88 à 271 ms pour chaque nouvelle connexion PostgreSQL, 1 à 13 ms pour la requête elle-même. Mesuré en PDO brut, hors Laravel.
 Cause : PostgreSQL sous Windows n'a pas de fork() et crée un processus système complet à chaque connexion. Coût connu, nettement plus élevé que sous Linux.
@@ -127,6 +128,9 @@ CinetPay est proposé. Alternative écartée : laisser le client choisir.
 Écartée parce qu'un choix de plus au moment de payer fait perdre des
 clients ; le serveur refuse d'ailleurs un mode qui n'est pas celui
 proposé, l'interface n'est pas la seule barrière.
+Sera remplacé au lot G : plusieurs moyens de paiement, le client choisit
+son opérateur (décidé le 31/10, voir plus bas). Toujours en vigueur tant
+que le lot G n'est pas construit.
 
 ## 2026-10-20 — Une commande Mobile Money réserve son stock 24 heures
 
@@ -134,6 +138,9 @@ Au lieu des 15 minutes d'une commande web ordinaire. Alternative écartée :
 garder 15 minutes. Écartée parce qu'un transfert n'est constaté qu'à la
 main : la commande expirerait, et son stock serait relâché, avant même
 que le commerçant ait vu l'argent arriver.
+Sera remplacé au lot G : une commande payée d'avance n'expirera plus
+jamais seule, elle passera « Paiement à vérifier » (décidé le 31/10, voir
+plus bas). Toujours en vigueur tant que le lot G n'est pas construit.
 
 ## 2026-10-20 — La page de confirmation affiche le numéro Mobile Money actuel, pas celui du jour de la commande
 
@@ -755,6 +762,9 @@ l'opérateur et le caissier l'ont, le gestionnaire de stock non. Le
 message de stock insuffisant du back-office nomme l'article, la quantité
 demandée et la quantité disponible ; celui de la vitrine ne change pas et
 ne révèle pas le stock exact.
+Remplacé le 31/10 pour la répartition des rôles : le caissier n'a plus
+creer_commandes, le comptoir passe par encaisser (voir « gerer_commandes
+découpé en trois », plus bas).
 
 ## 2026-10-27 — Une virgule sépare des valeurs d'option
 
@@ -841,6 +851,8 @@ gerer_demandes_whatsapp, distincte des permissions des commandes :
 répondre à des clients et toucher au stock ne sont pas le même droit.
 L'administrateur, l'opérateur et le caissier l'ont ; le gestionnaire de
 stock non. Transformer une demande demande en plus creer_commandes.
+Remplacé le 31/10 pour la répartition des rôles : le caissier ne l'a plus,
+seuls l'administrateur et l'opérateur traitent les demandes WhatsApp.
 
 ## 2026-10-28 — Au téléphone et sur WhatsApp, seuls le numéro et la commune sont obligatoires
 
@@ -1008,3 +1020,40 @@ le README. Il ne lit que le texte des commandes, si bien qu'une commande
 qui cite un fichier .env sans le lire est refusée elle aussi. Ce qu'il ne
 peut pas empêcher est écrit dans CLAUDE.md : la règle reste la vraie
 protection.
+
+## 2026-10-31 — Paiements du lot G (décidé, à construire au lot G)
+
+Rien de ce qui suit n'existe encore dans le code. Ces décisions sont prises
+pour le lot G et remplaceront alors celles du 20/10 sur le moyen de
+paiement unique et sur l'expiration Mobile Money.
+- Les paiements passent avant le tableau de bord (lot H). « Encaissé » et
+  « reste à encaisser » dépendent du paiement à la livraison : un tableau
+  de bord construit avant compterait faux, puis serait à refaire.
+- Plusieurs moyens de paiement par boutique : une liste d'opérateur,
+  numéro et nom du titulaire, saisis ligne par ligne, puisqu'ils peuvent
+  différer d'un compte à l'autre. Un même numéro peut figurer deux fois
+  (Orange Money et Wave : Wave marche avec n'importe quel numéro). Le
+  client choisit d'abord son opérateur, puis voit le numéro et le nom qui
+  vont avec. Alternative écartée : le moyen unique du 20/10. Écartée parce
+  qu'un client sur un autre opérateur paie des frais entre opérateurs, ou
+  se trompe de numéro.
+- Payer avant ou à la livraison, au choix du client parmi ce que le
+  commerçant accepte. Le commerçant peut refuser le paiement à la
+  livraison, et exiger les frais de livraison d'avance.
+- Une commande payée d'avance par Mobile Money n'expire jamais seule. Au
+  bout de 24 heures sans confirmation, elle passe « Paiement à vérifier » :
+  le stock reste réservé, et seul le commerçant décide (« Paiement reçu »
+  ou « Annuler »). Alternative écartée : l'expiration actuelle. Écartée
+  parce qu'un client qui a payé ne doit jamais perdre son argent parce que
+  la boutique était occupée.
+- Une liste « Paiements à vérifier » au back-office : montant, numéro du
+  client, attente en jours. Le commerçant compare avec le SMS de son
+  opérateur. Côté client, une case facultative « Je paierai depuis un
+  autre numéro ». Jamais de capture d'écran demandée : elle se falsifie.
+- Le bouton « J'ai payé » est un bonus, pas une condition : il fait
+  remonter la commande en tête de liste, et son absence ne bloque rien.
+- CinetPay en mode test (Sandbox), l'interrupteur CINETPAY_ACTIF restant
+  fermé en production tant que le RCCM manque. L'intégration doit
+  permettre de changer de prestataire (PayDunya, Kkiapay) sans réécrire
+  commandes ni paiements : CinetPay a subi une fraude en septembre 2025 et
+  devait encore de l'argent à ses partenaires début 2026.

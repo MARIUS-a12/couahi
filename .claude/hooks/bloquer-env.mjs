@@ -115,6 +115,20 @@ if (outil === 'Bash' || outil === 'PowerShell') {
   }
   verifierConfigShow(commande)
   verifierCodePhp(commande)
+} else if (outil.endsWith('__tinker')) {
+  // Le tinker du serveur MCP de Boost : rien ne dit qu'il n'affiche pas la
+  // valeur de retour, d'où une règle plus stricte que pour la commande.
+  const code = String(params.code ?? '')
+
+  if (FICHIER_ENV.test(code) || /(?<![:>\w])env\s*\(|\bgetenv\s*\(|\$_ENV\b|\$_SERVER\b|\bDotenv\b|\bphpinfo\b|\bconfig\s*\(/i.test(code) || MOT_SECRET.test(code)) {
+    refuser('du code PHP (tinker de Boost) qui lit l\'environnement, la configuration ou un secret.')
+  }
+} else if (outil.endsWith('__database-query')) {
+  const requete = String(params.query ?? '')
+
+  if (MOT_SECRET.test(requete) || /\bselect\s+(\w+\.)?\*[\s\S]*\b(users|sessions|codes_activation|etablissements)\b/i.test(requete)) {
+    refuser('une requête SQL qui lirait un mot de passe, un jeton, une session ou un secret chiffré.')
+  }
 } else {
   const cibles = [params.file_path, params.notebook_path, params.path, params.glob]
 

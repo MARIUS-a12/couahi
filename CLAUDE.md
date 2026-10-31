@@ -14,6 +14,9 @@ fichier, ce fichier l'emporte. Divergences connues :
   après une migration, on vérifie à la main un parcours réel (voir plus bas).
 - Boost fait lancer les tests les plus étroits ; ici, la suite complète se
   lance avant chaque commit.
+- Boost parle de Laravel Cloud et d'un skill deploying-to-cloud : ne
+  s'applique pas, la mise en ligne se fait sur notre propre serveur (voir
+  ETAT.md, « À faire pour la mise en ligne »).
 
 Règles de sécurité : @.claude/claude-security-guidance.md
 
@@ -46,8 +49,9 @@ Il n'empêchera jamais :
   HTTP qui contiendrait un secret ;
 - un secret recopié ailleurs que dans .env (un fichier quelconque, le
   presse-papiers, un message) ;
-- les outils MCP (Boost, dans une session lancée depuis backend/), qu'il ne
-  surveille pas ;
+- les outils de Boost qui lisent les journaux (read-log-entries,
+  last-error, browser-logs). Ses outils tinker et database-query, eux,
+  passent par le hook ;
 - une session lancée ailleurs qu'à la racine, où il n'est pas chargé.
 La règle reste donc la vraie protection, le hook rattrape l'inattention.
 
@@ -55,9 +59,16 @@ Ne pas explorer vendor/, node_modules/ ni backend/storage/logs/.
 
 ## Invariant d'isolation
 L'isolation multi-établissements repose sur les événements Eloquent.
-Interdits sans validation explicite : Model::insert() en masse,
-DB::table(), les requêtes brutes sur les tables métier, et
-WithoutModelEvents dans les seeders comme dans les tests.
+Interdits sans validation explicite, sur une table métier :
+Model::insert() en masse, DB::table() et les requêtes brutes. Interdit
+aussi : WithoutModelEvents dans les seeders comme dans les tests.
+Admis : DB::table() sur une table qui n'est pas métier (sessions) ; dans
+un test, une écriture ou une lecture brute dont le but est de contourner
+le modèle, pour prouver que la base refuse un état invalide ou qu'une
+valeur est bien chiffrée en base.
+Les exceptions à la portée d'établissement sur une route web sont nommées
+dans decisions.md (31/10) ; une nouvelle demande l'accord écrit de
+l'utilisateur.
 
 ## Avant et après toute migration
 Avant : une sauvegarde pg_dump de la base de développement (commande dans
