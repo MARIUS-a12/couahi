@@ -16,7 +16,10 @@ s'ajoutent aux contrôles habituels ; chacune se vérifie dans le diff.
   lignes que rien ne borne à l'établissement courant. Les seules exceptions
   sont nommées dans decisions.md (31/10) : la liste des établissements du
   super-admin ; LivraisonResource et les zones de livraison ; CreerCommande
-  et les services de stock et de commande ; GererVariantes. Chacune est
+  et les services de stock et de commande ; GererVariantes ;
+  JournaliserConsultationPlateforme ; le contrôle d'unicité du code
+  WhatsApp, dont la réponse ne révèle jamais qu'un code existe dans une
+  autre boutique. Chacune est
   bornée par une relation de l'établissement ou par l'id d'une ligne déjà
   résolue dans la portée. Un appel nouveau sur une route web, hors de ces
   exceptions, est un constat à signaler : il demande l'accord écrit de

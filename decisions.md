@@ -956,7 +956,7 @@ texte du message. Jamais le code dans l'adresse : une adresse se retrouve
 dans l'historique du navigateur, les aperçus de lien et les journaux des
 serveurs.
 
-## 2026-10-31 — pourTousEtablissements() sur une route web : quatre exceptions nommées, aucune autre sans accord écrit
+## 2026-10-31 — pourTousEtablissements() sur une route web : six exceptions nommées, aucune autre sans accord écrit
 
 Sur une route web, la portée d'établissement ne se contourne jamais pour
 atteindre des lignes que rien ne borne à l'établissement courant. Les
@@ -994,10 +994,19 @@ lit ni ne touche rien d'une autre.
    l'option_id ou l'id d'une instance résolue. Test :
    ExceptionsPorteeEtablissementTest (options, valeurs et variantes d'une
    autre boutique, directement ou glissées derrière un produit à soi).
-Deux usages plus étroits existaient déjà et relèvent du même principe sans
-lire les données d'une boutique : JournaliserConsultationPlateforme (borné
-par l'id de l'établissement cible) et le contrôle d'unicité du code de
-GenerateurLienWhatsapp (contrainte globale, ne renvoie qu'un booléen).
+5. JournaliserConsultationPlateforme. Raison : il trace l'espace du
+   super-admin, qui n'a pas d'établissement à lui ; la trace porte sur
+   l'établissement consulté. Borne : where('etablissement_id') sur
+   l'établissement cible, relevé avant la requête. Tests :
+   ConsultationsPlateformeTest (chaque commerçant ne voit que son
+   historique ; une page rechargée n'est tracée qu'une fois).
+6. Le contrôle d'unicité du code de GenerateurLienWhatsapp (vitrine).
+   Raison : la contrainte d'unicité du code porte sur toute la table, toutes
+   boutiques confondues. Borne : la requête ne renvoie qu'un booléen, et un
+   code déjà pris, ici ou ailleurs, est remplacé en silence par un autre
+   tirage. Condition : la réponse ne révèle jamais qu'un code existe dans
+   une autre boutique. Test : LienWhatsappApiTest (un code déjà pris par
+   une autre boutique est remplacé sans rien révéler).
 Toute NOUVELLE exception sur une route web demande l'accord écrit de
 l'utilisateur, consigné ici. Le plugin security-guidance le rappelle à
 chaque modification qui contient un tel appel. Hors des routes web

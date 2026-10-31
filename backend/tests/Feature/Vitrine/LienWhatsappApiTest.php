@@ -6,7 +6,9 @@ use App\Models\Etablissement;
 use App\Models\Produit;
 use App\Models\ReferenceWhatsapp;
 use App\Models\VarianteProduit;
+use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -141,5 +143,50 @@ class LienWhatsappApiTest extends TestCase
         $this->depuis('chez-awa.localhost')
             ->postJson("http://chez-awa.localhost:8000/api/vitrine/produits/{$produit->id}/lien-whatsapp")
             ->assertStatus(404);
+    }
+
+    /**
+     * Le contrôle d'unicité du code lit toutes les boutiques (exception
+     * nommée dans decisions.md, 31/10) : un code déjà pris ailleurs doit
+     * être remplacé en silence, sans que la réponse trahisse son existence.
+     * Le premier code tiré est forcé sur celui d'une référence du Maquis ;
+     * les autres tirages (session, jetons) restent aléatoires.
+     */
+    public function test_un_code_deja_pris_par_une_autre_boutique_est_remplace_sans_rien_reveler(): void
+    {
+        $this->seed();
+        $maquis = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
+        app(ContexteEtablissement::class)->definir($maquis);
+        $referenceMaquis = ReferenceWhatsapp::create([
+            'code' => 'PrisAuMq',
+            'produit_id' => Produit::factory()->for($maquis)->publie()->create()->id,
+            'cle_visiteur' => 'visiteur-du-maquis',
+            'expire_le' => now()->addDays(7),
+        ]);
+        app(ContexteEtablissement::class)->definir(null);
+        $avant = $referenceMaquis->fresh()->getAttributes();
+        $produit = Produit::factory()->for($this->chezAwa())->publie()->create();
+        $codesForces = ['PrisAuMq', 'LibreAwa'];
+        // Par référence : une fonction fléchée recopierait la liste à chaque
+        // tirage et rendrait sans fin le code déjà pris.
+        Str::createRandomStringsUsing(function (int $longueur) use (&$codesForces) {
+            return $longueur === 8 && $codesForces !== []
+                ? array_shift($codesForces)
+                : substr(bin2hex(random_bytes($longueur)), 0, $longueur);
+        });
+
+        try {
+            $reponse = $this->depuis('chez-awa.localhost')
+                ->postJson("http://chez-awa.localhost:8000/api/vitrine/produits/{$produit->id}/lien-whatsapp");
+        } finally {
+            Str::createRandomStringsNormally();
+        }
+
+        $reponse->assertStatus(200);
+        $this->assertSame('LibreAwa', $this->extraireCode($reponse->json('url')), 'un autre code est tiré');
+        $this->assertSame([], $codesForces, 'le code pris a bien été tiré, puis écarté');
+        $this->assertStringNotContainsString('PrisAuMq', $reponse->getContent(), 'la réponse ne cite pas le code de l’autre boutique');
+        $this->assertSame(['url'], array_keys($reponse->json()), 'la réponse a sa forme habituelle, rien de plus');
+        $this->assertSame($avant, $referenceMaquis->fresh()->getAttributes(), 'la référence du Maquis est intacte');
     }
 }

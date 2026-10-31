@@ -126,7 +126,9 @@ class GenerateurLienWhatsapp
      *
      * pourTousEtablissements() : l'unicité du code est globale (contrainte
      * sur toute la table), et la requête ne renvoie qu'un booléen, aucune
-     * ligne d'un autre établissement.
+     * ligne d'un autre établissement. Un code pris ailleurs est remplacé
+     * en silence : la réponse ne doit jamais révéler qu'il existe
+     * (exception nommée dans decisions.md, 31/10 ; LienWhatsappApiTest).
      */
     private function codeUnique(): string
     {
