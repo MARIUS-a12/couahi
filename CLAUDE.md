@@ -53,7 +53,10 @@ Il n'empêchera jamais :
 La règle reste donc la vraie protection, le hook rattrape l'inattention.
 Toute modification du hook se prépare dans une copie, passe le banc
 d'essai, puis remplace le fichier d'un coup : une version à moitié écrite
-bloque tout, y compris sa propre correction.
+bloque tout, y compris sa propre correction. Jamais deux modifications du
+hook lancées en même temps (deux sessions, deux agents, deux copies
+préparées en parallèle) : la seconde à remplacer le fichier efface la
+première sans bruit, ou installe une version que le banc n'a jamais vue.
 
 Ne pas explorer vendor/, node_modules/ ni backend/storage/logs/.
 
