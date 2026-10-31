@@ -157,6 +157,8 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Run `vendor/bin/phpunit` to call the test runner directly. It accepts the same file path and `--filter=testName` arguments.
 
 </laravel-boost-guidelines>
-## Fichiers interdits
-Ne jamais lire, ouvrir ni afficher le contenu de `.env` ni d'aucun fichier `.env.*`.
-Ne pas explorer `vendor/`, `node_modules/` ni `storage/logs/`.
+## Règles du projet
+Elles sont dans ../CLAUDE.md, à la racine du dépôt, et valent pour backend/
+comme pour frontend/. Ce fichier ne contient que les consignes générées par
+Laravel Boost : n'y ajouter aucune règle du projet, pour qu'elle n'existe
+qu'à un seul endroit.

@@ -19,9 +19,9 @@ que dans l'espace super-admin, sur le site de la plateforme et dans les
 | `frontend/` | Vitrine publique, back-office et espace super-admin : React 19, Vite, TypeScript, TanStack Query, Tailwind 4 |
 | `ETAT.md` | Ce que l'application sait faire aujourd'hui, ce qui existe à moitié, et la suite prévue |
 | `decisions.md` | Journal des choix d'architecture non évidents : le pourquoi, et l'alternative écartée |
-| `backend/AGENTS.md` | Règles de travail sur ce projet (méthode, pas description du code) |
+| `CLAUDE.md` | Règles de travail sur ce projet, pour backend/ comme pour frontend/ (méthode, pas description du code) |
 
-Avant de modifier quoi que ce soit d'important, lire `backend/AGENTS.md`
+Avant de modifier quoi que ce soit d'important, lire `CLAUDE.md`
 puis les entrées de `decisions.md` qui touchent au sujet.
 
 ## Fonctionnement multi-établissements
@@ -111,4 +111,4 @@ cd frontend && npm test && npx tsc -b && npx eslint src
 accessible : les contraintes, les verrous et les courses entre processus
 n'y sont vérifiés que contre un vrai PostgreSQL. La suite se lance en
 entier avant chaque commit ; au-delà de 8 minutes réelles, on traite la
-lenteur avant d'ouvrir un nouveau lot (voir `backend/AGENTS.md`).
+lenteur avant d'ouvrir un nouveau lot (voir `CLAUDE.md`).
