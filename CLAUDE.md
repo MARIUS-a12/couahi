@@ -49,13 +49,28 @@ Il n'empêchera jamais :
   HTTP qui contiendrait un secret ;
 - un secret recopié ailleurs que dans .env (un fichier quelconque, le
   presse-papiers, un message) ;
-- les outils de Boost qui lisent les journaux (read-log-entries,
-  last-error, browser-logs). Ses outils tinker et database-query, eux,
-  passent par le hook ;
 - une session lancée ailleurs qu'à la racine, où il n'est pas chargé.
 La règle reste donc la vraie protection, le hook rattrape l'inattention.
+Toute modification du hook se prépare dans une copie, passe le banc
+d'essai, puis remplace le fichier d'un coup : une version à moitié écrite
+bloque tout, y compris sa propre correction.
 
 Ne pas explorer vendor/, node_modules/ ni backend/storage/logs/.
+
+## Outils du serveur MCP de Boost
+Cinq outils seulement, liste validée par l'utilisateur le 31/10 :
+search-docs, application-info, database-connections, database-schema,
+get-absolute-url. Les six autres (database-query, tinker,
+read-log-entries, last-error, browser-logs, record-rule) sont refusés
+trois fois : exclus dans backend/config/boost.php, refusés dans
+.claude/settings.json, et hors de la liste blanche du hook, fermée par
+défaut (un outil ajouté par une future version de Boost est refusé). Les
+utiliser, même à la demande, est refusé : en ajouter un à la liste demande
+l'accord écrit de l'utilisateur, aux trois endroits.
+
+search-docs envoie le texte cherché à boost.laravel.com : jamais une
+donnée de client, un secret ni un extrait de la base dans une recherche.
+Seulement des termes techniques (« rate limiting », « eloquent scopes »).
 
 ## Invariant d'isolation
 L'isolation multi-établissements repose sur les événements Eloquent.

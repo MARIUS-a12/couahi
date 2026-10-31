@@ -1066,3 +1066,22 @@ paiement unique et sur l'expiration Mobile Money.
   permettre de changer de prestataire (PayDunya, Kkiapay) sans réécrire
   commandes ni paiements : CinetPay a subi une fraude en septembre 2025 et
   devait encore de l'argent à ses partenaires début 2026.
+
+## 2026-10-31 — Boost : cinq outils sur une liste blanche, les six autres refusés à trois endroits
+
+Le serveur MCP de Boost n'ouvre que search-docs, application-info,
+database-connections, database-schema et get-absolute-url. Ils ne lisent
+aucune ligne de la base, aucun journal, aucun secret, et n'exécutent rien.
+Les six autres sont exclus dans la configuration de Boost (aucun agent ne
+les reçoit, Claude ou un autre), refusés dans les réglages de Claude Code,
+et absents de la liste blanche du hook, fermée par défaut : un outil
+qu'une future version de Boost ajouterait est refusé sans que personne
+n'ait à y penser.
+Alternative écartée : garder database-query et tinker en filtrant leur
+contenu (mots de passe, env(), select *). Écartée parce qu'un filtre sur
+le texte d'une requête se contourne sans effort, que database-query lit
+toutes les boutiques en ignorant leur portée, et que ces besoins se
+couvrent autrement : les tests, et tinker en ligne de commande, lui-même
+filtré par le hook.
+search-docs envoie le texte cherché à boost.laravel.com : aucune donnée de
+client, aucun secret, aucun extrait de la base dans une recherche.
