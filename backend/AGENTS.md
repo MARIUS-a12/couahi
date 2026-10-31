@@ -296,6 +296,20 @@ même commit. Sinon, juste après la mise en ligne, la nouvelle interface
 reçoit l'ancienne forme pendant une minute : en B3, une fiche sans le
 nouveau champ faisait tomber la page.
 
+## Droits qui dépendent de l'état d'une ligne
+Quand un droit dépend de l'état de ce qu'on modifie (annuler une commande
+seulement si elle n'a reçu aucun paiement, retirer un administrateur
+seulement s'il en reste un autre), la condition se revérifie au moment
+d'écrire : dans le WHERE de l'UPDATE, ou sous un verrou pris avant de
+relire. La vérification faite avant, dans la policy, lit un état qui a pu
+changer entre-temps. Chaque garde de ce genre a son test de vraie
+concurrence dans la suite Postgres.
+
+## Tests de mutation
+Un fichier muté se restaure depuis sa copie lue avant la mutation,
+jamais par git checkout : celui-ci remet la version du dernier commit et
+efface sans bruit le travail en cours sur ce fichier.
+
 ## Documentation
 Aucun lot n'est terminé tant qu'ETAT.md, à la racine, n'est pas à jour.
 Il répond à « qu'est-ce que l'application sait faire aujourd'hui » en

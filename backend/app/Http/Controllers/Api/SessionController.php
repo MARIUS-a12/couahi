@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Support\Tenancy\ContexteEtablissement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -106,7 +107,7 @@ class SessionController extends Controller
     }
 
     /**
-     * Rôle et permissions DANS l'établissement courant — jamais globalement.
+     * Rôles et permissions DANS l'établissement courant — jamais globalement.
      * Sur l'hôte du super-admin, il n'y a pas de contexte d'établissement :
      * son rôle et ses permissions viennent directement du rôle global
      * `super_admin`, pas d'une appartenance (il n'en a aucune).
@@ -119,18 +120,18 @@ class SessionController extends Controller
         if ($etablissement === null) {
             abort_unless($utilisateur->estSuperAdmin(), 403, "Aucun établissement courant, et cet utilisateur n'est pas super-admin.");
 
-            $role = Role::where('nom', 'super_admin')->with('permissions')->firstOrFail();
+            $roles = Role::where('nom', 'super_admin')->with('permissions')->get();
 
-            return $this->reponseMoi($utilisateur, $role, null);
+            return $this->reponseMoi($utilisateur, $roles, null);
         }
 
-        $membre = $this->trouverAppartenance($utilisateur, $etablissement)?->loadMissing('role.permissions');
+        $membre = $this->trouverAppartenance($utilisateur, $etablissement)?->loadMissing('roles.permissions');
 
         if ($membre === null || $membre->statut !== StatutMembre::Actif) {
             abort(403, 'Aucune appartenance active pour cet utilisateur ici.');
         }
 
-        return $this->reponseMoi($utilisateur, $membre->role, $etablissement);
+        return $this->reponseMoi($utilisateur, $membre->roles, $etablissement);
     }
 
     /**
@@ -138,8 +139,13 @@ class SessionController extends Controller
      * contexte : sur l'hôte du super-admin, ce dernier n'en a aucun (voir
      * moi() ci-dessus), et cette méthode doit refléter cette absence sans
      * avoir à connaître elle-même ce cas particulier.
+     *
+     * Lot F : plusieurs rôles possibles ; les permissions sont leur union,
+     * comme User::peut les calcule.
+     *
+     * @param  Collection<int, Role>  $roles
      */
-    private function reponseMoi(User $utilisateur, Role $role, ?Etablissement $etablissement): JsonResponse
+    private function reponseMoi(User $utilisateur, Collection $roles, ?Etablissement $etablissement): JsonResponse
     {
         return response()->json([
             'utilisateur' => [
@@ -159,13 +165,14 @@ class SessionController extends Controller
                 // une valeur codée en dur.
                 'statut' => $etablissement->statut,
             ],
-            'role' => $role->nom,
+            'roles' => $roles->pluck('nom')->values(),
             // Étape 10 : le libellé affiché sous le nom de la boutique
             // ("Espace Administrateur"...) vient de la base — voir
             // RolesEtPermissionsSeeder::LIBELLES_ESPACE — jamais d'une liste
             // codée en dur côté frontend (voir BarreLaterale).
-            'role_libelle_espace' => $role->libelle_espace,
-            'permissions' => $role->permissions->pluck('nom')->values(),
+            // Plusieurs rôles : « Opérateur · Caisse ».
+            'role_libelle_espace' => $roles->pluck('libelle_espace')->filter()->join(' · ') ?: null,
+            'permissions' => $roles->flatMap->permissions->pluck('nom')->unique()->sort()->values(),
             // Étape 12 : pour TOUT membre (la carte "Boutique en ligne" de
             // la barre latérale doit refléter une vitrine coupée pour
             // impayé) ; c'est le frontend qui réserve le bandeau

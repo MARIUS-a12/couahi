@@ -11,6 +11,11 @@
  *   commune avec les règles de la vitrine, « Autre commune » compris. Nom
  *   et quartier sont facultatifs : seuls le numéro et la commune comptent.
  *
+ * Lot F : le choix suit les permissions. Comptoir pour qui a encaisser,
+ * WhatsApp et Téléphone pour qui a creer_commandes ; un seul canal permis
+ * est choisi d'office. Le serveur refuse les autres, même par requête
+ * forgée (SaisirCommandeManuelleRequest).
+ *
  * Aucun champ prix, aucune remise : les prix affichés sont ceux de la base,
  * et le serveur les relit de toute façon. « Vendre » depuis un produit
  * ouvre cet écran avec ?produit= (et ?variante=), l'article déjà ajouté.
@@ -27,6 +32,7 @@ import { BandeauSucces } from '../components/BandeauSucces'
 import { Bouton } from '../components/Bouton'
 import { BoutonRetour } from '../components/BoutonRetour'
 import { ChampTexte } from '../components/ChampTexte'
+import { useMoi } from '../hooks/useMoi'
 import { extraireErreursChamps } from '../lib/erreursValidation'
 import { formaterMontant } from '../lib/formatage'
 import { fraisDeLivraison, libelleFrais, libelleOptionAutreCommune } from '../lib/livraison'
@@ -38,6 +44,8 @@ const CANAUX: { valeur: CanalManuel; libelle: string; Icone: typeof Store }[] = 
   { valeur: 'whatsapp', libelle: 'WhatsApp', Icone: MessageCircle },
   { valeur: 'telephone', libelle: 'Téléphone', Icone: Phone },
 ]
+
+const COLONNES_CANAUX: Record<number, string> = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3' }
 
 /** Valeur de l'option « Autre commune » : jamais un nom de commune réel. */
 const AUTRE_COMMUNE = '__autre__'
@@ -64,7 +72,7 @@ export function PageNouvelleCommande() {
   const canalDemande = parametres.get('canal')
   const referenceDemandee = parametres.get('reference') ?? ''
 
-  const [canal, setCanal] = useState<CanalManuel | null>(
+  const [canalChoisi, setCanal] = useState<CanalManuel | null>(
     canalDemande === 'comptoir' || canalDemande === 'whatsapp' || canalDemande === 'telephone' ? canalDemande : null,
   )
   const [recherche, setRecherche] = useState('')
@@ -89,6 +97,17 @@ export function PageNouvelleCommande() {
   const [referenceAppliquee, setReferenceAppliquee] = useState<string | null>(() => codeReference(referenceDemandee))
   const [aideReference, setAideReference] = useState<{ erreur: boolean; texte: string } | null>(null)
   const [clientConnu, setClientConnu] = useState(false)
+
+  const { data: moi } = useMoi()
+  const peutEncaisser = moi?.permissions.includes('encaisser') ?? false
+  const peutSaisirAvecLivraison = moi?.permissions.includes('creer_commandes') ?? false
+  const canauxPermis = CANAUX.filter(({ valeur }) => (valeur === 'comptoir' ? peutEncaisser : peutSaisirAvecLivraison))
+  const canal =
+    canalChoisi !== null && canauxPermis.some(({ valeur }) => valeur === canalChoisi)
+      ? canalChoisi
+      : canauxPermis.length === 1
+        ? canauxPermis[0].valeur
+        : null
 
   const comptoir = canal === 'comptoir'
   const avecLivraison = canal === 'whatsapp' || canal === 'telephone'
@@ -126,7 +145,7 @@ export function PageNouvelleCommande() {
   const referenceReconnue = useQuery({
     queryKey: ['reference-whatsapp', codeColle],
     queryFn: () => reconnaitreReference(codeColle as string),
-    enabled: codeColle !== null && codeColle !== referenceAppliquee,
+    enabled: peutSaisirAvecLivraison && codeColle !== null && codeColle !== referenceAppliquee,
     retry: false,
   })
 
@@ -300,8 +319,8 @@ export function PageNouvelleCommande() {
         <legend className="mb-2 text-petit font-medium text-texte">
           Canal <span aria-hidden="true" className="text-danger">*</span>
         </legend>
-        <div className="grid grid-cols-3 gap-2">
-          {CANAUX.map(({ valeur, libelle, Icone }) => (
+        <div className={`grid gap-2 ${COLONNES_CANAUX[canauxPermis.length] ?? 'grid-cols-3'}`}>
+          {canauxPermis.map(({ valeur, libelle, Icone }) => (
             <button
               key={valeur}
               type="button"
@@ -469,9 +488,13 @@ export function PageNouvelleCommande() {
             )}
           </>
         ) : (
-          <button type="button" onClick={() => setAfficherReference(true)} className="cursor-pointer text-petit text-texte-secondaire underline underline-offset-2">
-            Coller une référence WhatsApp
-          </button>
+          // Une référence WhatsApp mène à une commande à livrer : rien à
+          // coller pour qui ne vend qu'au comptoir.
+          peutSaisirAvecLivraison && (
+            <button type="button" onClick={() => setAfficherReference(true)} className="cursor-pointer text-petit text-texte-secondaire underline underline-offset-2">
+              Coller une référence WhatsApp
+            </button>
+          )
         )}
       </div>
 

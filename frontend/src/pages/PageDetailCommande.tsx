@@ -56,7 +56,11 @@ export function PageDetailCommande() {
   const commandeId = Number(id)
   const queryClient = useQueryClient()
   const { data: moi } = useMoi()
-  const peutGererCommandes = moi?.permissions.includes('gerer_commandes') ?? false
+  // Lot F : trois droits distincts. Annuler une commande qui a reçu un
+  // paiement, même partiel, demande annuler_payees.
+  const peutTraiter = moi?.permissions.includes('traiter_commandes') ?? false
+  const peutEncaisser = moi?.permissions.includes('encaisser') ?? false
+  const peutAnnulerPayees = moi?.permissions.includes('annuler_payees') ?? false
 
   const { data: commande, isPending, isError, error, refetch } = useCommande(commandeId)
   const [panneauAnnulationOuvert, setPanneauAnnulationOuvert] = useState(false)
@@ -70,6 +74,11 @@ export function PageDetailCommande() {
   }
 
   function messageErreurTransition(erreur: unknown): string {
+    // Lot F : un droit retiré pendant que la page était ouverte (voir
+    // MESSAGE_DROITS_CHANGES dans lib/client.ts).
+    if (axios.isAxiosError(erreur) && erreur.response?.status === 403 && typeof erreur.response.data?.message === 'string') {
+      return erreur.response.data.message
+    }
     if (axios.isAxiosError(erreur) && erreur.response?.status === 422) {
       // Le serveur a refusé la transition : l'état affiché était périmé
       // (commande changée ailleurs — autre onglet, autre membre de
@@ -133,6 +142,9 @@ export function PageDetailCommande() {
       </div>
     )
   }
+
+  // « Payée » dès le premier paiement enregistré, même partiel.
+  const peutAnnuler = commande.paiement.confirme ? peutAnnulerPayees : peutTraiter
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-4">
@@ -243,13 +255,13 @@ export function PageDetailCommande() {
         </dl>
       </section>
 
-      <SectionPaiementCommande commande={commande} peutGerer={peutGererCommandes} onMiseAJour={appliquerMiseAJour} />
+      <SectionPaiementCommande commande={commande} peutEncaisser={peutEncaisser} peutRembourser={peutAnnulerPayees} onMiseAJour={appliquerMiseAJour} />
 
       {/* Aucune action de transition sur une commande annulée, expirée ou
           livrée (états terminaux) : la section entière disparaît plutôt que
           d'afficher un titre "Actions" sans rien dessous. Le serveur refuse
           de toute façon ces transitions (voir CommandeController). */}
-      {peutGererCommandes && !STATUTS_TERMINAUX.includes(commande.statut) && (
+      {(peutTraiter || peutAnnuler) && !STATUTS_TERMINAUX.includes(commande.statut) && (
         <section className="rounded-lg border border-bordure bg-surface p-4 sm:p-5">
           <h2 className="text-titre-section font-semibold text-texte">Actions</h2>
           {erreurTransition && (
@@ -258,22 +270,22 @@ export function PageDetailCommande() {
             </p>
           )}
           <div className="mt-3 flex flex-wrap gap-3">
-            {commande.statut === 'attente_paiement' && (
+            {peutTraiter && commande.statut === 'attente_paiement' && (
               <Bouton variante="principal" onClick={() => confirmation.mutate()} chargement={confirmation.isPending}>
                 Confirmer la commande
               </Bouton>
             )}
-            {commande.statut === 'payee' && (
+            {peutTraiter && commande.statut === 'payee' && (
               <Bouton variante="principal" onClick={() => miseEnPreparation.mutate()} chargement={miseEnPreparation.isPending}>
                 Marquer comme prête
               </Bouton>
             )}
-            {commande.statut === 'prete' && (
+            {peutTraiter && commande.statut === 'prete' && (
               <Bouton variante="principal" onClick={() => livraison.mutate()} chargement={livraison.isPending}>
                 Marquer comme livrée
               </Bouton>
             )}
-            {['attente_paiement', 'payee', 'prete'].includes(commande.statut) && (
+            {peutAnnuler && ['attente_paiement', 'payee', 'prete'].includes(commande.statut) && (
               <Bouton variante="danger" onClick={ouvrirPanneauAnnulation}>
                 Annuler la commande
               </Bouton>

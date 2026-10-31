@@ -241,7 +241,7 @@ class CommandeControllerApiTest extends TestCase
         $this->assertSame(3000, $stats->json('panier_moyen_mois'));
     }
 
-    public function test_9_operateur_sans_gerer_commandes_recoit_403_sur_confirmer(): void
+    public function test_9_qui_voit_les_commandes_sans_traiter_commandes_recoit_403_sur_confirmer(): void
     {
         $this->seed();
         $chezAwa = $this->chezAwa();
@@ -249,10 +249,10 @@ class CommandeControllerApiTest extends TestCase
         $numero = $this->creerCommande($produit, 'cle-permission');
         $commande = Commande::where('numero', $numero)->firstOrFail();
 
-        // Aucun rôle de démo n'a "voir_commandes" sans "gerer_commandes" :
-        // un rôle de test dédié prouve que la frontière de la policy
+        // Un rôle de test dédié prouve que la frontière de la policy
         // fonctionne, indépendamment des attributions actuelles des rôles
-        // réels (voir RolesEtPermissionsSeeder).
+        // réels (voir RolesEtPermissionsSeeder ; le gestionnaire de stock
+        // est dans ce cas, voir PermissionsCommandesTest).
         $roleConsultationSeule = Role::create(['nom' => 'consultation_commandes_test', 'libelle' => 'Test consultation seule']);
         $roleConsultationSeule->permissions()->attach(Permission::where('nom', 'voir_commandes')->firstOrFail());
 
@@ -260,9 +260,8 @@ class CommandeControllerApiTest extends TestCase
         EtablissementUtilisateur::create([
             'etablissement_id' => $chezAwa->id,
             'utilisateur_id' => $utilisateur->id,
-            'role_id' => $roleConsultationSeule->id,
             'statut' => 'actif',
-        ]);
+        ])->roles()->attach($roleConsultationSeule->id);
 
         $this->connecte('chez-awa.localhost', 'consultation@chez-awa.test');
 

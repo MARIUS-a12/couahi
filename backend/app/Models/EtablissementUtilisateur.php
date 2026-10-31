@@ -6,6 +6,7 @@ use App\Enums\StatutMembre;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Volontairement SANS AppartientAEtablissement : SessionController
@@ -30,7 +31,6 @@ class EtablissementUtilisateur extends Model
     protected $fillable = [
         'etablissement_id',
         'utilisateur_id',
-        'role_id',
         'statut',
     ];
 
@@ -51,8 +51,20 @@ class EtablissementUtilisateur extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function role(): BelongsTo
+    /**
+     * Lot F : des rôles cumulables, dont les permissions s'additionnent
+     * (voir User::peut). Toujours au moins un : ModifierMembreEquipe et les
+     * requêtes de l'équipe le garantissent.
+     */
+    public function roles(): BelongsToMany
     {
-        return $this->belongsTo(Role::class);
+        return $this->belongsToMany(Role::class, 'etablissement_utilisateur_roles')
+            ->withTimestamps()
+            ->orderBy('roles.id');
+    }
+
+    public function estAdministrateur(): bool
+    {
+        return $this->roles->contains('nom', 'admin_etablissement');
     }
 }

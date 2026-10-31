@@ -35,7 +35,7 @@ class MembreEquipeController extends Controller
 
         $membres = EtablissementUtilisateur::query()
             ->where('etablissement_id', $this->etablissementCourantId())
-            ->with(['utilisateur', 'role'])
+            ->with(['utilisateur', 'roles'])
             ->orderBy('created_at')
             ->get();
 
@@ -46,9 +46,20 @@ class MembreEquipeController extends Controller
     {
         Gate::authorize('viewAny', EtablissementUtilisateur::class);
 
+        // Lot F : avec leurs permissions, pour que l'écran dise en direct
+        // ce que des rôles cochés ensemble permettent, d'après la base et
+        // pas d'une liste recopiée. Dans l'ordre du seeder : Administrateur
+        // d'abord.
         $roles = Role::where('nom', '!=', 'super_admin')
-            ->orderBy('libelle')
-            ->get(['id', 'nom', 'libelle']);
+            ->with('permissions:id,nom')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Role $role) => [
+                'id' => $role->id,
+                'nom' => $role->nom,
+                'libelle' => $role->libelle,
+                'permissions' => $role->permissions->pluck('nom')->sort()->values(),
+            ]);
 
         return response()->json(['data' => $roles]);
     }
@@ -59,12 +70,12 @@ class MembreEquipeController extends Controller
             etablissement: app(ContexteEtablissement::class)->obtenir(),
             nom: $request->validated('nom'),
             email: $request->validated('email'),
-            roleId: $request->validated('role_id'),
+            roleIds: $request->validated('role_ids'),
             acteur: $request->user(),
             adresseIp: $request->ip(),
         );
 
-        return (new MembreEquipeResource($resultat->membre->load(['utilisateur', 'role'])))
+        return (new MembreEquipeResource($resultat->membre->load(['utilisateur', 'roles'])))
             ->additional(['code_activation' => $resultat->codeActivation])
             ->response()
             ->setStatusCode(201);
@@ -77,12 +88,12 @@ class MembreEquipeController extends Controller
         $membre = $service->executer(
             membre: $membre,
             nom: $request->validated('nom'),
-            roleId: $request->validated('role_id'),
+            roleIds: $request->validated('role_ids'),
             acteur: $request->user(),
             adresseIp: $request->ip(),
         );
 
-        return new MembreEquipeResource($membre->load(['utilisateur', 'role']));
+        return new MembreEquipeResource($membre->load(['utilisateur', 'roles']));
     }
 
     public function changerStatut(ChangerStatutMembreRequest $request, EtablissementUtilisateur $membre, ChangerStatutMembreEquipe $service): MembreEquipeResource
@@ -96,7 +107,7 @@ class MembreEquipeController extends Controller
             adresseIp: $request->ip(),
         );
 
-        return new MembreEquipeResource($membre->load(['utilisateur', 'role']));
+        return new MembreEquipeResource($membre->load(['utilisateur', 'roles']));
     }
 
     public function genererCodeActivation(Request $request, EtablissementUtilisateur $membre, GenererNouveauCodeAccesMembre $service): JsonResponse

@@ -54,9 +54,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Interroge les permissions du rôle que l'utilisateur possède DANS
-     * l'établissement courant (ContexteEtablissement), jamais globalement :
-     * sans contexte défini, la réponse est toujours non — y compris pour le
+     * Interroge les permissions des rôles que l'utilisateur possède DANS
+     * l'établissement courant (ContexteEtablissement), jamais globalement.
+     * Lot F : il suffit qu'UN de ses rôles l'ait, les droits s'additionnent.
+     * Relu en base à chaque appel, sans cache : un rôle retiré ou un membre
+     * désactivé perd ce droit dès la requête suivante.
+     * Sans contexte défini, la réponse est toujours non — y compris pour le
      * super-admin, dont le passe-droit est géré séparément par le
      * Gate::before d'AppServiceProvider, pas ici. Les policies n'ont donc
      * jamais besoin de connaître son existence.
@@ -72,7 +75,7 @@ class User extends Authenticatable
         return $this->appartenances()
             ->where('etablissement_id', $contexte->id())
             ->where('statut', StatutMembre::Actif)
-            ->whereHas('role.permissions', fn ($requete) => $requete->where('nom', $permission))
+            ->whereHas('roles.permissions', fn ($requete) => $requete->where('nom', $permission))
             ->exists();
     }
 

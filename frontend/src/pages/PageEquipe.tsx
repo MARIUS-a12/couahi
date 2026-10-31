@@ -12,15 +12,19 @@
  *
  * Correctif activation par code : l'administrateur ne choisit ni ne voit
  * JAMAIS le mot de passe d'un membre. La création ne demande que nom/email/
- * rôle et affiche un CODE D'ACTIVATION à transmettre (voir
+ * rôles et affiche un CODE D'ACTIVATION à transmettre (voir
  * BandeauCodeActivationGenere) ; "mot de passe oublié" devient "Générer un
  * nouveau code d'accès", avec le même principe.
+ *
+ * Lot F : des rôles cumulables, cochés (voir SelecteurRoles). Sur la ligne
+ * d'un membre, « Modifier » ouvre les mêmes cases et n'enregistre qu'au
+ * bouton : une case touchée par erreur ne retire rien.
  */
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { KeyRound, Users } from 'lucide-react'
-import type { MembreEquipe, StatutMembreEquipe } from '../api/equipe'
+import type { MembreEquipe, RoleEquipe, StatutMembreEquipe } from '../api/equipe'
 import {
   changerStatutMembreEquipe,
   creerMembreEquipe,
@@ -34,8 +38,10 @@ import { EnteteDePage } from '../components/EnteteDePage'
 import { EtatBouton } from '../components/EtatBouton'
 import { EtatChargement } from '../components/EtatChargement'
 import { EtatErreur } from '../components/EtatErreur'
+import { SelecteurRoles } from '../components/SelecteurRoles'
 import { CLE_EQUIPE, useEquipe, useRolesEquipe } from '../hooks/useEquipe'
 import { useMoi } from '../hooks/useMoi'
+import type { DestinataireCode } from '../lib/activation'
 import { extraireErreursChamps } from '../lib/erreursValidation'
 
 function formaterDerniereConnexion(date: string | null): string {
@@ -53,10 +59,11 @@ export function PageEquipe() {
 
   const [nom, setNom] = useState('')
   const [email, setEmail] = useState('')
-  const [roleId, setRoleId] = useState<number | ''>('')
+  const [roleIds, setRoleIds] = useState<number[]>([])
   const [erreurs, setErreurs] = useState<Record<string, string>>({})
-  const [codeAffiche, setCodeAffiche] = useState<string | null>(null)
+  const [codeAffiche, setCodeAffiche] = useState<{ code: string; destinataire: DestinataireCode } | null>(null)
   const [messageSucces, setMessageSucces] = useState<string | null>(null)
+  const [membreEnEdition, setMembreEnEdition] = useState<number | null>(null)
 
   function invaliderEquipe() {
     queryClient.invalidateQueries({ queryKey: CLE_EQUIPE })
@@ -64,21 +71,15 @@ export function PageEquipe() {
 
   const creation = useMutation({
     mutationFn: creerMembreEquipe,
-    onSuccess: ({ codeActivation }) => {
+    onSuccess: ({ membre, codeActivation }) => {
       setNom('')
       setEmail('')
-      setRoleId('')
+      setRoleIds([])
       setErreurs({})
-      setCodeAffiche(codeActivation)
+      setCodeAffiche({ code: codeActivation, destinataire: { nom: membre.nom, email: membre.email } })
       invaliderEquipe()
     },
     onError: (erreur) => setErreurs(extraireErreursChamps(erreur)),
-  })
-
-  const modificationRole = useMutation({
-    mutationFn: ({ id, nouveauRoleId }: { id: number; nouveauRoleId: number }) =>
-      modifierMembreEquipe(id, { roleId: nouveauRoleId }),
-    onSuccess: () => invaliderEquipe(),
   })
 
   const changementStatut = useMutation({
@@ -86,19 +87,23 @@ export function PageEquipe() {
   })
 
   const generationCode = useMutation({
-    mutationFn: genererCodeActivationMembre,
-    onSuccess: (code) => {
-      setCodeAffiche(code)
+    mutationFn: (membre: MembreEquipe) => genererCodeActivationMembre(membre.id),
+    onSuccess: (code, membre) => {
+      setCodeAffiche({ code, destinataire: { nom: membre.nom, email: membre.email } })
       invaliderEquipe()
     },
   })
 
   function soumettreCreation(evenement: FormEvent<HTMLFormElement>) {
     evenement.preventDefault()
-    if (!nom.trim() || !email.trim() || roleId === '') {
+    if (!nom.trim() || !email.trim()) {
       return
     }
-    creation.mutate({ nom: nom.trim(), email: email.trim(), roleId })
+    if (roleIds.length === 0) {
+      setErreurs({ ...erreurs, role_ids: 'Choisissez au moins un rôle.' })
+      return
+    }
+    creation.mutate({ nom: nom.trim(), email: email.trim(), roleIds })
   }
 
   function demanderNouveauCode(membre: MembreEquipe) {
@@ -107,7 +112,7 @@ export function PageEquipe() {
     )
 
     if (confirme) {
-      generationCode.mutate(membre.id)
+      generationCode.mutate(membre)
     }
   }
 
@@ -145,12 +150,16 @@ export function PageEquipe() {
 
       {messageSucces && <BandeauSucces message={messageSucces} onFermer={() => setMessageSucces(null)} />}
 
-      {codeAffiche && <BandeauCodeActivationGenere code={codeAffiche} onFermer={() => setCodeAffiche(null)} />}
+      {codeAffiche && (
+        <BandeauCodeActivationGenere
+          code={codeAffiche.code}
+          destinataire={codeAffiche.destinataire}
+          boutique={moi?.etablissement?.nom ?? ''}
+          onFermer={() => setCodeAffiche(null)}
+        />
+      )}
 
-      <form
-        onSubmit={soumettreCreation}
-        className="grid gap-3 border border-bordure bg-surface p-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-start"
-      >
+      <form onSubmit={soumettreCreation} className="grid gap-3 border border-bordure bg-surface p-4 sm:grid-cols-2 sm:items-start">
         <div>
           <label htmlFor="nom" className="mb-1 block text-petit font-medium text-texte">
             Nom
@@ -179,30 +188,27 @@ export function PageEquipe() {
           {erreurs.email && <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurs.email}</p>}
         </div>
 
-        <div>
-          <label htmlFor="role_id" className="mb-1 block text-petit font-medium text-texte">
-            Rôle
-          </label>
-          <select
-            id="role_id"
-            value={roleId}
-            onChange={(evenement) => setRoleId(evenement.target.value ? Number(evenement.target.value) : '')}
-            className={`${CLASSES_CHAMP} ${erreurs.role_id ? 'border-danger' : 'border-bordure focus:border-primaire'}`}
-          >
-            <option value="">Choisir un rôle</option>
-            {roles?.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.libelle}
-              </option>
-            ))}
-          </select>
-          {erreurs.role_id && <p className="animate-entree-champ mt-1 text-petit text-danger">{erreurs.role_id}</p>}
+        <div className="sm:col-span-2">
+          <SelecteurRoles
+            id="nouveau-membre"
+            roles={roles ?? []}
+            coches={roleIds}
+            onChange={(coches) => {
+              setRoleIds(coches)
+              setErreurs((precedentes) => {
+                const autres = { ...precedentes }
+                delete autres.role_ids
+                return autres
+              })
+            }}
+            erreur={erreurs.role_ids}
+          />
         </div>
 
         <button
           type="submit"
           disabled={creation.isPending}
-          className="h-11 shrink-0 cursor-pointer rounded bg-primaire px-4 text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] active:bg-primaire-fonce focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+          className="h-11 shrink-0 cursor-pointer sm:col-span-2 sm:justify-self-start rounded bg-primaire px-4 text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] active:bg-primaire-fonce focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
         >
           <EtatBouton chargement={creation.isPending}>Ajouter</EtatBouton>
         </button>
@@ -221,7 +227,7 @@ export function PageEquipe() {
             const estSoiMeme = membre.utilisateur_id === moi?.utilisateur.id
 
             return (
-              <li key={membre.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <li key={membre.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-corps font-medium text-texte">
                     {membre.nom} {estSoiMeme && <span className="text-petit text-texte-secondaire">(vous)</span>}
@@ -232,6 +238,7 @@ export function PageEquipe() {
                     )}
                   </p>
                   <p className="truncate text-petit text-texte-secondaire">{membre.email}</p>
+                  <p className="text-petit font-medium text-texte">{membre.roles.map((role) => role.libelle).join(' + ')}</p>
                   <p className="text-petit text-texte-secondaire">
                     Ajouté le {new Date(membre.ajoute_le).toLocaleDateString('fr-FR')} · Dernière connexion :{' '}
                     {formaterDerniereConnexion(membre.derniere_connexion)}
@@ -239,21 +246,16 @@ export function PageEquipe() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={membre.role.id}
-                    disabled={estSoiMeme || modificationRole.isPending}
-                    title={estSoiMeme ? 'Vous ne pouvez pas changer votre propre rôle.' : undefined}
-                    onChange={(evenement) =>
-                      modificationRole.mutate({ id: membre.id, nouveauRoleId: Number(evenement.target.value) })
-                    }
-                    className="h-11 rounded border border-bordure bg-surface px-3 text-corps text-texte transition-colors focus:outline focus:outline-2 focus:outline-primaire focus:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
+                  <button
+                    type="button"
+                    onClick={() => setMembreEnEdition(membreEnEdition === membre.id ? null : membre.id)}
+                    disabled={estSoiMeme}
+                    aria-expanded={membreEnEdition === membre.id}
+                    title={estSoiMeme ? 'Vous ne pouvez pas modifier vos propres rôles.' : undefined}
+                    className="h-11 cursor-pointer rounded border border-bordure bg-surface px-3 text-corps text-texte transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {roles?.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.libelle}
-                      </option>
-                    ))}
-                  </select>
+                    Modifier les rôles
+                  </button>
 
                   <Bascule
                     actif={membre.statut === 'actif'}
@@ -274,11 +276,82 @@ export function PageEquipe() {
                     <KeyRound aria-hidden="true" size={20} strokeWidth={1.5} />
                   </button>
                 </div>
+
+                {membreEnEdition === membre.id && roles && (
+                  <EditionRoles
+                    membre={membre}
+                    roles={roles}
+                    onFermer={() => setMembreEnEdition(null)}
+                    onEnregistre={(modifie) => {
+                      setMembreEnEdition(null)
+                      invaliderEquipe()
+                      setMessageSucces(`Rôles de ${modifie.nom} : ${modifie.roles.map((role) => role.libelle).join(' + ')}.`)
+                    }}
+                  />
+                )}
               </li>
             )
           })}
         </ul>
       )}
+    </div>
+  )
+}
+
+/**
+ * Les cases d'un membre existant, enregistrées au bouton seulement. Les
+ * refus du serveur (dernier administrateur actif, au moins un rôle) sont
+ * affichés tels quels : c'est lui qui décide.
+ */
+function EditionRoles({
+  membre,
+  roles,
+  onFermer,
+  onEnregistre,
+}: {
+  membre: MembreEquipe
+  roles: RoleEquipe[]
+  onFermer: () => void
+  onEnregistre: (membre: MembreEquipe) => void
+}) {
+  const [coches, setCoches] = useState(() => membre.roles.map((role) => role.id))
+  const [erreur, setErreur] = useState<string | undefined>()
+
+  const modification = useMutation({
+    mutationFn: () => modifierMembreEquipe(membre.id, { roleIds: coches }),
+    onSuccess: onEnregistre,
+    onError: (echec) => setErreur(extraireErreursChamps(echec).role_ids ?? "Les rôles n'ont pas pu être enregistrés. Réessayez."),
+  })
+
+  return (
+    <div className="w-full space-y-3 rounded border border-bordure p-3">
+      <SelecteurRoles
+        id={`roles-${membre.id}`}
+        roles={roles}
+        coches={coches}
+        onChange={(nouvelles) => {
+          setCoches(nouvelles)
+          setErreur(undefined)
+        }}
+        erreur={erreur}
+      />
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => modification.mutate()}
+          disabled={coches.length === 0 || modification.isPending}
+          className="h-11 cursor-pointer rounded bg-primaire px-4 text-corps font-medium text-surface transition-[background-color,transform] hover:bg-primaire-fonce active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100"
+        >
+          <EtatBouton chargement={modification.isPending}>Enregistrer les rôles</EtatBouton>
+        </button>
+        <button
+          type="button"
+          onClick={onFermer}
+          className="h-11 cursor-pointer rounded px-4 text-corps text-texte-secondaire transition-[background-color,transform] hover:bg-surface-alt active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-primaire focus-visible:outline-offset-1"
+        >
+          Annuler
+        </button>
+      </div>
     </div>
   )
 }

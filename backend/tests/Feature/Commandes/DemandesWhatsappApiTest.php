@@ -114,7 +114,6 @@ class DemandesWhatsappApiTest extends TestCase
     {
         return [
             'statistiques_commandes' => $this->getJson(self::HOTE.'/api/commandes/statistiques')->assertOk()->json(),
-            'statistiques' => $this->getJson(self::HOTE.'/api/statistiques')->assertOk()->json(),
             'commandes' => Commande::pourTousEtablissements()->count(),
             'lignes' => LigneCommande::pourTousEtablissements()->count(),
             'reservations' => ReservationStock::pourTousEtablissements()->count(),
@@ -235,7 +234,7 @@ class DemandesWhatsappApiTest extends TestCase
         $demande = $this->demandeDu(now());
         app(ContexteEtablissement::class)->definir($this->wax);
         $stock = User::factory()->create(['email' => 'stock@wax-adjame.test', 'password' => 'motdepasse', 'mot_de_passe_defini' => true]);
-        app(CreerRattachementUtilisateur::class)->executer($stock, $this->wax, Role::where('nom', 'gestionnaire_stock')->value('id'));
+        app(CreerRattachementUtilisateur::class)->executer($stock, $this->wax, [Role::where('nom', 'gestionnaire_stock')->value('id')]);
         app(ContexteEtablissement::class)->definir(null);
         $this->connecte('stock@wax-adjame.test');
 

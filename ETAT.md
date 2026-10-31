@@ -3,7 +3,7 @@
 Mis à jour à la fin de chaque lot. Ce document dit le quoi ; le pourquoi
 des choix est dans `decisions.md`.
 
-Dernière mise à jour : 28 octobre 2026, lot D (demandes WhatsApp).
+Dernière mise à jour : 31 octobre 2026, lot F (rôles cumulables et lien d'activation).
 
 ## Ce qui existe et fonctionne
 
@@ -27,7 +27,7 @@ Dernière mise à jour : 28 octobre 2026, lot D (demandes WhatsApp).
 
 **Le back-office du commerçant**
 - Connexion sécurisée. Seules les erreurs de mot de passe comptent pour un blocage, jamais les connexions réussies. Une session perdue côté serveur ne bloque plus la connexion suivante.
-- Un employé active son compte avec un code donné par l'administrateur.
+- Un employé active son compte avec un code donné par l'administrateur. L'écran donne le lien entier, à l'adresse de la boutique, et un bouton « Envoyer par WhatsApp » qui prépare le message : nom de la boutique, lien, email, code et validité de 48 heures. Le code est dans le texte, jamais dans le lien.
 - Produits : création, modification, brouillon ou publié, archivage (jamais d'effacement).
 - Photos : jusqu'à 15 par produit, avec un ordre réglable ; la première est la photo principale. Au téléphone, le bouton propose la galerie ou l'appareil photo.
 - Une photo prise au téléphone (12 mégapixels, plusieurs Mo) est réduite sur le téléphone avant l'envoi, autour de 150 à 400 Ko, pour épargner la data mobile ; le logo aussi. Une photo trop grande pour le serveur (au-delà de 16 mégapixels, depuis un ordinateur) est refusée avec un message qui dit quoi faire.
@@ -36,7 +36,7 @@ Dernière mise à jour : 28 octobre 2026, lot D (demandes WhatsApp).
 - Stock compté à l'unité, ou simple interrupteur « Disponible » ; le mode se change tant qu'aucune commande en cours n'en dépend.
 - Une commande réserve son stock. Une commande de la vitrine non traitée expire au bout de 24 heures (15 minutes pour un restaurant), et son stock est alors rendu.
 - Catégories sur deux niveaux (Chaussures › Sandales).
-- Commandes : liste filtrée par statut et détail. On les fait passer de confirmée à prête puis livrée, ou on les annule (le stock revient).
+- Commandes : liste filtrée par statut et détail. On les fait passer de confirmée à prête puis livrée, ou on les annule (le stock revient). Chaque bouton n'apparaît qu'à qui en a le droit, et le serveur refuse les autres.
 - Saisie manuelle d'une commande : bouton « Nouvelle commande » sur la page Commandes, et « Vendre » sur la liste des produits et sur la fiche d'un produit, qui ouvre la saisie avec ce produit déjà choisi. Le premier choix est le canal : Comptoir, WhatsApp ou Téléphone.
 - Au comptoir : des articles seulement, sans client ni livraison. « Encaisser » termine la vente d'un coup : livrée, payée en espèces, stock décompté. Trois touchers depuis « Vendre ». La liste l'affiche « Client de passage » ; un habitué peut être identifié par un lien discret.
 - Au téléphone et sur WhatsApp : seuls le numéro et la commune sont obligatoires ; le nom et le quartier sont facultatifs (la commande affiche alors « Sans nom »). Un client connu préremplit son nom, sa commune et son quartier, et un nom laissé vide n'efface pas le sien. Mêmes communes et mêmes frais que la vitrine, « Autre commune » et ses frais fixes compris. La commande est confirmée, non payée, et n'expire jamais.
@@ -44,10 +44,13 @@ Dernière mise à jour : 28 octobre 2026, lot D (demandes WhatsApp).
 - Les prix viennent toujours de la base, sans remise. Un stock insuffisant est expliqué au back-office (article, demandé, disponible). Un doublon possible (même numéro avec une commande en cours de moins de 24 heures) avertit, avec le lien, sans bloquer.
 - Demandes WhatsApp : chaque clic sur « Commander sur WhatsApp » de la vitrine apparaît dans la page « Demandes WhatsApp », avec le produit, la variante et sa photo, l'heure du clic (« il y a 12 min », la date exacte au toucher), la référence à copier et son statut. Rien sur le client : au clic, on ne sait rien de lui. Une référence de plus de 7 jours est signalée « expirée ». Le menu affiche le nombre de demandes nouvelles.
 - Une demande se marque traitée ou ignorée, ou se transforme en commande : la saisie manuelle s'ouvre déjà remplie (canal WhatsApp, produit, variante, référence), le commerçant saisit le client, et la demande passe traitée avec le lien vers sa commande. Une demande ne devient qu'une seule commande. Une demande ne réserve rien et ne compte dans aucun chiffre.
-- Chaque commande saisie garde qui l'a créée, par quel canal et quand ; chaque paiement garde qui l'a reçu. Saisir une commande demande la permission « Saisir des commandes » : administrateur, opérateur et caissier l'ont, le gestionnaire de stock non.
+- Chaque commande saisie garde qui l'a créée, par quel canal et quand ; chaque paiement garde qui l'a reçu.
+- Trois droits sur les commandes, distincts : les traiter (confirmer, marquer prête, marquer livrée, annuler une commande qui n'a reçu aucun paiement), encaisser (vendre au comptoir, confirmer un paiement reçu), et annuler une commande payée puis rembourser, réservé à l'administrateur. Une commande est payée dès son premier paiement, même partiel. Une annulation sans ce dernier droit échoue si un paiement arrive au même moment.
+- Le choix du canal suit les droits : Comptoir pour qui encaisse, WhatsApp et Téléphone pour qui saisit des commandes ; un seul canal permis est choisi d'office.
+- Ce que chaque rôle fait : l'opérateur traite et saisit les commandes WhatsApp et téléphone, et les demandes WhatsApp ; le caissier vend au comptoir et confirme les paiements ; le gestionnaire de stock ajuste le stock et voit les commandes, sans pouvoir y toucher ; l'administrateur fait tout.
 - Paiements : paiement partiel enregistré tel quel, remboursement constaté à la main.
-- Tableau de bord avec les chiffres des commandes.
-- Équipe : ajout de membres avec un rôle, désactivation, nouveau code d'activation.
+- Chiffres des commandes en tête de la liste : les nombres pour tous ceux qui voient les commandes ; le chiffre d'affaires du jour et le panier moyen seulement pour l'administrateur, et absents de la réponse du serveur pour les autres.
+- Équipe : un membre peut cumuler plusieurs rôles, cochés, et ses droits s'additionnent. Cocher Administrateur grise les autres. Sous les cases, une phrase dit en direct ce qu'il pourra et ne pourra pas faire, calculée d'après les vrais droits de chaque rôle. « Modifier les rôles » sur sa ligne n'enregistre qu'au bouton. Au moins un rôle par membre ; on ne change pas ses propres rôles ; la boutique garde toujours un administrateur actif, même si deux administrateurs se retirent le rôle au même instant. Un changement de rôles vaut dès la requête suivante : un bouton encore affiché sur son écran répond « Vos droits ont changé, rechargez la page ». Un membre désactivé perd l'accès tout de suite (ses sessions sont effacées).
 - Identité du commerce : nom, logo, description, coordonnées, horaires (affichés, sans bloquer les commandes).
 - Livraison : le commerçant choisit de facturer la livraison selon la commune ou de ne pas la facturer sur le site, et tient la liste de ses communes avec leurs frais (0 pour offerte). Il peut fixer un montant pour « toute autre commune » : toute commune hors de sa liste le paie, à la vitrine comme en saisie manuelle ; sans montant, elle reste à convenir. Changer des frais ne touche aucune commande passée.
 - Mon compte : profil et mot de passe.
@@ -79,22 +82,25 @@ Il n'y a pas eu de lot E à part, et il n'y en aura pas. Les tests de non-régre
 
 ## Ce qui n'existe pas encore
 
-Ordre décidé : **F, puis G, puis H**. Les paiements passent avant le tableau de bord, parce que « encaissé » et « reste à encaisser » dépendent du paiement à la livraison : un tableau de bord construit avant compterait faux, puis serait à refaire.
+Ordre décidé : **F (fait), puis G, puis H**. Les paiements passent avant le tableau de bord, parce que « encaissé » et « reste à encaisser » dépendent du paiement à la livraison : un tableau de bord construit avant compterait faux, puis serait à refaire.
 
-1. **Lot F, prochain : rôles cumulables et lien d'activation.**
-   - **Rôles cumulables** : un membre peut avoir plusieurs rôles, et ses droits s'additionnent. Des cases à cocher remplacent la liste déroulante ; cocher Administrateur grise les autres. Une phrase en direct, générée depuis les vraies permissions, dit ce qu'il pourra et ne pourra pas faire. Au moins un rôle par membre, et toujours un administrateur actif, même en cas de course. Un changement de rôles s'applique dès la requête suivante.
-   - **Lien d'activation** : l'écran n'affiche aujourd'hui qu'un chemin incomplet, « /admin/activation ». Il doit afficher le lien entier, avec le sous-domaine de la boutique, et un bouton « Envoyer par WhatsApp » : nom de la boutique, lien, code et validité de 48 heures dans le texte du message, jamais le code dans l'adresse.
-   - La case « voit les chiffres de la boutique » n'est PAS dans ce lot : elle arrive avec le tableau de bord (lot H), qui est le seul écran qu'elle commande.
-2. **Lot G : paiements.** Paiement à la livraison facultatif, frais de livraison payés d'avance facultatifs, plusieurs numéros Mobile Money. Le rapprochement se fait par le numéro de l'expéditeur, avec une case « je paierai depuis un autre numéro », jamais par capture d'écran.
-3. **Lot H : tableau de bord.** Vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique.
-4. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
+1. **Lot G, prochain : paiements.** Décisions déjà prises :
+   - **Plusieurs moyens de paiement par boutique.** Le commerçant tient une liste : opérateur, numéro, nom du titulaire, saisi pour chaque ligne parce qu'il peut différer d'un compte à l'autre. Un même numéro peut apparaître deux fois, par exemple en Orange Money et en Wave, puisque Wave fonctionne avec n'importe quel numéro ; Orange Money, MTN MoMo et Moov Money restent liés à une puce de leur opérateur. Le client choisit d'abord son opérateur, puis voit le numéro et le nom correspondants : il ne paie pas de frais entre opérateurs et ne se trompe pas de numéro.
+   - **Payer avant ou à la livraison**, au choix du client parmi ce que le commerçant accepte. Le commerçant peut refuser le paiement à la livraison, et peut exiger les frais de livraison d'avance.
+   - **Une commande payée d'avance par Mobile Money n'expire jamais toute seule.** Un client qui a payé ne doit jamais perdre son argent parce que la boutique était occupée. Au bout de 24 heures sans confirmation, elle passe en « Paiement à vérifier » : le stock reste réservé, et seul le commerçant décide, « Paiement reçu » ou « Annuler ».
+   - **La liste « Paiements à vérifier »** au back-office : chaque commande en attente de paiement, avec son montant, le numéro du client et depuis combien de jours elle attend. Le commerçant compare avec le SMS reçu de son opérateur et touche « Reçu ». Côté client, une case facultative : « Je paierai depuis un autre numéro ». Jamais de capture d'écran demandée : elle se falsifie.
+   - **Le bouton « J'ai payé » est un bonus, pas une condition.** S'il le touche, la commande remonte en tête de la liste du commerçant ; s'il ne revient pas, rien ne se bloque.
+   - **CinetPay**, avec l'accès Sandbox obtenu : intégration en mode test, l'interrupteur CINETPAY_ACTIF restant fermé en production. Pour les commerçants qui l'auront, la confirmation automatique supprime l'étape de vérification. CinetPay a subi une fraude informatique en septembre 2025 et devait encore de l'argent à ses partenaires début 2026 : l'intégration doit permettre de changer de prestataire (PayDunya, Kkiapay) sans réécrire les commandes ni les paiements.
+2. **Lot H : tableau de bord.** Vendu, encaissé, reste à encaisser. Le caissier voit sa propre caisse du jour ; seuls l'administrateur, ou la personne qui a la case « voit les chiffres », voient les chiffres de la boutique. Cette case n'a pas été mise au lot F : le tableau de bord est le seul écran qu'elle commande.
+3. **Mise en ligne** : serveur, domaine couahi.ci, DNS et certificat valable pour toutes les adresses des boutiques.
 
 Reporté : tout le lot restauration, c'est-à-dire les suppléments payants sur un plat, les commandes bloquées hors horaires, des statuts propres au restaurant, la remise à « disponible » des plats chaque matin et une expiration adaptée.
 
-Bloqué hors de nous : le paiement CinetPay, qui attend le RCCM, et l'IA WhatsApp, qui attend le compte Meta.
+Bloqué hors de nous : le paiement CinetPay réel, qui attend le RCCM (le mode test se fait au lot G), et l'IA WhatsApp, qui attend le compte Meta.
 
 ## À faire pour la mise en ligne
 
 Ce qui doit être réglé sur le serveur ou autour, en plus du code. On y ajoute au fil des lots.
 
 - Installer l'extension PHP exif : sans elle, une photo envoyée depuis un ordinateur peut apparaître couchée.
+- Déclarer l'IP fixe du serveur dans les IP autorisées de CinetPay.

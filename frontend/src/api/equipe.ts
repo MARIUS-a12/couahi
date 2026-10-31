@@ -13,10 +13,16 @@ import { client } from '../lib/client'
 
 export type StatutMembreEquipe = 'actif' | 'suspendu'
 
-export type RoleEquipe = {
+export type RoleMembre = {
   id: number
   nom: string
   libelle: string
+}
+
+// Lot F : avec ses permissions, d'où se calcule la phrase des droits
+// (voir lib/droitsMembre.ts).
+export type RoleEquipe = RoleMembre & {
+  permissions: string[]
 }
 
 export type MembreEquipe = {
@@ -24,7 +30,8 @@ export type MembreEquipe = {
   utilisateur_id: number
   nom: string
   email: string
-  role: RoleEquipe
+  // Lot F : plusieurs rôles possibles, au moins un.
+  roles: RoleMembre[]
   statut: StatutMembreEquipe
   ajoute_le: string
   // null pour un membre qui ne s'est jamais encore connecté.
@@ -48,7 +55,7 @@ export async function recupererRolesEquipe(): Promise<RoleEquipe[]> {
 export type NouveauMembreEquipe = {
   nom: string
   email: string
-  roleId: number
+  roleIds: number[]
 }
 
 export type MembreEquipeCree = {
@@ -60,7 +67,7 @@ export async function creerMembreEquipe(payload: NouveauMembreEquipe): Promise<M
   const { data } = await client.post<{ data: MembreEquipe; code_activation: string }>('/api/equipe', {
     nom: payload.nom,
     email: payload.email,
-    role_id: payload.roleId,
+    role_ids: payload.roleIds,
   })
 
   return { membre: data.data, codeActivation: data.code_activation }
@@ -68,11 +75,11 @@ export async function creerMembreEquipe(payload: NouveauMembreEquipe): Promise<M
 
 export async function modifierMembreEquipe(
   id: number,
-  payload: { nom?: string; roleId?: number },
+  payload: { nom?: string; roleIds?: number[] },
 ): Promise<MembreEquipe> {
   const { data } = await client.put<{ data: MembreEquipe }>(`/api/equipe/${id}`, {
     nom: payload.nom,
-    role_id: payload.roleId,
+    role_ids: payload.roleIds,
   })
 
   return data.data

@@ -4,7 +4,6 @@ namespace App\Services\Equipe;
 
 use App\Models\Etablissement;
 use App\Models\JournalAudit;
-use App\Models\Role;
 use App\Models\User;
 use App\Services\Activation\GenererCodeActivation;
 use App\Services\Utilisateurs\CreerRattachementUtilisateur;
@@ -37,11 +36,11 @@ class CreerMembreEquipe
         Etablissement $etablissement,
         string $nom,
         string $email,
-        int $roleId,
+        array $roleIds,
         User $acteur,
         ?string $adresseIp,
     ): ResultatCreationMembreEquipe {
-        return DB::transaction(function () use ($etablissement, $nom, $email, $roleId, $acteur, $adresseIp) {
+        return DB::transaction(function () use ($etablissement, $nom, $email, $roleIds, $acteur, $adresseIp) {
             $utilisateur = User::create([
                 'name' => $nom,
                 'email' => $email,
@@ -49,7 +48,7 @@ class CreerMembreEquipe
                 'mot_de_passe_defini' => false,
             ]);
 
-            $membre = $this->creerRattachement->executer($utilisateur, $etablissement, $roleId);
+            $membre = $this->creerRattachement->executer($utilisateur, $etablissement, ModifierMembreEquipe::normaliser($roleIds));
 
             $code = $this->genererCodeActivation->executer($utilisateur, $etablissement, $acteur, $adresseIp);
 
@@ -59,7 +58,7 @@ class CreerMembreEquipe
                 'details' => [
                     'membre_id' => $utilisateur->id,
                     'email' => $email,
-                    'role' => Role::whereKey($roleId)->value('nom'),
+                    'roles' => $membre->roles()->pluck('nom')->all(),
                 ],
                 'adresse_ip' => $adresseIp,
             ]);

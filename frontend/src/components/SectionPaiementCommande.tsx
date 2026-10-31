@@ -5,7 +5,7 @@
  * qu'elle est payée (voir ConfirmerPaiementCommande côté API).
  *
  * "Confirmer le paiement reçu" n'est proposé qu'en Mobile Money, qu'à qui a
- * gerer_commandes (le serveur revérifie), et ouvre un petit formulaire :
+ * encaisser (le serveur revérifie), et ouvre un petit formulaire :
  * montant RÉELLEMENT reçu (pré-rempli avec le total, modifiable — un client
  * qui arrondit n'est pas une erreur) et référence de transaction
  * facultative. Un écart est annoncé avant d'enregistrer, puis affiché.
@@ -69,11 +69,13 @@ function messageErreur(erreur: unknown): string {
 
 export function SectionPaiementCommande({
   commande,
-  peutGerer,
+  peutEncaisser,
+  peutRembourser,
   onMiseAJour,
 }: {
   commande: CommandeDetail
-  peutGerer: boolean
+  peutEncaisser: boolean
+  peutRembourser: boolean
   onMiseAJour: (commande: CommandeDetail) => void
 }) {
   const [formulaireOuvert, setFormulaireOuvert] = useState(false)
@@ -145,7 +147,7 @@ export function SectionPaiementCommande({
       </div>
 
       {paiement.a_rembourser != null && (
-        <BlocRemboursementDu commande={commande} peutGerer={peutGerer} onMiseAJour={onMiseAJour} />
+        <BlocRemboursementDu commande={commande} peutRembourser={peutRembourser} onMiseAJour={onMiseAJour} />
       )}
 
       {paiement.remboursement != null && (
@@ -227,7 +229,7 @@ export function SectionPaiementCommande({
               : 'Transfert pas encore confirmé. Vérifiez sur votre téléphone que l’argent est bien arrivé.'}
           </p>
 
-          {peutGerer && !formulaireOuvert && (
+          {peutEncaisser && !formulaireOuvert && (
             <Bouton
               variante="principal"
               className="mt-3"
@@ -238,7 +240,7 @@ export function SectionPaiementCommande({
             </Bouton>
           )}
 
-          {peutGerer && formulaireOuvert && (
+          {peutEncaisser && formulaireOuvert && (
             <form onSubmit={soumettre} className="mt-4 animate-entree-champ space-y-4 border-t border-bordure pt-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -310,17 +312,17 @@ export function SectionPaiementCommande({
 
 /**
  * Argent reçu pour une commande annulée ou expirée : l'alerte, et pour qui
- * a gerer_commandes, l'action qui la solde. Montant pré-rempli avec ce qui
+ * a annuler_payees, l'action qui la solde. Montant pré-rempli avec ce qui
  * a été reçu (cas courant), modifiable vers le bas seulement — le serveur
  * refuse un remboursement supérieur au montant reçu.
  */
 function BlocRemboursementDu({
   commande,
-  peutGerer,
+  peutRembourser,
   onMiseAJour,
 }: {
   commande: CommandeDetail
-  peutGerer: boolean
+  peutRembourser: boolean
   onMiseAJour: (commande: CommandeDetail) => void
 }) {
   const aRembourser = commande.paiement.a_rembourser ?? 0
@@ -368,7 +370,7 @@ function BlocRemboursementDu({
         {formaterMontant(aRembourser)}, pensez à le rembourser.
       </p>
 
-      {peutGerer && !ouvert && (
+      {peutRembourser && !ouvert && (
         <Bouton
           variante="secondaire"
           className="mt-3"
@@ -379,7 +381,7 @@ function BlocRemboursementDu({
         </Bouton>
       )}
 
-      {peutGerer && ouvert && (
+      {peutRembourser && ouvert && (
         <form onSubmit={soumettre} className="mt-3 animate-entree-champ space-y-3 border-t border-alerte/40 pt-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>

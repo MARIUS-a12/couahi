@@ -17,19 +17,26 @@ class RolesEtPermissionsSeeder extends Seeder
         // et AjusterStockProduitRequest, qui n'accepte que ce seul champ).
         'gerer_stock' => 'Gérer le stock',
         'voir_commandes' => 'Voir les commandes',
-        'gerer_commandes' => 'Gérer les commandes',
-        // Lot C : saisir une commande au back-office (comptoir, téléphone,
-        // WhatsApp). Distincte de gerer_commandes : un gestionnaire de stock
-        // ne vend pas.
+        // Lot F : gerer_commandes découpé en trois, voir decisions.md.
+        // Confirmer, marquer prête, marquer livrée, annuler une commande
+        // qui n'a reçu AUCUN paiement.
+        'traiter_commandes' => 'Traiter les commandes',
+        // Vendre au comptoir et confirmer un paiement reçu.
+        'encaisser' => 'Encaisser',
+        // Annuler une commande qui a reçu un paiement, même partiel, et
+        // rembourser : sinon un caissier vend, garde l'argent, puis annule.
+        'annuler_payees' => 'Annuler les commandes payées et rembourser',
+        // Lot C : saisir une commande WhatsApp ou téléphone. Le comptoir
+        // demande encaisser, pas cette permission.
         'creer_commandes' => 'Saisir des commandes',
         // Lot D : voir et traiter les demandes WhatsApp. Distincte des
         // commandes : répondre à des clients et toucher au stock ne sont
         // pas le même droit.
         'gerer_demandes_whatsapp' => 'Gérer les demandes WhatsApp',
-        'gerer_clients' => 'Gérer les clients',
+        // Les montants du tableau de bord (chiffre d'affaires, panier
+        // moyen) : voir CommandeController::statistiques.
         'voir_statistiques' => 'Voir les statistiques',
         'gerer_parametres' => 'Gérer les paramètres',
-        'gerer_integrations' => 'Gérer les intégrations',
         // Étape 10 : page /admin/equipe, réservée au seul rôle
         // admin_etablissement (voir EtablissementUtilisateurPolicy).
         'gerer_equipe' => "Gérer l'équipe",
@@ -69,17 +76,20 @@ class RolesEtPermissionsSeeder extends Seeder
      */
     private const ATTRIBUTIONS = [
         'super_admin' => [
-            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients',
-            'voir_statistiques', 'gerer_parametres', 'gerer_integrations', 'gerer_equipe',
+            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'traiter_commandes', 'encaisser', 'annuler_payees',
+            'creer_commandes', 'gerer_demandes_whatsapp', 'voir_statistiques', 'gerer_parametres', 'gerer_equipe',
         ],
         'admin_etablissement' => [
-            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients',
-            'voir_statistiques', 'gerer_parametres', 'gerer_integrations', 'gerer_equipe',
+            'voir_catalogue', 'gerer_catalogue', 'gerer_stock', 'voir_commandes', 'traiter_commandes', 'encaisser', 'annuler_payees',
+            'creer_commandes', 'gerer_demandes_whatsapp', 'voir_statistiques', 'gerer_parametres', 'gerer_equipe',
         ],
-        'operateur' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients'],
-        // Encaisse et traite les commandes, ne touche pas au catalogue.
-        'caissier' => ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients'],
+        // Prend les commandes WhatsApp et téléphone et les fait avancer,
+        // sans toucher à l'argent.
+        'operateur' => ['voir_catalogue', 'voir_commandes', 'traiter_commandes', 'creer_commandes', 'gerer_demandes_whatsapp'],
+        // Vend au comptoir et confirme les paiements reçus.
+        'caissier' => ['voir_catalogue', 'voir_commandes', 'encaisser'],
         // Ajuste les quantités, ne crée ni ne modifie les produits eux-mêmes.
+        // Voit les commandes, en lecture seule, pour les préparer.
         'gestionnaire_stock' => ['voir_catalogue', 'gerer_stock', 'voir_commandes'],
     ];
 
@@ -99,5 +109,10 @@ class RolesEtPermissionsSeeder extends Seeder
                 $permissions->only(self::ATTRIBUTIONS[$nomRole])->pluck('id')
             );
         }
+
+        // Lot F : gerer_clients et gerer_integrations ne commandaient
+        // aucun écran, gerer_commandes est découpé. Une permission retirée
+        // de la liste disparaît, ses attributions avec elle (cascade).
+        Permission::whereNotIn('nom', array_keys(self::PERMISSIONS))->delete();
     }
 }

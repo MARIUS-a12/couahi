@@ -22,6 +22,12 @@ use Illuminate\Support\Facades\DB;
  *   une opération qui n'existait nulle part avant cette étape.
  * Livrée et déjà annulée : aucun des deux WHERE ne correspond, rien ne se
  * passe (idempotent, comme le reste du cycle de vie des commandes).
+ *
+ * Lot F — $seulementNonPayee : pour qui n'a pas annuler_payees. La
+ * condition « aucun paiement enregistré » est dans le WHERE de l'UPDATE,
+ * pas seulement vérifiée avant : un paiement confirmé par le caissier
+ * pendant que l'opérateur annule fait échouer l'annulation au lieu de
+ * l'emporter sur lui.
  */
 class AnnulerCommande
 {
@@ -32,14 +38,19 @@ class AnnulerCommande
         private readonly RestaurerReservation $restaurerReservation,
     ) {}
 
-    public function executer(Commande $commande, ?string $motif = null, ?int $utilisateurId = null): void
+    /**
+     * @return bool vrai si la commande a été annulée par cet appel
+     */
+    public function executer(Commande $commande, ?string $motif = null, ?int $utilisateurId = null, bool $seulementNonPayee = false): bool
     {
-        DB::transaction(function () use ($commande, $motif, $utilisateurId) {
-            $this->annulerEnAttente($commande, $motif, $utilisateurId);
+        return DB::transaction(function () use ($commande, $motif, $utilisateurId, $seulementNonPayee) {
+            $annulee = $this->annulerEnAttente($commande, $motif, $utilisateurId, $seulementNonPayee);
 
             foreach (self::STATUTS_CONFIRMES as $statutActuel) {
-                $this->annulerConfirmee($commande, $statutActuel, $motif, $utilisateurId);
+                $annulee = $this->annulerConfirmee($commande, $statutActuel, $motif, $utilisateurId, $seulementNonPayee) || $annulee;
             }
+
+            return $annulee;
         });
     }
 
@@ -47,7 +58,7 @@ class AnnulerCommande
      * attente_paiement → annulee. Code strictement inchangé depuis l'Étape
      * 6B (voir AnnulerCommandeTest::test_annuler_libere_le_stock...).
      */
-    private function annulerEnAttente(Commande $commande, ?string $motif, ?int $utilisateurId): void
+    private function annulerEnAttente(Commande $commande, ?string $motif, ?int $utilisateurId, bool $seulementNonPayee): bool
     {
         // pourTousEtablissements() : voir la même remarque dans
         // ConsommerReservation — $commande est déjà l'instance de
@@ -55,10 +66,11 @@ class AnnulerCommande
         $affectee = Commande::pourTousEtablissements()
             ->whereKey($commande->id)
             ->where('statut', StatutCommande::AttentePaiement)
+            ->when($seulementNonPayee, fn ($requete) => $requete->whereNull('paiement_confirme_le'))
             ->update(['statut' => StatutCommande::Annulee]);
 
         if ($affectee === 0) {
-            return;
+            return false;
         }
 
         $commande->historique()->make([
@@ -78,6 +90,8 @@ class AnnulerCommande
         foreach ($reservationsActives as $reservation) {
             $this->libererReservation->executer($reservation);
         }
+
+        return true;
     }
 
     /**
@@ -85,15 +99,16 @@ class AnnulerCommande
      * plus une des deux itérations de la boucle appelante affecte une ligne,
      * une commande n'ayant qu'un seul statut à la fois.
      */
-    private function annulerConfirmee(Commande $commande, StatutCommande $statutActuel, ?string $motif, ?int $utilisateurId): void
+    private function annulerConfirmee(Commande $commande, StatutCommande $statutActuel, ?string $motif, ?int $utilisateurId, bool $seulementNonPayee): bool
     {
         $affectee = Commande::pourTousEtablissements()
             ->whereKey($commande->id)
             ->where('statut', $statutActuel)
+            ->when($seulementNonPayee, fn ($requete) => $requete->whereNull('paiement_confirme_le'))
             ->update(['statut' => StatutCommande::Annulee]);
 
         if ($affectee === 0) {
-            return;
+            return false;
         }
 
         $commande->historique()->make([
@@ -111,5 +126,7 @@ class AnnulerCommande
         foreach ($reservationsConsommees as $reservation) {
             $this->restaurerReservation->executer($reservation);
         }
+
+        return true;
     }
 }

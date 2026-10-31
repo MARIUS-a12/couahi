@@ -1,7 +1,7 @@
 /**
  * Étape 10 — page d'accueil par métier : "/admin" redirige vers la première
  * page à laquelle les permissions de l'utilisateur donnent accès, dans cet
- * ordre : Commandes (voir_commandes/gerer_commandes), puis Produits
+ * ordre : Commandes (voir_commandes), puis Produits
  * (voir_catalogue/gerer_catalogue), puis Mon compte en dernier recours.
  * Montée par RouteProtegee, qui a déjà chargé /api/moi : useMoi() ici relit
  * le même résultat mis en cache, sans nouvel appel réseau.
@@ -16,7 +16,7 @@ export function PageAccueilAdmin() {
     return null
   }
 
-  if (moi.permissions.includes('voir_commandes') || moi.permissions.includes('gerer_commandes')) {
+  if (moi.permissions.includes('voir_commandes')) {
     return <Navigate to="/admin/commandes" replace />
   }
 

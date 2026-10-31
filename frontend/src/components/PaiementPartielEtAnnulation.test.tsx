@@ -5,9 +5,12 @@
  * action de transition sur un état terminal.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
+import type { AxiosAdapter, InternalAxiosRequestConfig } from 'axios'
+import { AxiosError } from 'axios'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { client as clientHttp, MESSAGE_DROITS_CHANGES } from '../lib/client'
 import type { CommandeDetail, PaiementCommande } from '../api/commandes'
 import type { CommandeVitrine } from '../api/vitrine'
 import { formaterMontant } from '../lib/formatage'
@@ -151,10 +154,10 @@ describe('page de la cliente', () => {
 })
 
 describe('détail commerçant', () => {
-  function afficherDetail(commande: CommandeDetail) {
+  function afficherDetail(commande: CommandeDetail, permissions = ['traiter_commandes', 'encaisser', 'annuler_payees']) {
     const client = clientAvec([
       [['commande', commande.id], commande],
-      [['moi'], { permissions: ['gerer_commandes'], etablissement: { id: 3, nom: 'Wax Adjamé' } }],
+      [['moi'], { permissions, etablissement: { id: 3, nom: 'Wax Adjamé' } }],
     ])
 
     render(
@@ -175,6 +178,88 @@ describe('détail commerçant', () => {
       expect(screen.queryByRole('button', { name: libelle })).not.toBeInTheDocument()
     }
     expect(screen.queryByRole('heading', { name: 'Actions' })).not.toBeInTheDocument()
+  })
+
+  // Lot F : chaque bouton suit son droit ; le serveur refuse de toute façon.
+  const NON_PAYEE = { confirme: false, confirme_le: null, montant_recu: null, partiel: false, reste_du: null, partielle_a_decider: false }
+
+  it("l'opérateur confirme et annule une commande non payée, sans pouvoir encaisser", () => {
+    afficherDetail(commandeDetail('attente_paiement', NON_PAYEE), ['voir_commandes', 'traiter_commandes'])
+
+    expect(screen.getByRole('button', { name: /Confirmer la commande/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Annuler la commande/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Confirmer le paiement reçu/ })).not.toBeInTheDocument()
+  })
+
+  it("payée, même partiellement : ni l'opérateur ni le caissier ne voient « Annuler »", () => {
+    afficherDetail(commandeDetail('attente_paiement'), ['voir_commandes', 'traiter_commandes'])
+    expect(screen.getByRole('button', { name: /Confirmer la commande/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Annuler la commande/ })).not.toBeInTheDocument()
+  })
+
+  it("le caissier encaisse, sans faire avancer ni annuler la commande", () => {
+    afficherDetail(commandeDetail('attente_paiement', NON_PAYEE), ['voir_commandes', 'encaisser'])
+
+    expect(screen.getByRole('button', { name: /Confirmer le paiement reçu/ })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Actions' })).not.toBeInTheDocument()
+  })
+
+  it("le gestionnaire de stock voit la commande, sans aucun bouton", () => {
+    afficherDetail(commandeDetail('attente_paiement', NON_PAYEE), ['voir_catalogue', 'gerer_stock', 'voir_commandes'])
+
+    expect(screen.getByText('CMD-000002')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Actions' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Confirmer le paiement reçu/ })).not.toBeInTheDocument()
+  })
+
+  it("seul annuler_payees solde un remboursement", () => {
+    afficherDetail(commandeDetail('annulee', { reste_du: null, partielle_a_decider: false, a_rembourser: 10000 }), ['voir_commandes', 'traiter_commandes', 'encaisser'])
+
+    expect(screen.getByText(/pensez à le rembourser/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Marquer le remboursement effectué/ })).not.toBeInTheDocument()
+  })
+
+  describe('un droit retiré pendant que la page était ouverte', () => {
+    const adapterReel = clientHttp.defaults.adapter
+
+    afterEach(() => {
+      clientHttp.defaults.adapter = adapterReel
+    })
+
+    /** Le serveur répond 403 avec ce corps à toute écriture ; le reste passe. */
+    function serveurQuiRefuse(corps: Record<string, unknown>) {
+      const adapter: AxiosAdapter = async (config: InternalAxiosRequestConfig) => {
+        if ((config.method ?? 'get') === 'get') {
+          return { data: {}, status: 204, statusText: 'No Content', headers: {}, config }
+        }
+        const reponse = { data: corps, status: 403, statusText: 'Forbidden', headers: {}, config }
+        throw new AxiosError('Request failed with status code 403', AxiosError.ERR_BAD_REQUEST, config, null, reponse)
+      }
+      clientHttp.defaults.adapter = adapter
+    }
+
+    it('le bouton encore affiché dit « Vos droits ont changé, rechargez la page »', async () => {
+      // Son écran le croit encore opérateur ; le serveur sait que non.
+      serveurQuiRefuse({ message: 'This action is unauthorized.' })
+      afficherDetail(commandeDetail('attente_paiement', NON_PAYEE), ['voir_commandes', 'traiter_commandes'])
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirmer la commande/ }))
+
+      expect(await screen.findByText(MESSAGE_DROITS_CHANGES)).toBeInTheDocument()
+      expect(MESSAGE_DROITS_CHANGES).toBe('Vos droits ont changé, rechargez la page.')
+      expect(screen.queryByText(/Impossible de contacter le serveur/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/unauthorized/)).not.toBeInTheDocument()
+    })
+
+    it('un refus qui porte son propre message le garde', async () => {
+      serveurQuiRefuse({ message: 'Cette commande vient de recevoir un paiement : seul un administrateur peut maintenant l’annuler.' })
+      afficherDetail(commandeDetail('attente_paiement', NON_PAYEE), ['voir_commandes', 'traiter_commandes'])
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirmer la commande/ }))
+
+      expect(await screen.findByText(/vient de recevoir un paiement/)).toBeInTheDocument()
+      expect(screen.queryByText(MESSAGE_DROITS_CHANGES)).not.toBeInTheDocument()
+    })
   })
 
   it("l'avertissement de remboursement affiche le montant réellement reçu, jamais NaN", () => {

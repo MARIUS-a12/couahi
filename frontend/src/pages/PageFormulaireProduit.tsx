@@ -138,7 +138,8 @@ function FormulaireProduit({
 
   const { data: moi } = useMoi()
   const peutGererCatalogue = moi?.permissions.includes('gerer_catalogue') ?? false
-  const peutVendre = moi?.permissions.includes('creer_commandes') ?? false
+  // Lot F : vendre au comptoir (encaisser) ou saisir une commande (creer_commandes).
+  const peutVendre = moi?.permissions.some((permission) => permission === 'creer_commandes' || permission === 'encaisser') ?? false
 
   const navigate = useNavigate()
   const location = useLocation()

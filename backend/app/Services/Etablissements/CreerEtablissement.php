@@ -85,7 +85,7 @@ class CreerEtablissement
                 'mot_de_passe_defini' => true,
             ]);
 
-            $this->creerRattachement->executer($administrateur, $etablissement, $roleAdmin);
+            $this->creerRattachement->executer($administrateur, $etablissement, [$roleAdmin]);
 
             return new ResultatCreationEtablissement($etablissement, $motDePasseGenere);
         });

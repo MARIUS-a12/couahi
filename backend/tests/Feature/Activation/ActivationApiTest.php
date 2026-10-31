@@ -10,6 +10,7 @@ use App\Services\Activation\ActiverCompte;
 use App\Services\Equipe\CreerMembreEquipe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -47,14 +48,14 @@ class ActivationApiTest extends TestCase
     private function creerMembre(Etablissement $etablissement, string $email): array
     {
         $awa = User::where('etablissement_id', $etablissement->id)
-            ->whereHas('appartenances', fn ($q) => $q->where('role_id', Role::where('nom', 'admin_etablissement')->value('id')))
+            ->whereHas('appartenances.roles', fn ($q) => $q->where('nom', 'admin_etablissement'))
             ->firstOrFail();
 
         $resultat = app(CreerMembreEquipe::class)->executer(
             etablissement: $etablissement,
             nom: 'Membre Test',
             email: $email,
-            roleId: Role::where('nom', 'caissier')->value('id'),
+            roleIds: [Role::where('nom', 'caissier')->value('id')],
             acteur: $awa,
             adresseIp: null,
         );
@@ -302,7 +303,7 @@ class ActivationApiTest extends TestCase
         $this->assertStringContainsString('minute', $trenteEtUnieme->json('message'));
     }
 
-    private function activer(string $hote, string $email, string $code, ?string $motDePasse = null): \Illuminate\Testing\TestResponse
+    private function activer(string $hote, string $email, string $code, ?string $motDePasse = null): TestResponse
     {
         $motDePasse ??= 'un-mot-de-passe-par-defaut-123';
 

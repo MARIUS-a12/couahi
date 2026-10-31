@@ -230,7 +230,7 @@ class PaiementPartielEtRemboursementTest extends TestCase
         $this->assertNull($commande->fresh()->rembourse_le);
     }
 
-    public function test_5_sans_gerer_commandes_lenregistrement_du_remboursement_renvoie_403(): void
+    public function test_5_sans_annuler_payees_lenregistrement_du_remboursement_renvoie_403(): void
     {
         $this->seed();
         $this->connecte();
@@ -246,7 +246,7 @@ class PaiementPartielEtRemboursementTest extends TestCase
             'password' => 'motdepasse',
             'mot_de_passe_defini' => true,
         ]);
-        app(CreerRattachementUtilisateur::class)->executer($gestionnaire, $this->wax(), Role::where('nom', 'gestionnaire_stock')->value('id'));
+        app(CreerRattachementUtilisateur::class)->executer($gestionnaire, $this->wax(), [Role::where('nom', 'gestionnaire_stock')->value('id')]);
 
         $this->connecte('stock@wax-adjame.test');
         $this->depuis()->postJson($this->url("/api/commandes/{$commande->id}/rembourser"), ['montant' => 10000])->assertStatus(403);

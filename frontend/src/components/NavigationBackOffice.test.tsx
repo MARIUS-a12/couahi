@@ -34,27 +34,28 @@ vi.mock('../hooks/useCompteDemandesWhatsapp', () => ({
 const PERMISSIONS_ADMIN_ETABLISSEMENT = [
   'voir_catalogue',
   'gerer_catalogue',
+  'gerer_stock',
   'voir_commandes',
-  'gerer_commandes',
+  'traiter_commandes',
+  'encaisser',
+  'annuler_payees',
   'creer_commandes',
   'gerer_demandes_whatsapp',
-  'gerer_clients',
   'voir_statistiques',
   'gerer_parametres',
-  'gerer_integrations',
-  'gerer_stock',
   'gerer_equipe',
 ]
-const PERMISSIONS_OPERATEUR = ['voir_catalogue', 'voir_commandes', 'gerer_commandes', 'creer_commandes', 'gerer_demandes_whatsapp', 'gerer_clients']
+const PERMISSIONS_OPERATEUR = ['voir_catalogue', 'voir_commandes', 'traiter_commandes', 'creer_commandes', 'gerer_demandes_whatsapp']
 
 function moiAvec(role: string, permissions: string[]): Moi {
   return {
     utilisateur: { id: 1, nom: 'Test', email: 'test@exemple.test' },
     etablissement: { id: 1, nom: 'Boutique test', type: 'boutique', statut: 'actif' },
-    role,
+    roles: [role],
     role_libelle_espace: null,
     permissions,
-  } as Moi
+    abonnement: null,
+  }
 }
 
 /**

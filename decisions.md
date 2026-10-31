@@ -872,3 +872,74 @@ Elle n'apparaît jamais dans la liste des communes, et ne se renomme ni ne
 se retire par les routes des communes. Une commune de la liste tapée en
 « Autre » reste refusée. Sans aucune commune listée, ces frais valent pour
 toutes : c'est un forfait de livraison.
+
+## 2026-10-31 — Un membre cumule plusieurs rôles, ses droits s'additionnent
+
+Un employé qui prend les commandes ET tient la caisse a deux rôles, pas
+un rôle « opérateur-caissier » de plus : chaque combinaison deviendrait un
+rôle à maintenir. Le rôle quitte etablissement_utilisateurs pour une
+table à part, plutôt que de garder role_id à côté de la nouvelle table :
+deux endroits où lire le rôle finiraient par se contredire. La migration
+vérifie que chaque membre a retrouvé son rôle avant de retirer l'ancienne
+colonne, et échoue sinon. Au moins un rôle par membre. Administrateur
+coché avec d'autres reste seul : il a déjà tout, les autres brouilleraient
+la lecture de l'équipe.
+
+## 2026-10-31 — gerer_commandes découpé en trois, annuler une vente payée réservé à l'administrateur
+
+traiter_commandes (confirmer, préparer, livrer, annuler une commande non
+payée), encaisser (vendre au comptoir, confirmer un paiement reçu) et
+annuler_payees (annuler une commande payée, rembourser). annuler_payees
+n'appartient qu'à l'administrateur : sinon un caissier vend, garde
+l'argent, puis annule, et la vente disparaît avec la trace de l'argent.
+Un seul droit gerer_commandes, comme avant, donnait les trois gestes à
+quiconque devait en faire un. Le comptoir passe de creer_commandes à
+encaisser : y saisir une vente, c'est l'encaisser du même geste ;
+creer_commandes ne couvre plus que WhatsApp et téléphone. Le choix du
+canal suit ces droits, et le serveur refuse l'autre canal même par
+requête forgée.
+
+## 2026-10-31 — « Payée » dès le premier paiement enregistré, même partiel
+
+Une commande est payée, pour le droit de l'annuler, dès qu'un paiement y
+est enregistré, quel qu'en soit le montant. Comparer au total aurait
+ouvert une faille : un encaissement inférieur d'1 FCFA au total rendait
+la commande annulable par un opérateur. La condition est aussi dans
+l'UPDATE qui annule, pas seulement vérifiée avant : un paiement confirmé
+pendant qu'un opérateur annule fait échouer l'annulation au lieu de
+défaire une vente payée.
+
+## 2026-10-31 — Toujours un administrateur actif, sous verrou
+
+Vérifier « il reste un autre administrateur » ne suffit pas : deux
+administrateurs qui se retirent le rôle l'un l'autre au même instant
+voient chacun l'autre, et la boutique n'en a plus. Retirer un rôle ou
+désactiver un membre prend le verrou de la ligne de l'établissement avant
+de relire l'équipe. Une contrainte en base a été écartée : elle porte sur
+plusieurs lignes de deux tables, ce qu'une contrainte simple ne sait pas
+exprimer, et un déclencheur cacherait la règle loin du message d'erreur
+que le commerçant doit lire.
+
+## 2026-10-31 — Les montants du tableau de bord sont retirés de la réponse, pas cachés
+
+Sans voir_statistiques, /commandes/statistiques ne renvoie que les
+comptes (du jour, en attente). Le chiffre d'affaires et le panier moyen
+ne sont pas dans la réponse du tout : les cacher à l'écran les laisserait
+lisibles par quiconque ouvre les outils du navigateur.
+
+## 2026-10-31 — Une permission qui ne commande rien est retirée
+
+gerer_clients, gerer_integrations et la route /api/statistiques, qui
+renvoyait une réponse vide, sont supprimées. Une permission sans écran
+fait croire, dans la liste des droits, à un contrôle qui n'existe pas.
+voir_statistiques reste : elle commande désormais les montants.
+
+## 2026-10-31 — Le lien d'activation est entier, le code voyage dans le texte
+
+L'écran donne le lien complet, à l'adresse de la boutique où
+l'administrateur est connecté : la connexion est propre à chaque boutique,
+le membre devra se connecter là. « Envoyer par WhatsApp » met le nom de la
+boutique, le lien, l'email, le code et sa validité de 48 heures dans le
+texte du message. Jamais le code dans l'adresse : une adresse se retrouve
+dans l'historique du navigateur, les aperçus de lien et les journaux des
+serveurs.

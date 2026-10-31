@@ -45,9 +45,8 @@ class StockEtRolesCatalogueApiTest extends TestCase
         EtablissementUtilisateur::create([
             'etablissement_id' => $etablissement->id,
             'utilisateur_id' => $utilisateur->id,
-            'role_id' => Role::where('nom', $nomRole)->value('id'),
             'statut' => 'actif',
-        ]);
+        ])->roles()->attach(Role::where('nom', $nomRole)->value('id'));
 
         return $utilisateur;
     }

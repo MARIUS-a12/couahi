@@ -63,9 +63,8 @@ class ProduitsApiTest extends TestCase
         EtablissementUtilisateur::create([
             'etablissement_id' => $etablissement->id,
             'utilisateur_id' => $utilisateur->id,
-            'role_id' => $roleAdmin,
             'statut' => 'actif',
-        ]);
+        ])->roles()->attach($roleAdmin);
 
         return $utilisateur;
     }

@@ -117,9 +117,8 @@ class ChangementModeStockTest extends TestCase
         EtablissementUtilisateur::create([
             'etablissement_id' => $maquis->id,
             'utilisateur_id' => $admin->id,
-            'role_id' => Role::where('nom', 'admin_etablissement')->value('id'),
             'statut' => 'actif',
-        ]);
+        ])->roles()->attach(Role::where('nom', 'admin_etablissement')->value('id'));
         $this->connecte('maquis-du-port', $admin->email);
         $garba = $this->produit('garba');
         $commande = $this->commander($maquis, $garba);

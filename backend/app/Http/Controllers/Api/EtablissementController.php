@@ -81,7 +81,7 @@ class EtablissementController extends Controller
         $contexte->definir($resultat->etablissement);
 
         try {
-            return (new EtablissementDetailResource($resultat->etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role'])))
+            return (new EtablissementDetailResource($resultat->etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.roles'])))
                 ->additional(['mot_de_passe_genere' => $resultat->motDePasseGenere])
                 ->response()
                 ->setStatusCode(201);
@@ -94,7 +94,7 @@ class EtablissementController extends Controller
     {
         Gate::authorize('view', $etablissement);
 
-        $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']);
+        $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.roles']);
 
         return new EtablissementDetailResource($etablissement);
     }
@@ -132,7 +132,7 @@ class EtablissementController extends Controller
             $etablissement->update(['type' => $request->validated('type')]);
         });
 
-        $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']);
+        $etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.roles']);
 
         return new EtablissementDetailResource($etablissement);
     }
@@ -149,7 +149,7 @@ class EtablissementController extends Controller
 
         $etablissement->update(['statut' => StatutEtablissement::Inactif]);
 
-        return new EtablissementDetailResource($etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']));
+        return new EtablissementDetailResource($etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.roles']));
     }
 
     public function reactiver(Etablissement $etablissement): EtablissementDetailResource
@@ -158,7 +158,7 @@ class EtablissementController extends Controller
 
         $etablissement->update(['statut' => StatutEtablissement::Actif]);
 
-        return new EtablissementDetailResource($etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.role']));
+        return new EtablissementDetailResource($etablissement->load(['domaines', 'appartenances.utilisateur', 'appartenances.roles']));
     }
 
     /**

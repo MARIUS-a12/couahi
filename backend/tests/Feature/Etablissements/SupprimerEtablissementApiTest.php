@@ -7,8 +7,8 @@ use App\Models\Domaine;
 use App\Models\Etablissement;
 use App\Models\EtablissementUtilisateur;
 use App\Models\Produit;
-use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -118,16 +118,14 @@ class SupprimerEtablissementApiTest extends TestCase
         $this->seed();
         $maquisDuPort = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
         $awa = User::where('email', 'awa@chez-awa.test')->firstOrFail();
-        $roleOperateur = Role::where('nom', 'operateur')->value('id');
 
         // Awa est déjà admin de chez-awa (voir UtilisateursDemoSeeder) : un
         // second rattachement, même vers un autre établissement, est refusé.
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        $this->expectException(QueryException::class);
 
         EtablissementUtilisateur::create([
             'etablissement_id' => $maquisDuPort->id,
             'utilisateur_id' => $awa->id,
-            'role_id' => $roleOperateur,
             'statut' => 'actif',
         ]);
     }

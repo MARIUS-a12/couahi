@@ -73,6 +73,28 @@ client.interceptors.request.use(async (config) => {
  * (vu à 390 px sur le back-office). Un 419 redemande donc un jeton neuf et
  * rejoue la requête, une seule fois : un second 419 est une vraie erreur.
  */
+/**
+ * Lot F : les droits d'un membre peuvent changer pendant qu'il travaille
+ * (un rôle retiré par l'administrateur). Son écran, chargé avant, lui
+ * propose encore le bouton ; le serveur refuse avec le message par défaut
+ * de Laravel, en anglais, ou sans message. Il lit à la place ce qui s'est
+ * passé et quoi faire. Un refus qui porte son propre message (« Cette
+ * commande vient de recevoir un paiement… ») le garde.
+ */
+export const MESSAGE_DROITS_CHANGES = 'Vos droits ont changé, rechargez la page.'
+
+const MESSAGES_REFUS_PAR_DEFAUT = [undefined, null, '', 'This action is unauthorized.', 'Forbidden']
+
+client.interceptors.response.use(undefined, (erreur) => {
+  if (axios.isAxiosError(erreur) && erreur.response?.status === 403) {
+    const donnees = (erreur.response.data ?? {}) as { message?: unknown }
+    if (MESSAGES_REFUS_PAR_DEFAUT.includes(donnees.message as string | undefined)) {
+      erreur.response.data = { ...donnees, message: MESSAGE_DROITS_CHANGES }
+    }
+  }
+  throw erreur
+})
+
 client.interceptors.response.use(undefined, async (erreur) => {
   const config = erreur?.config as (typeof erreur.config & { jetonRenouvele?: boolean }) | undefined
 

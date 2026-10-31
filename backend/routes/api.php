@@ -18,7 +18,6 @@ use App\Http\Controllers\Api\PaiementEtablissementController;
 use App\Http\Controllers\Api\ParametresController;
 use App\Http\Controllers\Api\ProduitController;
 use App\Http\Controllers\Api\SessionController;
-use App\Http\Controllers\Api\StatistiquesController;
 use App\Http\Controllers\Api\VariantesProduitController;
 use App\Http\Controllers\Api\Vitrine\VitrineCategorieController;
 use App\Http\Controllers\Api\Vitrine\VitrineCommandeController;
@@ -183,7 +182,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // capturerait le chemin littéral comme un identifiant de commande
         // (même précaution que "sous-domaine-disponible" plus haut).
         // Lot C — saisie manuelle (comptoir, téléphone, WhatsApp),
-        // « creer_commandes » : voir CommandeManuelleController. Avant
+        // « encaisser » ou « creer_commandes » : voir CommandeManuelleController. Avant
         // "{commande}" pour la même raison que "statistiques".
         Route::get('/commandes/manuelles/articles', [CommandeManuelleController::class, 'articles']);
         Route::get('/commandes/manuelles/client', [CommandeManuelleController::class, 'client']);
@@ -230,8 +229,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'show']);
         Route::put('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'update']);
         Route::delete('/parametres/mobile-money', [MobileMoneyEtablissementController::class, 'destroy']);
-
-        Route::get('/statistiques', [StatistiquesController::class, 'index']);
 
         // Zones de livraison et choix de facturer la livraison (chemin
         // commerçant), "gerer_parametres" : voir LivraisonController.

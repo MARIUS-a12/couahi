@@ -1,7 +1,8 @@
 /**
  * Lot C — l'écran de saisie manuelle : le canal décide du formulaire, le
  * comptoir encaisse en trois touchers depuis « Vendre », aucun prix n'est
- * jamais envoyé, et un doublon avertit sans bloquer.
+ * jamais envoyé, et un doublon avertit sans bloquer. Lot F : les canaux
+ * proposés suivent les permissions de /api/moi.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -11,6 +12,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ArticleVendable } from '../api/commandesManuelles'
 import { reconnaitreReference, rechercherArticles, recupererZonesProposees, saisirCommande, trouverClient } from '../api/commandesManuelles'
 import { PageNouvelleCommande } from './PageNouvelleCommande'
+
+let permissions: string[] = []
+vi.mock('../hooks/useMoi', () => ({ useMoi: () => ({ data: { permissions } }) }))
 
 vi.mock('../api/commandesManuelles', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/commandesManuelles')>()),
@@ -41,6 +45,8 @@ const canal = (nom: string) => screen.getByRole('button', { name: nom })
 
 describe('saisie manuelle', () => {
   beforeEach(() => {
+    // Opérateur et caissier à la fois : les trois canaux.
+    permissions = ['creer_commandes', 'encaisser']
     vi.mocked(rechercherArticles).mockReset().mockResolvedValue([pagne, sandale45])
     vi.mocked(recupererZonesProposees).mockReset().mockResolvedValue({ zones: [{ id: 1, nom: 'Cocody', frais: 1500 }], autreCommune: null })
     vi.mocked(trouverClient).mockReset().mockResolvedValue(null)
@@ -303,5 +309,27 @@ describe('saisie manuelle', () => {
 
     expect(screen.getByText(/^Livraison : 3\s000\sFCFA$/)).toBeInTheDocument()
     expect(screen.getByText(/^8\s000\sFCFA$/)).toBeInTheDocument()
+  })
+
+  it('un caissier seul ne voit que Comptoir, déjà choisi, et rien à coller', async () => {
+    permissions = ['encaisser']
+    afficher('/admin/commandes/nouvelle?produit=7')
+
+    expect(await screen.findByRole('list', { name: 'Commande' })).toHaveTextContent('Pagne wax')
+    expect(canal('Comptoir')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('button', { name: 'WhatsApp' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Téléphone' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Coller une référence WhatsApp' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Encaisser 5\s000\sFCFA/ })).toBeEnabled()
+    expect(recupererZonesProposees).not.toHaveBeenCalled()
+  })
+
+  it('sans encaisser, pas de Comptoir', async () => {
+    permissions = ['creer_commandes']
+    afficher()
+
+    expect(await screen.findByRole('button', { name: 'WhatsApp' })).toBeInTheDocument()
+    expect(canal('Téléphone')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Comptoir' })).not.toBeInTheDocument()
   })
 })

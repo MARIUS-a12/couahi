@@ -77,7 +77,7 @@ describe('avertissement de remboursement', () => {
   it('une commande payée puis annulée affiche le montant à rembourser dans sa section Paiement', () => {
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <SectionPaiementCommande commande={commandeAnnuleeApresPaiement()} peutGerer onMiseAJour={vi.fn()} />
+        <SectionPaiementCommande commande={commandeAnnuleeApresPaiement()} peutEncaisser peutRembourser onMiseAJour={vi.fn()} />
       </QueryClientProvider>,
     )
 

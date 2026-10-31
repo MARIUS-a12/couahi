@@ -130,8 +130,10 @@ export type StatistiquesCommandes = {
   en_attente: number
   // Parmi elles, celles déjà payées (Mobile Money confirmé).
   en_attente_payees: number
-  chiffre_affaires_jour: number
-  panier_moyen_mois: number
+  // Lot F : absents de la réponse sans voir_statistiques, pas seulement
+  // cachés à l'écran.
+  chiffre_affaires_jour?: number
+  panier_moyen_mois?: number
 }
 
 export async function recupererStatistiquesCommandes(): Promise<StatistiquesCommandes> {

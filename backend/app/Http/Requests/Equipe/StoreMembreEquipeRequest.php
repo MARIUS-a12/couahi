@@ -52,15 +52,25 @@ class StoreMembreEquipeRequest extends FormRequest
                     }
                 },
             ],
-            'role_id' => [
-                'required',
+            // Lot F : des rôles cumulables, au moins un.
+            'role_ids' => ['required', 'array', 'min:1'],
+            'role_ids.*' => [
                 'integer',
+                'distinct',
                 function (string $attribute, mixed $value, callable $fail): void {
                     if (! Role::whereKey($value)->where('nom', '!=', 'super_admin')->exists()) {
                         $fail('Le rôle sélectionné est invalide.');
                     }
                 },
             ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'role_ids.required' => 'Choisissez au moins un rôle.',
+            'role_ids.min' => 'Choisissez au moins un rôle.',
         ];
     }
 }

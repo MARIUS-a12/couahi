@@ -47,7 +47,7 @@ class UtilisateursDemoSeeder extends Seeder
             'password' => self::MOT_DE_PASSE,
             'mot_de_passe_defini' => true,
         ]);
-        $creerRattachement->executer($awa, $chezAwa, $roleAdminEtablissement);
+        $creerRattachement->executer($awa, $chezAwa, [$roleAdminEtablissement]);
 
         $yao = User::factory()->create([
             'name' => 'Yao Kouadio',
@@ -55,7 +55,7 @@ class UtilisateursDemoSeeder extends Seeder
             'password' => self::MOT_DE_PASSE,
             'mot_de_passe_defini' => true,
         ]);
-        $creerRattachement->executer($yao, $maquisDuPort, $roleOperateur);
+        $creerRattachement->executer($yao, $maquisDuPort, [$roleOperateur]);
 
         // Admin du restaurant : sans elle, impossible de tester le
         // formulaire produit en mode interrupteur avec un compte qui a
@@ -66,7 +66,7 @@ class UtilisateursDemoSeeder extends Seeder
             'password' => self::MOT_DE_PASSE,
             'mot_de_passe_defini' => true,
         ]);
-        $creerRattachement->executer($adjoua, $maquisDuPort, $roleAdminEtablissement);
+        $creerRattachement->executer($adjoua, $maquisDuPort, [$roleAdminEtablissement]);
 
         $fatou = User::factory()->create([
             'name' => 'Fatou Diallo',
@@ -74,6 +74,6 @@ class UtilisateursDemoSeeder extends Seeder
             'password' => self::MOT_DE_PASSE,
             'mot_de_passe_defini' => true,
         ]);
-        $creerRattachement->executer($fatou, $waxAdjame, $roleAdminEtablissement);
+        $creerRattachement->executer($fatou, $waxAdjame, [$roleAdminEtablissement]);
     }
 }

@@ -2,9 +2,14 @@
  * Quatre cartes statistiques de la liste des commandes (Étape 9), toutes
  * réelles (voir useStatistiquesCommandes / CommandeController::statistiques
  * côté API) — même motif visuel que BandeStatistiques (produits).
+ *
+ * Lot F : les deux montants seulement avec voir_statistiques. Sans elle,
+ * le serveur ne les envoie pas : les cartes disparaissent au lieu
+ * d'afficher un faux 0.
  */
 import { AlertTriangle, CalendarDays, ShoppingBag, Wallet } from 'lucide-react'
 import type { ComponentType } from 'react'
+import { useMoi } from '../hooks/useMoi'
 import { useStatistiquesCommandes } from '../hooks/useStatistiquesCommandes'
 import { formaterMontant } from '../lib/formatage'
 
@@ -19,9 +24,11 @@ const CLASSES_CARRE: Record<CouleurCarte, string> = {
 
 export function BandeStatistiquesCommandes() {
   const { data, isPending } = useStatistiquesCommandes(true)
+  const { data: moi } = useMoi()
+  const voitLesMontants = moi?.permissions.includes('voir_statistiques') ?? false
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${voitLesMontants ? 'lg:grid-cols-4' : ''}`}>
       <CarteStatistique
         icone={CalendarDays}
         couleur="bleu"
@@ -46,22 +53,26 @@ export function BandeStatistiquesCommandes() {
         }
         chargement={isPending}
       />
-      <CarteStatistique
-        icone={Wallet}
-        couleur="vert"
-        libelle="Chiffre d'affaires du jour"
-        valeur={data ? formaterMontant(data.chiffre_affaires_jour) : undefined}
-        contexte="Commandes confirmées uniquement"
-        chargement={isPending}
-      />
-      <CarteStatistique
-        icone={ShoppingBag}
-        couleur="violet"
-        libelle="Panier moyen du mois"
-        valeur={data ? formaterMontant(data.panier_moyen_mois) : undefined}
-        contexte="Commandes confirmées uniquement"
-        chargement={isPending}
-      />
+      {voitLesMontants && (
+        <>
+          <CarteStatistique
+            icone={Wallet}
+            couleur="vert"
+            libelle="Chiffre d'affaires du jour"
+            valeur={data?.chiffre_affaires_jour !== undefined ? formaterMontant(data.chiffre_affaires_jour) : undefined}
+            contexte="Commandes confirmées uniquement"
+            chargement={isPending}
+          />
+          <CarteStatistique
+            icone={ShoppingBag}
+            couleur="violet"
+            libelle="Panier moyen du mois"
+            valeur={data?.panier_moyen_mois !== undefined ? formaterMontant(data.panier_moyen_mois) : undefined}
+            contexte="Commandes confirmées uniquement"
+            chargement={isPending}
+          />
+        </>
+      )}
     </div>
   )
 }

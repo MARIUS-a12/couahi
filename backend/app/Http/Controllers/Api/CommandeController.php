@@ -72,8 +72,14 @@ class CommandeController extends Controller
      * Avant "{commande}" dans routes/api.php : sinon "statistiques" serait
      * capturé comme un identifiant de commande (même précaution que
      * "sous-domaine-disponible" avant "{etablissement}").
+     *
+     * Lot F : les comptes (du jour, en attente) servent à tous ceux qui
+     * voient les commandes ; les MONTANTS seulement à voir_statistiques.
+     * Ils sont retirés de la réponse elle-même, pas seulement cachés à
+     * l'écran : un opérateur qui lit la réponse ne voit pas le chiffre
+     * d'affaires.
      */
-    public function statistiques(): JsonResponse
+    public function statistiques(Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Commande::class);
 
@@ -95,6 +101,16 @@ class CommandeController extends Controller
             ->whereNotNull('paiement_confirme_le')
             ->count();
 
+        $comptes = [
+            'commandes_du_jour' => $commandesDuJour,
+            'en_attente' => $enAttente,
+            'en_attente_payees' => $enAttentePayees,
+        ];
+
+        if (! $request->user()->peut('voir_statistiques')) {
+            return response()->json($comptes);
+        }
+
         $chiffreAffairesJour = (int) $etablissement->commandes()
             ->whereDate('created_at', today())
             ->whereIn('statut', $statutsConfirmes)
@@ -108,9 +124,7 @@ class CommandeController extends Controller
         $panierMoyenMois = (int) round((clone $commandesDuMois)->avg('total') ?? 0);
 
         return response()->json([
-            'commandes_du_jour' => $commandesDuJour,
-            'en_attente' => $enAttente,
-            'en_attente_payees' => $enAttentePayees,
+            ...$comptes,
             'chiffre_affaires_jour' => $chiffreAffairesJour,
             'panier_moyen_mois' => $panierMoyenMois,
         ]);
@@ -137,7 +151,7 @@ class CommandeController extends Controller
 
     public function confirmer(Commande $commande): JsonResponse
     {
-        Gate::authorize('update', $commande);
+        Gate::authorize('traiter', $commande);
 
         if ($commande->statut !== StatutCommande::AttentePaiement) {
             return $this->reponseTransitionRefusee($commande, 'confirmée');
@@ -149,14 +163,14 @@ class CommandeController extends Controller
     }
 
     /**
-     * Étape 13 — réservé à gerer_commandes (policy "update") : jamais
+     * Étape 13 — réservé à encaisser (policy "encaisser") : jamais
      * accessible au client, qui n'a d'ailleurs aucune session sur ces
      * routes. Ne change pas le statut de la commande, voir
      * ConfirmerPaiementCommande.
      */
     public function confirmerPaiement(ConfirmerPaiementCommandeRequest $request, Commande $commande, ConfirmerPaiementCommande $confirmer): JsonResponse
     {
-        Gate::authorize('update', $commande);
+        Gate::authorize('encaisser', $commande);
 
         if ($commande->mode_paiement !== ModePaiement::MobileMoney) {
             return response()->json(['message' => "Cette commande n'est pas réglée par Mobile Money."], 422);
@@ -179,7 +193,7 @@ class CommandeController extends Controller
 
     /**
      * Le commerçant a rendu l'argent d'une commande annulée ou expirée après
-     * paiement (voir EnregistrerRemboursementCommande). gerer_commandes est
+     * paiement (voir EnregistrerRemboursementCommande). annuler_payees est
      * vérifié par la requête, avant toute validation. Ne change pas le
      * statut de la commande.
      */
@@ -216,7 +230,7 @@ class CommandeController extends Controller
 
     private function transitionnerSimple(Commande $commande, StatutCommande $attendu, StatutCommande $cible, string $libelleAction): JsonResponse
     {
-        Gate::authorize('update', $commande);
+        Gate::authorize('traiter', $commande);
 
         if ($commande->statut !== $attendu) {
             return $this->reponseTransitionRefusee($commande, $libelleAction);
@@ -227,17 +241,27 @@ class CommandeController extends Controller
         return $this->reponseCommandeFraiche($commande);
     }
 
+    /**
+     * Le droit (traiter_commandes, ou annuler_payees si un paiement est
+     * enregistré) est vérifié par la requête, avant la validation.
+     */
     public function annuler(AnnulerCommandeRequest $request, Commande $commande): JsonResponse
     {
-        Gate::authorize('update', $commande);
-
         $statutsAnnulables = [StatutCommande::AttentePaiement, StatutCommande::Payee, StatutCommande::Prete];
 
         if (! in_array($commande->statut, $statutsAnnulables, true)) {
             return $this->reponseTransitionRefusee($commande, 'annulée');
         }
 
-        $this->annulerCommande->executer($commande, $request->motifFinal(), auth()->id());
+        $seulementNonPayee = Gate::denies('annulerPayees', Commande::class);
+        $annulee = $this->annulerCommande->executer($commande, $request->motifFinal(), auth()->id(), $seulementNonPayee);
+
+        // Un paiement a été enregistré entre la lecture et l'annulation.
+        abort_if(
+            ! $annulee && $seulementNonPayee && $commande->fresh()->paiementEstConfirme(),
+            403,
+            'Cette commande vient de recevoir un paiement : seul un administrateur peut maintenant l’annuler.',
+        );
 
         return $this->reponseCommandeFraiche($commande);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,9 +19,13 @@ class AnnulerCommandeRequest extends FormRequest
         'client_annule' => 'Le client a annulé',
     ];
 
+    /**
+     * Avant la validation : sans le droit, un 403, jamais un 422 qui
+     * détaillerait le formulaire (voir CommandePolicy::annuler).
+     */
     public function authorize(): bool
     {
-        return true;
+        return Gate::allows('annuler', $this->route('commande'));
     }
 
     public function rules(): array

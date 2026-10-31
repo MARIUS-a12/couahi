@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\DB;
  * utilisateur_id). Ce fait est représenté à deux endroits, qui doivent donc
  * TOUJOURS être écrits ensemble, jamais l'un sans l'autre ni par deux
  * services différents :
- * - la ligne etablissement_utilisateurs elle-même, source de vérité du rôle
- *   et du statut (voir User::peut(), SessionController) ;
+ * - la ligne etablissement_utilisateurs elle-même et ses rôles, source de
+ *   vérité des permissions et du statut (voir User::peut(), SessionController) ;
  * - users.etablissement_id, colonne dénormalisée qui ne sert qu'à
  *   UNIQUE(etablissement_id, email) sur "users" (voir la migration
  *   "ajouter_etablissement_id_a_users_table") — jamais relue pour une
@@ -31,16 +31,16 @@ class CreerRattachementUtilisateur
     public function executer(
         User $utilisateur,
         Etablissement $etablissement,
-        int $roleId,
+        array $roleIds,
         StatutMembre $statut = StatutMembre::Actif,
     ): EtablissementUtilisateur {
-        return DB::transaction(function () use ($utilisateur, $etablissement, $roleId, $statut) {
+        return DB::transaction(function () use ($utilisateur, $etablissement, $roleIds, $statut) {
             $rattachement = EtablissementUtilisateur::create([
                 'etablissement_id' => $etablissement->id,
                 'utilisateur_id' => $utilisateur->id,
-                'role_id' => $roleId,
                 'statut' => $statut->value,
             ]);
+            $rattachement->roles()->attach($roleIds);
 
             $utilisateur->update(['etablissement_id' => $etablissement->id]);
 

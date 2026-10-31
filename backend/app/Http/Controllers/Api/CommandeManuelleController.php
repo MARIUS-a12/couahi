@@ -24,8 +24,9 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Lot C — la saisie manuelle des commandes au back-office, réservée à
- * « creer_commandes ». Ne fait que lire la requête et déléguer à
+ * Lot C — la saisie manuelle des commandes au back-office : le comptoir
+ * demande « encaisser », WhatsApp et téléphone « creer_commandes » (lot F).
+ * Ne fait que lire la requête et déléguer à
  * SaisirCommandeManuelle : aucun prix, aucun stock, aucun statut ici.
  */
 class CommandeManuelleController extends Controller
@@ -45,7 +46,7 @@ class CommandeManuelleController extends Controller
      */
     public function articles(Request $request): JsonResponse
     {
-        $this->autoriser($request);
+        $this->autoriser($request, 'creer_commandes', 'encaisser');
         $recherche = mb_strtolower(trim((string) $request->query('recherche', '')));
 
         $produits = Produit::query()
@@ -83,7 +84,7 @@ class CommandeManuelleController extends Controller
      */
     public function zones(Request $request): JsonResponse
     {
-        $this->autoriser($request);
+        $this->autoriser($request, 'creer_commandes');
 
         $etablissement = app(ContexteEtablissement::class)->obtenir();
 
@@ -101,7 +102,7 @@ class CommandeManuelleController extends Controller
      */
     public function client(Request $request): JsonResponse
     {
-        $this->autoriser($request);
+        $this->autoriser($request, 'creer_commandes', 'encaisser');
         $telephone = NormaliseurTelephone::normaliser((string) $request->query('telephone', ''));
 
         $client = $telephone === null ? null : app(ContexteEtablissement::class)->obtenir()->clients()->where('telephone', $telephone)->first();
@@ -128,7 +129,7 @@ class CommandeManuelleController extends Controller
      */
     public function reference(Request $request): JsonResponse
     {
-        $this->autoriser($request);
+        $this->autoriser($request, 'creer_commandes');
         $reference = $this->trouverReference((string) $request->query('reference', ''));
 
         if ($reference === null) {
@@ -268,8 +269,14 @@ class CommandeManuelleController extends Controller
         );
     }
 
-    private function autoriser(Request $request): void
+    /**
+     * Lot F : le comptoir demande encaisser, WhatsApp et téléphone
+     * creer_commandes. Les articles et le client d'un numéro servent aux
+     * deux ; les communes et les références collées, seulement à la
+     * livraison.
+     */
+    private function autoriser(Request $request, string ...$permissions): void
     {
-        abort_unless($request->user()->peut('creer_commandes'), 403);
+        abort_unless(collect($permissions)->contains(fn (string $permission) => $request->user()->peut($permission)), 403);
     }
 }

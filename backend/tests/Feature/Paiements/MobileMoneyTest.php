@@ -229,7 +229,7 @@ class MobileMoneyTest extends TestCase
             ->assertJsonPath('data.paiement_confirme', false);
     }
 
-    public function test_8_sans_gerer_commandes_la_confirmation_renvoie_403(): void
+    public function test_8_sans_encaisser_la_confirmation_renvoie_403(): void
     {
         $this->seed();
         $this->configurerMobileMoney('maquis-du-port');
@@ -244,7 +244,7 @@ class MobileMoneyTest extends TestCase
         app(CreerRattachementUtilisateur::class)->executer(
             $gestionnaire,
             $this->etablissement('maquis-du-port'),
-            Role::where('nom', 'gestionnaire_stock')->value('id'),
+            [Role::where('nom', 'gestionnaire_stock')->value('id')],
         );
 
         $this->connecte('maquis-du-port.localhost', 'stock@maquis-du-port.test');
@@ -259,12 +259,12 @@ class MobileMoneyTest extends TestCase
         ['commande' => $commande] = $this->commanderEnMobileMoney();
         $this->assertSame(StatutCommande::AttentePaiement, $commande->statut);
 
-        $this->connecte('maquis-du-port.localhost', 'yao@maquis-du-port.test');
+        $this->connecte('maquis-du-port.localhost', 'adjoua@maquis-du-port.test');
         $this->confirmerPaiement('maquis-du-port.localhost', $commande, ['montant_recu' => 20309, 'reference' => 'TX-12345'])
             ->assertStatus(200)
             ->assertJsonPath('data.statut', 'attente_paiement')
             ->assertJsonPath('data.paiement.confirme', true)
-            ->assertJsonPath('data.paiement.confirme_par', 'Yao Kouadio')
+            ->assertJsonPath('data.paiement.confirme_par', 'Adjoua Kone')
             ->assertJsonPath('data.paiement.reference', 'TX-12345');
 
         $fraiche = $commande->fresh();
@@ -278,7 +278,7 @@ class MobileMoneyTest extends TestCase
         $journal = JournalAudit::where('action', 'paiement_commande_confirme')->sole();
         $this->assertSame(20309, $journal->details['montant_recu']);
         $this->assertSame('TX-12345', $journal->details['reference']);
-        $this->assertSame(User::where('email', 'yao@maquis-du-port.test')->value('id'), $journal->utilisateur_id);
+        $this->assertSame(User::where('email', 'adjoua@maquis-du-port.test')->value('id'), $journal->utilisateur_id);
     }
 
     public function test_10_un_montant_different_du_total_est_enregistre_et_lecart_apparait_dans_lhistorique(): void
@@ -287,7 +287,7 @@ class MobileMoneyTest extends TestCase
         $this->configurerMobileMoney('maquis-du-port');
         ['commande' => $commande] = $this->commanderEnMobileMoney();
 
-        $this->connecte('maquis-du-port.localhost', 'yao@maquis-du-port.test');
+        $this->connecte('maquis-du-port.localhost', 'adjoua@maquis-du-port.test');
         $reponse = $this->confirmerPaiement('maquis-du-port.localhost', $commande, ['montant_recu' => 20000])
             ->assertStatus(200)
             ->assertJsonPath('data.paiement.montant_recu', 20000)

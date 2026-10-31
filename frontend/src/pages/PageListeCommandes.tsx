@@ -39,7 +39,8 @@ export function PageListeCommandes() {
   const [page, setPage] = useState(1)
   const navigate = useNavigate()
   const { data: moi } = useMoi()
-  const peutSaisir = moi?.permissions.includes('creer_commandes') ?? false
+  // Lot F : le comptoir demande encaisser, WhatsApp et téléphone creer_commandes.
+  const peutSaisir = moi?.permissions.some((permission) => permission === 'creer_commandes' || permission === 'encaisser') ?? false
 
   const rechercheDifferee = useValeurDifferee(recherche)
 

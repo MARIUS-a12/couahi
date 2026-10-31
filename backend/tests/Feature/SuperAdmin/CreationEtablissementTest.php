@@ -68,7 +68,7 @@ class CreationEtablissementTest extends TestCase
 
         $administrateur = User::where('email', 'admin@boutique-test.test')->firstOrFail();
         $appartenance = $etablissement->appartenances()->where('utilisateur_id', $administrateur->id)->firstOrFail();
-        $this->assertSame('admin_etablissement', $appartenance->role->nom);
+        $this->assertSame(['admin_etablissement'], $appartenance->roles->pluck('nom')->all());
     }
 
     /**

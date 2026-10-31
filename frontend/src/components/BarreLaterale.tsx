@@ -26,7 +26,7 @@ import { useStatistiquesCommandes } from '../hooks/useStatistiquesCommandes'
 
 const ENTREES = [
   { vers: '/admin/produits', libelle: 'Produits', icone: Package, permissions: ['voir_catalogue', 'gerer_catalogue'] },
-  { vers: '/admin/commandes', libelle: 'Commandes', icone: ShoppingCart, permissions: ['voir_commandes', 'gerer_commandes'] },
+  { vers: '/admin/commandes', libelle: 'Commandes', icone: ShoppingCart, permissions: ['voir_commandes'] },
   // Lot D : la pastille est le NOMBRE de demandes nouvelles, jamais un point décoratif.
   { vers: '/admin/demandes-whatsapp', libelle: 'Demandes WhatsApp', icone: MessageCircle, permissions: ['gerer_demandes_whatsapp'] },
   { vers: '/admin/categories', libelle: 'Catégories', icone: FolderTree, permissions: ['voir_catalogue', 'gerer_catalogue'] },
@@ -43,7 +43,7 @@ export function BarreLaterale({
   ouvertMobile: boolean
   onFermerMobile: () => void
 }) {
-  const peutVoirCommandes = moi.permissions.includes('voir_commandes') || moi.permissions.includes('gerer_commandes')
+  const peutVoirCommandes = moi.permissions.includes('voir_commandes')
   const { data: statistiquesCommandes } = useStatistiquesCommandes(peutVoirCommandes)
   const { data: demandesNouvelles } = useCompteDemandesWhatsapp(moi.permissions.includes('gerer_demandes_whatsapp'))
 

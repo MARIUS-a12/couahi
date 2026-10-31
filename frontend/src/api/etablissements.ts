@@ -36,7 +36,8 @@ export type UtilisateurRattache = {
   id: number
   nom: string
   email: string
-  role: string
+  // Libellés de ses rôles (lot F : plusieurs possibles).
+  roles: string[]
   statut: string
 }
 

@@ -15,7 +15,8 @@ export function EtatErreur({ erreur, onReessayer }: { erreur?: unknown; onReessa
       <div className="flex flex-col items-center gap-3 border border-bordure bg-surface px-6 py-16 text-center">
         <Lock aria-hidden="true" size={40} strokeWidth={1.5} className="text-danger" />
         <p className="max-w-sm text-corps text-texte">
-          Vous n'avez pas les droits nécessaires pour cette action.
+          Vous n'avez pas les droits nécessaires pour cette action. Si vos droits viennent de changer, rechargez
+          la page.
         </p>
       </div>
     )

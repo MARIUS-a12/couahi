@@ -46,9 +46,8 @@ class VariantesProduitApiTest extends TestCase
         EtablissementUtilisateur::create([
             'etablissement_id' => Etablissement::where('slug', $slugEtablissement)->value('id'),
             'utilisateur_id' => $utilisateur->id,
-            'role_id' => Role::where('nom', $role)->value('id'),
             'statut' => 'actif',
-        ]);
+        ])->roles()->attach(Role::where('nom', $role)->value('id'));
 
         return $utilisateur;
     }

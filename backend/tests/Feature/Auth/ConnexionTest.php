@@ -50,7 +50,7 @@ class ConnexionTest extends TestCase
 
         $moi = $this->depuis('chez-awa.localhost')->getJson('http://chez-awa.localhost:8000/api/moi');
         $moi->assertStatus(200);
-        $moi->assertJsonPath('role', 'admin_etablissement');
+        $moi->assertJsonPath('roles', ['admin_etablissement']);
         $this->assertCount(12, $moi->json('permissions'));
         $this->assertContains('gerer_demandes_whatsapp', $moi->json('permissions'));
         $this->assertContains('creer_commandes', $moi->json('permissions'));

@@ -50,7 +50,7 @@ class EtablissementDetailResource extends JsonResource
                 'id' => $appartenance->utilisateur->id,
                 'nom' => $appartenance->utilisateur->name,
                 'email' => $appartenance->utilisateur->email,
-                'role' => $appartenance->role->nom,
+                'roles' => $appartenance->roles->pluck('libelle')->values(),
                 'statut' => $appartenance->statut,
             ]),
         ];

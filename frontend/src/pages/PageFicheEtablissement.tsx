@@ -242,7 +242,7 @@ export function PageFicheEtablissement() {
                 <span className="text-corps font-medium text-texte">{utilisateur.nom}</span>
                 <span className="ml-2 text-petit text-texte-secondaire">{utilisateur.email}</span>
               </div>
-              <span className="text-petit text-texte-secondaire">{utilisateur.role}</span>
+              <span className="text-petit text-texte-secondaire">{utilisateur.roles.join(', ')}</span>
             </li>
           ))}
           {etablissement.utilisateurs.length === 0 && (

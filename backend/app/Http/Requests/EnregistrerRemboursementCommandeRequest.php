@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Gate;
  * ce que le commerçant a reçu ; il peut être moindre (frais retenus
  * d'un commun accord) — l'écart est alors noté dans l'historique.
  *
- * L'autorisation (gerer_commandes, via la policy "update") est vérifiée
+ * L'autorisation (annuler_payees, via la policy "rembourser") est vérifiée
  * AVANT la validation : un utilisateur sans ce droit reçoit 403, jamais
  * un 422 qui lui détaillerait les règles du formulaire.
  */
@@ -18,7 +18,7 @@ class EnregistrerRemboursementCommandeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return Gate::allows('update', $this->route('commande'));
+        return Gate::allows('rembourser', $this->route('commande'));
     }
 
     protected function prepareForValidation(): void

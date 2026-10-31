@@ -217,7 +217,7 @@ class ConsultationsPlateformeTest extends TestCase
 
         // Les routes commerçant n'ont aucun établissement sur l'hôte du
         // super-admin : refus, jamais de données — donc rien à tracer.
-        foreach (['api/commandes', 'api/commandes/statistiques', 'api/statistiques'] as $chemin) {
+        foreach (['api/commandes', 'api/commandes/statistiques'] as $chemin) {
             $reponse = $this->consulter($chemin);
             $this->assertContains($reponse->status(), [400, 403], $chemin);
             $this->assertNull($reponse->json('data'), $chemin);

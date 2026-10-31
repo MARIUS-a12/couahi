@@ -23,9 +23,19 @@ use Illuminate\Validation\Rule;
  */
 class SaisirCommandeManuelleRequest extends FormRequest
 {
+    /**
+     * Lot F : vendre au comptoir, c'est encaisser ; saisir une commande
+     * WhatsApp ou téléphone, c'est creer_commandes. Le canal choisi décide
+     * du droit exigé, même par requête forgée. Un canal absent ou inconnu
+     * passe avec l'un des deux, et la validation le refuse ensuite.
+     */
     public function authorize(): bool
     {
-        return $this->user()->peut('creer_commandes');
+        return match ($this->input('canal')) {
+            Canal::Comptoir->value => $this->user()->peut('encaisser'),
+            Canal::Whatsapp->value, Canal::Telephone->value => $this->user()->peut('creer_commandes'),
+            default => $this->user()->peut('encaisser') || $this->user()->peut('creer_commandes'),
+        };
     }
 
     protected function prepareForValidation(): void

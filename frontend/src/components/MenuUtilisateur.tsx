@@ -158,7 +158,7 @@ export function MenuUtilisateur({ moi }: { moi: Moi }) {
         <CarreInitiale nom={moi.utilisateur.nom} taille={40} arrondi />
         <span className="hidden max-w-40 flex-col items-start leading-tight sm:flex">
           <span className="truncate text-petit font-semibold text-texte">{moi.utilisateur.nom}</span>
-          <span className="truncate text-[11px] text-texte-secondaire">{moi.role_libelle_espace ?? moi.role}</span>
+          <span className="truncate text-[11px] text-texte-secondaire">{moi.role_libelle_espace ?? moi.roles.join(', ')}</span>
         </span>
         <ChevronDown
           aria-hidden="true"
@@ -188,7 +188,7 @@ export function MenuUtilisateur({ moi }: { moi: Moi }) {
               <div className="min-w-0">
                 <p className="truncate text-corps font-semibold text-texte">{moi.utilisateur.nom}</p>
                 <p className="truncate text-petit text-texte-secondaire">{moi.utilisateur.email}</p>
-                <p className="text-petit text-texte-secondaire">{moi.role_libelle_espace ?? moi.role}</p>
+                <p className="text-petit text-texte-secondaire">{moi.role_libelle_espace ?? moi.roles.join(', ')}</p>
               </div>
             </div>
 

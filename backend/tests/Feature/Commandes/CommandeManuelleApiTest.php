@@ -388,7 +388,7 @@ class CommandeManuelleApiTest extends TestCase
     {
         app(ContexteEtablissement::class)->definir($this->wax);
         $stock = User::factory()->create(['email' => 'stock@wax-adjame.test', 'password' => 'motdepasse', 'mot_de_passe_defini' => true]);
-        app(CreerRattachementUtilisateur::class)->executer($stock, $this->wax, Role::where('nom', 'gestionnaire_stock')->value('id'));
+        app(CreerRattachementUtilisateur::class)->executer($stock, $this->wax, [Role::where('nom', 'gestionnaire_stock')->value('id')]);
         app(ContexteEtablissement::class)->definir(null);
         $this->connecte('stock@wax-adjame.test');
 

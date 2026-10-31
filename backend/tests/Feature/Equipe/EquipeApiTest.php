@@ -52,12 +52,12 @@ class EquipeApiTest extends TestCase
 
         $reponse = $this->depuis('chez-awa.localhost')->putJson(
             "http://chez-awa.localhost:8000/api/equipe/{$membreAwa->id}",
-            ['role_id' => Role::where('nom', 'operateur')->value('id')],
+            ['role_ids' => [Role::where('nom', 'operateur')->value('id')]],
         );
 
         $reponse->assertStatus(422);
-        $reponse->assertJsonValidationErrors(['role_id']);
-        $this->assertSame('admin_etablissement', $membreAwa->refresh()->role->nom);
+        $reponse->assertJsonValidationErrors(['role_ids']);
+        $this->assertSame(['admin_etablissement'], $membreAwa->refresh()->roles->pluck('nom')->all());
     }
 
     public function test_5_un_administrateur_ne_peut_pas_se_desactiver_lui_meme(): void
@@ -124,7 +124,7 @@ class EquipeApiTest extends TestCase
         $creation = $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/equipe', [
             'nom' => 'Caissier Test',
             'email' => 'caissier7@chez-awa.test',
-            'role_id' => Role::where('nom', 'caissier')->value('id'),
+            'role_ids' => [Role::where('nom', 'caissier')->value('id')],
         ])->assertStatus(201);
         $membreId = $creation->json('data.id');
         $utilisateurId = $creation->json('data.utilisateur_id');
@@ -174,7 +174,7 @@ class EquipeApiTest extends TestCase
         $this->depuis('maquis-du-port.localhost')->postJson('http://maquis-du-port.localhost:8000/api/equipe', [
             'nom' => 'X',
             'email' => 'x@maquis-du-port.test',
-            'role_id' => Role::where('nom', 'caissier')->value('id'),
+            'role_ids' => [Role::where('nom', 'caissier')->value('id')],
         ])->assertStatus(403);
         $this->depuis('maquis-du-port.localhost')
             ->putJson("http://maquis-du-port.localhost:8000/api/equipe/{$membreYao->id}", ['nom' => 'Y'])
@@ -221,7 +221,7 @@ class EquipeApiTest extends TestCase
         $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/equipe', [
             'nom' => 'Personne Partagée',
             'email' => 'partage@exemple.test',
-            'role_id' => Role::where('nom', 'caissier')->value('id'),
+            'role_ids' => [Role::where('nom', 'caissier')->value('id')],
         ])->assertStatus(201);
 
         $maquisDuPort = Etablissement::where('slug', 'maquis-du-port')->firstOrFail();
@@ -231,7 +231,7 @@ class EquipeApiTest extends TestCase
             etablissement: $maquisDuPort,
             nom: 'Autre Personne',
             email: 'partage@exemple.test',
-            roleId: Role::where('nom', 'caissier')->value('id'),
+            roleIds: [Role::where('nom', 'caissier')->value('id')],
             acteur: $adjoua,
             adresseIp: null,
         );
@@ -259,7 +259,7 @@ class EquipeApiTest extends TestCase
         $creation = $this->depuis('chez-awa.localhost')->postJson('http://chez-awa.localhost:8000/api/equipe', [
             'nom' => 'Nouveau Membre',
             'email' => 'membre12@chez-awa.test',
-            'role_id' => Role::where('nom', 'caissier')->value('id'),
+            'role_ids' => [Role::where('nom', 'caissier')->value('id')],
         ]);
         $creation->assertStatus(201);
         $this->assertDatabaseHas('journaux_audit', ['action' => 'equipe_membre_cree']);

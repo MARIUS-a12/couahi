@@ -17,7 +17,8 @@ export type TypeEtablissement = 'boutique' | 'restaurant'
 export type Moi = {
   utilisateur: Utilisateur
   etablissement: { id: number; nom: string; type: TypeEtablissement; statut: string } | null
-  role: string
+  // Lot F : plusieurs rôles possibles ; permissions est leur union.
+  roles: string[]
   // Étape 10 : le libellé affiché sous le nom de la boutique ("Espace
   // Administrateur"...) vient de la base (voir RolesEtPermissionsSeeder),
   // jamais d'une liste codée en dur côté React — voir BarreLaterale.
