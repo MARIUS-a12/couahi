@@ -15,6 +15,8 @@ fichier, ce fichier l'emporte. Divergences connues :
 - Boost fait lancer les tests les plus étroits ; ici, la suite complète se
   lance avant chaque commit.
 
+Fin de lot : suivre le skill fin-de-lot (.claude/skills/fin-de-lot/SKILL.md).
+
 ## Fichiers interdits
 Ne jamais lire, ouvrir, modifier ni afficher un fichier .env, où qu'il soit
 (backend/.env, frontend/.env, .env.local, .env.production…). Un hook le
